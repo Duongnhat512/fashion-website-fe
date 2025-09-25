@@ -19,12 +19,6 @@ export default function Header() {
           <Link to="/" className="hover:text-gray-600 transition-colors">
             Trang chủ
           </Link>
-          <Link to="/shop" className="hover:text-gray-600 transition-colors">
-            Sản phẩm
-          </Link>
-          <Link to="/contact" className="hover:text-gray-600 transition-colors">
-            Liên hệ
-          </Link>
           <Link to="/cart" className="hover:text-gray-600 transition-colors">
             Giỏ hàng
           </Link>

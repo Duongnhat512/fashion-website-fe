@@ -7,17 +7,17 @@ export default function CartPage() {
   const { cart, updateCart } = useCart();
 
   // Cập nhật số lượng
-  const updateQty = (id: string, newQty: number) => {
+  const updateQty = (cartKey: string, newQty: number) => {
     const updatedCart = cart.map((item) =>
-      item.id === id ? { ...item, qty: Math.max(1, newQty) } : item
+      item.cartKey === cartKey ? { ...item, qty: Math.max(1, newQty) } : item
     );
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     updateCart();
   };
 
   // Xóa sản phẩm
-  const removeItem = (id: string) => {
-    const updatedCart = cart.filter((item) => item.id !== id);
+  const removeItem = (cartKey: string) => {
+    const updatedCart = cart.filter((item) => item.cartKey !== cartKey);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     updateCart();
   };
@@ -46,7 +46,7 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-4">
             {cart.map((item) => (
               <div
-                key={item.id}
+                key={item.cartKey}
                 className="flex items-center gap-4 border rounded-lg p-4 bg-white shadow-sm"
               >
                 <img
@@ -57,13 +57,28 @@ export default function CartPage() {
 
                 <div className="flex-1">
                   <h2 className="font-semibold">{item.name}</h2>
-                  <p className="text-gray-500">
+
+                  {/* Hiển thị variant nếu có */}
+                  {item.variant ? (
+                    <div className="text-sm text-gray-600 mt-1">
+                      <p>
+                        <span className="font-medium">Phân loại:</span>{" "}
+                        {item.variant.size}{" "}
+                        {item.variant.color && `- ${item.variant.color}`}
+                      </p>
+                      {item.variant.sku && <p>Mã SP: {item.variant.sku}</p>}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Không có phân loại</p>
+                  )}
+
+                  <p className="text-gray-500 mt-1">
                     {item.price.toLocaleString("vi-VN")}₫
                   </p>
 
                   <div className="flex items-center gap-2 mt-2">
                     <button
-                      onClick={() => updateQty(item.id, item.qty - 1)}
+                      onClick={() => updateQty(item.cartKey, item.qty - 1)}
                       className="px-3 py-1 border rounded"
                     >
                       -
@@ -72,12 +87,12 @@ export default function CartPage() {
                       type="number"
                       value={item.qty}
                       onChange={(e) =>
-                        updateQty(item.id, Number(e.target.value) || 1)
+                        updateQty(item.cartKey, Number(e.target.value) || 1)
                       }
                       className="w-14 text-center border rounded"
                     />
                     <button
-                      onClick={() => updateQty(item.id, item.qty + 1)}
+                      onClick={() => updateQty(item.cartKey, item.qty + 1)}
                       className="px-3 py-1 border rounded"
                     >
                       +
@@ -90,7 +105,7 @@ export default function CartPage() {
                     {(item.price * item.qty).toLocaleString("vi-VN")}₫
                   </p>
                   <button
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeItem(item.cartKey)}
                     className="mt-2 text-red-500 hover:underline"
                   >
                     Xóa

@@ -10,32 +10,71 @@ import {
   Breadcrumb,
   Space,
   InputNumber,
+  Select,
 } from "antd";
-import { ShoppingCartOutlined, ArrowLeftOutlined } from "@ant-design/icons";
-import type { Product } from "../types/product.types";
-import { fallbackProducts } from "../data/fallbackProducts";
+import {
+  ShoppingCartOutlined,
+  ArrowLeftOutlined,
+  PlusOutlined,
+  MinusOutlined,
+} from "@ant-design/icons";
+import type { Product, ProductVariant } from "../types/product.types";
 import { useCart } from "../contexts/CartContext";
+import products from "../data/products.json";
+import productVariants from "../data/product_variants.json";
+
+const { Option } = Select;
+
 export default function ProductDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [mainImage, setMainImage] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    null
+  );
 
   useEffect(() => {
-    console.log("Product ID from params:", id);
-    if (!id) return;
-    const found = fallbackProducts.find((p) => p.id === id);
-    setProduct(found || null);
+    if (!slug) return;
+
+    // Tìm sản phẩm theo slug
+    const found = products.find((p) => p.slug === slug);
+
     if (found) {
-      setMainImage(found.imageUrl);
-      setRelatedProducts(
-        fallbackProducts.filter((p) => p.id !== found.id).slice(0, 4)
+      // Ghép variants từ product_variants.json theo productId
+      const variants = productVariants.filter(
+        (v: ProductVariant) => v.productId === found.id
       );
+
+      const mergedProduct: Product = {
+        ...found,
+        variants,
+      };
+
+      setProduct(mergedProduct);
+
+      if (variants.length > 0) {
+        setSelectedVariant(variants[0]);
+        setMainImage(
+          variants[0].images?.[0] || variants[0].imageUrl || found.imageUrl
+        );
+      } else {
+        setMainImage(found.imageUrl);
+      }
+
+      setRelatedProducts(
+        products.filter((p) => p.slug !== found.slug).slice(0, 4)
+      );
+
+      console.log("Found product:", mergedProduct);
+    } else {
+      setProduct(null);
     }
-  }, [id]);
+  }, [slug]);
 
   if (!product) {
     return (
@@ -62,15 +101,9 @@ export default function ProductDetail() {
       <Breadcrumb
         className="mb-6"
         items={[
-          {
-            title: <Link to="/">Trang chủ</Link>,
-          },
-          {
-            title: <Link to="/">Sản phẩm</Link>,
-          },
-          {
-            title: product.name,
-          },
+          { title: <Link to="/">Trang chủ</Link> },
+          { title: <Link to="/products">Sản phẩm</Link> },
+          { title: product.name },
         ]}
       />
 
@@ -103,10 +136,41 @@ export default function ProductDetail() {
               </span>
             </div>
 
+            {/* ✅ Variant selection */}
+            {product.variants && product.variants.length > 0 && (
+              <div>
+                <span className="font-semibold mr-2">Chọn phiên bản:</span>
+                <Select
+                  value={selectedVariant?.id}
+                  onChange={(value) => {
+                    const variant =
+                      product.variants?.find((v) => v.id === value) || null;
+                    setSelectedVariant(variant);
+                    if (variant) {
+                      setMainImage(
+                        variant.images?.[0] ||
+                          variant.imageUrl ||
+                          product.imageUrl
+                      );
+                    }
+                  }}
+                  style={{ minWidth: 200 }}
+                >
+                  {product.variants.map((variant) => (
+                    <Option key={variant.id} value={variant.id}>
+                      {variant.color || "Màu"} - Size {variant.size}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            )}
+
             <div className="text-3xl font-bold text-red-600">
-              {product.variants && product.variants.length > 0
-                ? product.variants[0].price.toLocaleString("vi-VN")
-                : (product as any).price?.toLocaleString("vi-VN") || "Liên hệ"}
+              {selectedVariant
+                ? (
+                    selectedVariant.salePrice || selectedVariant.price
+                  ).toLocaleString("vi-VN")
+                : "Liên hệ"}
               ₫
             </div>
 
@@ -114,15 +178,22 @@ export default function ProductDetail() {
               {product.shortDescription}
             </p>
 
-            {/* Quantity và Add to Cart */}
-            <Space size="middle">
-              <span>Số lượng:</span>
+            {/* Quantity + Add to Cart */}
+            <Space>
+              <Button
+                icon={<MinusOutlined />}
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              />
               <InputNumber
                 min={1}
-                defaultValue={1}
                 value={quantity}
                 onChange={(value) => setQuantity(value || 1)}
                 style={{ width: 80 }}
+                controls={false} // tắt nút mặc định của Antd
+              />
+              <Button
+                icon={<PlusOutlined />}
+                onClick={() => setQuantity(quantity + 1)}
               />
             </Space>
 
@@ -132,9 +203,11 @@ export default function ProductDetail() {
                 size="large"
                 icon={<ShoppingCartOutlined />}
                 onClick={() => {
-                  // Thêm nhiều lần theo số lượng đã chọn
-                  for (let i = 0; i < quantity; i++) {
-                    addToCart(product);
+                  if (selectedVariant) {
+                    addToCart(
+                      { ...product, variants: [selectedVariant] },
+                      quantity
+                    );
                   }
                 }}
                 className="bg-black hover:bg-gray-800 border-black"
@@ -149,26 +222,6 @@ export default function ProductDetail() {
                 Quay lại
               </Button>
             </Space>
-
-            {/* Product Info */}
-            <Card title="Thông tin sản phẩm" size="small">
-              <Row gutter={[16, 8]}>
-                <Col span={8}>
-                  <strong>Thương hiệu:</strong>
-                </Col>
-                <Col span={16}>{product.brand}</Col>
-                <Col span={8}>
-                  <strong>Đánh giá:</strong>
-                </Col>
-                <Col span={16}>{product.ratingAverage}/5 ⭐</Col>
-                <Col span={8}>
-                  <strong>Trạng thái:</strong>
-                </Col>
-                <Col span={16}>
-                  <Tag color="green">Còn hàng</Tag>
-                </Col>
-              </Row>
-            </Card>
           </Space>
         </Col>
       </Row>
@@ -179,50 +232,29 @@ export default function ProductDetail() {
           <h2 className="text-2xl font-semibold mb-6">Sản phẩm liên quan</h2>
           <Row gutter={[16, 16]}>
             {relatedProducts.map((p) => (
-              <Col key={p.id} xs={12} sm={6} md={6} lg={6}>
+              <Col key={p.slug} xs={12} sm={6} md={6} lg={6}>
                 <Card
                   hoverable
                   cover={
                     <img
                       src={p.imageUrl}
                       alt={p.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-96 object-cover"
                     />
                   }
-                  onClick={() => navigate(`/product/${p.id}`)}
+                  onClick={() => navigate(`/product/${p.slug}`)}
                   className="h-full"
                 >
                   <Card.Meta
-                    title={
-                      <div className="truncate text-sm" title={p.name}>
-                        {p.name}
-                      </div>
-                    }
+                    title={<div className="truncate text-sm">{p.name}</div>}
                     description={
-                      <Space
-                        direction="vertical"
-                        size="small"
-                        className="w-full"
-                      >
-                        <Tag color="blue" size="small">
-                          {p.brand}
-                        </Tag>
+                      <Space direction="vertical" size="small">
+                        <Tag color="blue">{p.brand}</Tag>
                         <div className="flex items-center justify-between">
-                          <Rate
-                            disabled
-                            defaultValue={p.ratingAverage}
-                            size="small"
-                          />
+                          <Rate disabled defaultValue={p.ratingAverage} />
                           <span className="text-xs text-gray-500">
-                            ({p.ratingCount})
+                            ({p.ratingCount || 0} đánh giá)
                           </span>
-                        </div>
-                        <div className="text-red-600 font-semibold">
-                          {p.variants && p.variants.length > 0
-                            ? p.variants[0].price.toLocaleString("vi-VN")
-                            : (p as any).price?.toLocaleString("vi-VN") ||
-                              "Liên hệ"}
-                          ₫
                         </div>
                       </Space>
                     }

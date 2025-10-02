@@ -42,33 +42,49 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setCart(storedCart);
   };
 
-  const addToCart = (product: any) => {
+  const addToCart = (product: any, qty: number = 1) => {
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+    // Nếu có variant thì dùng id của variant để phân biệt
+    const variant =
+      product.variants && product.variants.length > 0
+        ? product.variants[0]
+        : null;
+    const cartKey = variant ? `${product.id}-${variant.id}` : product.id;
+
     const existingIndex = existingCart.findIndex(
-      (item: any) => item.id === product.id
+      (item: any) => item.cartKey === cartKey
     );
 
-    // Lấy giá từ variants hoặc price trực tiếp
-    const price =
-      product.variants && product.variants.length > 0
-        ? product.variants[0].price
-        : product.price || 0;
+    const price = variant ? variant.price : product.price || 0;
 
     if (existingIndex >= 0) {
-      existingCart[existingIndex].qty += 1;
+      existingCart[existingIndex].qty += qty;
     } else {
       existingCart.push({
+        cartKey, // khóa riêng để phân biệt variant
         id: product.id,
         name: product.name,
         price: price,
-        qty: 1,
-        image: product.imageUrl,
+        qty: qty,
+        image: variant?.images?.[0] || product.imageUrl,
+        variant: variant
+          ? {
+              id: variant.id,
+              size: variant.size,
+              color: variant.color,
+            }
+          : null,
       });
     }
 
     localStorage.setItem("cart", JSON.stringify(existingCart));
     updateCart();
-    alert(`Đã thêm ${product.name} vào giỏ hàng!`);
+    alert(
+      `Đã thêm ${qty} x ${product.name}${
+        variant ? ` (${variant.size} - ${variant.color})` : ""
+      } vào giỏ hàng!`
+    );
   };
 
   const cartCount = cart.reduce((total, item) => total + item.qty, 0);

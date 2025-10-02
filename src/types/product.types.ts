@@ -10,7 +10,7 @@ export interface Product {
   tags: string;
   ratingAverage: number;
   ratingCount: number;
-  variants: ProductVariant[];
+  // variants: ProductVariant[];
   createdAt: Date;
   updatedAt: Date;
 }

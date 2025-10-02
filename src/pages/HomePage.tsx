@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { productService } from "../services/productService";
 import { useCart } from "../contexts/CartContext";
 import { Carousel, Pagination, Rate } from "antd";
+import variantData from "../data/product_variants.json"; // ✅ thêm file variant
 
 import type {
   Product,
@@ -20,26 +21,58 @@ const HomePage = () => {
   const { addToCart } = useCart();
   const itemsPerPage = 16;
 
+  // ✅ Hàm merge variant đầu tiên vào product
+  const mergeWithVariant = (product: Product) => {
+    // Tìm danh sách variant tương ứng theo productId
+    const productVariants = variantData.filter(
+      (v) => v.productId === product.id
+    );
+
+    if (productVariants.length > 0) {
+      const firstVariant = productVariants[0];
+
+      return {
+        ...product,
+        variants: productVariants, // gắn toàn bộ variants
+        price: firstVariant.price, // dùng giá variant đầu tiên
+        imageUrl: firstVariant.image || product.imageUrl,
+        defaultVariant: firstVariant, // gắn mặc định variant đầu tiên
+      };
+    }
+
+    return { ...product, variants: [], defaultVariant: null };
+  };
+
   // Fetch products
   const fetchProducts = async (page: number) => {
     try {
       setLoading(true);
 
-      // Gọi API
       const response: PaginatedProductsResponse =
         await productService.getAllProducts(page, itemsPerPage);
 
       if (response?.products?.length) {
-        setProducts(response.products);
+        setProducts(
+          productData
+            .slice(startIndex, startIndex + itemsPerPage)
+            .map(mergeWithVariant)
+        );
       } else {
-        // fallback sang products.json
         const startIndex = (page - 1) * itemsPerPage;
-        setProducts(productData.slice(startIndex, startIndex + itemsPerPage));
+        setProducts(
+          productData
+            .slice(startIndex, startIndex + itemsPerPage)
+            .map(mergeWithVariant)
+        );
       }
     } catch (err) {
       console.error("Error fetching products:", err);
       const startIndex = (page - 1) * itemsPerPage;
-      setProducts(productData.slice(startIndex, startIndex + itemsPerPage));
+      setProducts(
+        productData
+          .slice(startIndex, startIndex + itemsPerPage)
+          .map(mergeWithVariant)
+      );
     } finally {
       setLoading(false);
     }
@@ -83,11 +116,11 @@ const HomePage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {products.map((product) => (
           <motion.div
-            key={product.slug} // ✅ dùng slug
+            key={product.slug}
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.3 }}
             className="bg-white rounded-2xl shadow-lg overflow-hidden relative group cursor-pointer"
-            onClick={() => navigate(`/product/${product.slug}`)} // ✅ điều hướng theo slug
+            onClick={() => navigate(`/product/${product.slug}`)}
           >
             <div className="relative w-full aspect-[3/4] overflow-hidden">
               <img
@@ -103,7 +136,13 @@ const HomePage = () => {
                 className="px-6 py-2 bg-black text-white font-semibold rounded transform translate-y-6 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 ease-in-out"
                 onClick={(e) => {
                   e.stopPropagation();
-                  addToCart(product);
+                  // ✅ add product kèm defaultVariant
+                  addToCart(
+                    product.defaultVariant
+                      ? { ...product, variants: [product.defaultVariant] }
+                      : product,
+                    1
+                  );
                 }}
               >
                 MUA NGAY →
@@ -114,9 +153,13 @@ const HomePage = () => {
               <h2 className="text-lg font-semibold mb-2 line-clamp-1">
                 {product.name}
               </h2>
-              {/* <p className="text-gray-600 text-sm line-clamp-2">
-                {product.shortDescription}
-              </p> */}
+
+              {/* Giá */}
+              <p className="text-red-600 font-semibold">
+                {product.price?.toLocaleString("vi-VN")}₫
+              </p>
+
+              {/* Rating */}
               <div className="flex items-center justify-between mt-3 text-sm">
                 <Rate
                   disabled

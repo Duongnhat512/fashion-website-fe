@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { productService } from "../services/productService";
 import { useCart } from "../contexts/CartContext";
+import { Carousel } from "antd";
+
 import type {
   Product,
   PaginatedProductsResponse,
@@ -332,6 +334,24 @@ const HomePage = () => {
 
   return (
     <div className="container mx-auto py-10 px-4">
+      <div className="mb-10">
+        <Carousel autoplay autoplaySpeed={3000} effect="fade" dots={true}>
+          <div>
+            <img
+              src="https://cdn.hstatic.net/files/1000210298/file/cover_b0b8afead5ac4f77b46d6411f794eb46.jpg"
+              alt="banner 1"
+              className="w-full h-[800px] object-cover rounded-xl"
+            />
+          </div>
+          <div>
+            <img
+              src="https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png"
+              alt="banner 2"
+              className="w-full h-[800px] object-cover rounded-xl"
+            />
+          </div>
+        </Carousel>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {products.map((product: Product) => (
           <motion.div

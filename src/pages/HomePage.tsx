@@ -3,268 +3,23 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { productService } from "../services/productService";
 import { useCart } from "../contexts/CartContext";
-import { Carousel } from "antd";
+import { Carousel, Pagination } from "antd";
+import { fallbackProducts } from "../data/fallbackProducts";
 
 import type {
   Product,
   PaginatedProductsResponse,
 } from "../types/product.types";
 
-// Mock data nếu API rỗng
-const fallbackProducts: Product[] = [
-  {
-    id: "1",
-    slug: "ao-so-mi-casio",
-    name: "Áo sơ mi Casio",
-    shortDescription: "Thiết kế đơn giản, sang trọng",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Casio",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.5,
-    ratingCount: 123,
-    variants: [
-      {
-        id: "1-1",
-        size: "M",
-        price: 1200000,
-        stock: 10,
-        color: { id: "1", name: "Trắng", code: "#FFFFFF" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    slug: "ao-so-mi-seiko",
-    name: "Áo sơ mi Seiko",
-    shortDescription: "Phong cách Nhật Bản tinh tế",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Seiko",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.8,
-    ratingCount: 98,
-    variants: [
-      {
-        id: "2-1",
-        size: "M",
-        price: 2500000,
-        stock: 5,
-        color: { id: "2", name: "Xanh", code: "#0000FF" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    slug: "ao-so-mi-rolex",
-    name: "Áo sơ mi Rolex",
-    shortDescription: "Đẳng cấp doanh nhân",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Rolex",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 5.0,
-    ratingCount: 55,
-    variants: [
-      {
-        id: "3-1",
-        size: "L",
-        price: 50000000,
-        stock: 2,
-        color: { id: "3", name: "Đen", code: "#000000" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "4",
-    slug: "ao-so-mi-louis-vuitton",
-    name: "Áo sơ mi Louis Vuitton",
-    shortDescription: "Sang trọng, thời thượng",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Louis Vuitton",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.9,
-    ratingCount: 210,
-    variants: [
-      {
-        id: "4-1",
-        size: "M",
-        price: 7500000,
-        stock: 8,
-        color: { id: "4", name: "Trắng", code: "#FFFFFF" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "5",
-    slug: "ao-so-mi-gucci",
-    name: "Áo sơ mi Gucci",
-    shortDescription: "Tinh tế và đẳng cấp",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Gucci",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.7,
-    ratingCount: 180,
-    variants: [
-      {
-        id: "5-1",
-        size: "L",
-        price: 9500000,
-        stock: 6,
-        color: { id: "5", name: "Đỏ", code: "#FF0000" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "6",
-    slug: "ao-so-mi-dior",
-    name: "Áo sơ mi Dior",
-    shortDescription: "Thời trang đỉnh cao từ Pháp",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Dior",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.6,
-    ratingCount: 95,
-    variants: [
-      {
-        id: "6-1",
-        size: "M",
-        price: 8800000,
-        stock: 4,
-        color: { id: "6", name: "Vàng", code: "#FFFF00" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "7",
-    slug: "ao-so-mi-uniqlo",
-    name: "Áo sơ mi Uniqlo",
-    shortDescription: "Đơn giản và tiện dụng",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Uniqlo",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.4,
-    ratingCount: 140,
-    variants: [
-      {
-        id: "7-1",
-        size: "S",
-        price: 890000,
-        stock: 15,
-        color: { id: "7", name: "Xám", code: "#808080" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "8",
-    slug: "ao-so-mi-zara",
-    name: "Áo sơ mi Zara",
-    shortDescription: "Phong cách châu Âu trẻ trung",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "Zara",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.3,
-    ratingCount: 160,
-    variants: [
-      {
-        id: "8-1",
-        size: "M",
-        price: 1200000,
-        stock: 12,
-        color: { id: "8", name: "Xanh Navy", code: "#000080" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "9",
-    slug: "ao-so-mi-hm",
-    name: "Áo sơ mi H&M",
-    shortDescription: "Thời trang nhanh, giá hợp lý",
-    imageUrl:
-      "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
-    brand: "H&M",
-    categoryId: "1",
-    status: "active",
-    tags: "ao-so-mi",
-    ratingAverage: 4.2,
-    ratingCount: 200,
-    variants: [
-      {
-        id: "9-1",
-        size: "L",
-        price: 650000,
-        stock: 20,
-        color: { id: "9", name: "Hồng", code: "#FFC0CB" },
-        images: [],
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
 const HomePage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState({
-    total: 0,
-    totalPages: 0,
-    hasNext: false,
-    hasPrev: false,
-    page: 1,
-    limit: 9,
-  });
 
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const itemsPerPage = 9;
+  const itemsPerPage = 16;
 
   // Lấy sản phẩm
   const fetchProducts = async (page: number) => {
@@ -275,22 +30,24 @@ const HomePage = () => {
         await productService.getAllProducts(page, itemsPerPage);
 
       if (!response.products || response.products.length === 0) {
-        setProducts(fallbackProducts);
-        setPagination({
-          total: fallbackProducts.length,
-          totalPages: 1,
-          hasNext: false,
-          hasPrev: false,
-          page: 1,
-          limit: itemsPerPage,
-        });
+        // Sử dụng fallback data với phân trang
+        const startIndex = (page - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedProducts = fallbackProducts.slice(startIndex, endIndex);
+
+        setProducts(paginatedProducts);
       } else {
         setProducts(response.products);
-        setPagination(response.pagination);
       }
     } catch (err) {
       console.error("Error fetching products:", err);
       setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.");
+
+      // Fallback khi có lỗi
+      const startIndex = (page - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedProducts = fallbackProducts.slice(startIndex, endIndex);
+      setProducts(paginatedProducts);
     } finally {
       setLoading(false);
     }
@@ -411,6 +168,21 @@ const HomePage = () => {
             </div>
           </motion.div>
         ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center mt-10">
+        <Pagination
+          current={currentPage}
+          total={fallbackProducts.length}
+          pageSize={itemsPerPage}
+          onChange={handlePageChange}
+          showSizeChanger={false}
+          showQuickJumper
+          showTotal={(total, range) =>
+            `${range[0]}-${range[1]} của ${total} sản phẩm`
+          }
+        />
       </div>
     </div>
   );

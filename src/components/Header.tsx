@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useCart } from "../contexts/CartContext";
 import UserDropdown from "./UserDropdown";
+import { Badge } from "antd";
 
 export default function Header() {
   const { isAuthenticated, user } = useAuth();
+  const { cartCount } = useCart();
 
   return (
     <header className="bg-white shadow">
@@ -19,8 +22,23 @@ export default function Header() {
           <Link to="/" className="hover:text-gray-600 transition-colors">
             Trang chủ
           </Link>
-          <Link to="/cart" className="hover:text-gray-600 transition-colors">
-            Giỏ hàng
+
+          {/* Cart with badge */}
+          <Link
+            to="/cart"
+            className="relative hover:text-gray-600 transition-colors flex items-center"
+          >
+            <Badge
+              count={cartCount > 99 ? "99+" : cartCount}
+              color="red"
+              offset={[10, -5]} // chỉnh vị trí badge
+              style={{
+                fontWeight: 600,
+                boxShadow: "0 0 0 1px #fff", // bo viền trắng cho rõ hơn
+              }}
+            >
+              <span className="text-base">Giỏ hàng</span>
+            </Badge>
           </Link>
 
           {/* Authentication Section */}

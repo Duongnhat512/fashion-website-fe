@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { productService } from "../services/productService";
-import { addToCart } from "../utils/cart";
+import { useCart } from "../contexts/CartContext";
 import type {
   Product,
   PaginatedProductsResponse,
@@ -18,9 +18,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Casio",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.5,
     ratingCount: 123,
-    price: 1200000,
+    variants: [
+      {
+        id: "1-1",
+        size: "M",
+        price: 1200000,
+        stock: 10,
+        color: { id: "1", name: "Trắng", code: "#FFFFFF" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "2",
@@ -30,9 +44,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Seiko",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.8,
     ratingCount: 98,
-    price: 2500000,
+    variants: [
+      {
+        id: "2-1",
+        size: "M",
+        price: 2500000,
+        stock: 5,
+        color: { id: "2", name: "Xanh", code: "#0000FF" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "3",
@@ -42,9 +70,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Rolex",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 5.0,
     ratingCount: 55,
-    price: 50000000,
+    variants: [
+      {
+        id: "3-1",
+        size: "L",
+        price: 50000000,
+        stock: 2,
+        color: { id: "3", name: "Đen", code: "#000000" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "4",
@@ -54,9 +96,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Louis Vuitton",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.9,
     ratingCount: 210,
-    price: 7500000,
+    variants: [
+      {
+        id: "4-1",
+        size: "M",
+        price: 7500000,
+        stock: 8,
+        color: { id: "4", name: "Trắng", code: "#FFFFFF" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "5",
@@ -66,9 +122,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Gucci",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.7,
     ratingCount: 180,
-    price: 9500000,
+    variants: [
+      {
+        id: "5-1",
+        size: "L",
+        price: 9500000,
+        stock: 6,
+        color: { id: "5", name: "Đỏ", code: "#FF0000" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "6",
@@ -78,9 +148,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Dior",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.6,
     ratingCount: 95,
-    price: 8800000,
+    variants: [
+      {
+        id: "6-1",
+        size: "M",
+        price: 8800000,
+        stock: 4,
+        color: { id: "6", name: "Vàng", code: "#FFFF00" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "7",
@@ -90,9 +174,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Uniqlo",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.4,
     ratingCount: 140,
-    price: 890000,
+    variants: [
+      {
+        id: "7-1",
+        size: "S",
+        price: 890000,
+        stock: 15,
+        color: { id: "7", name: "Xám", code: "#808080" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "8",
@@ -102,9 +200,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "Zara",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.3,
     ratingCount: 160,
-    price: 1200000,
+    variants: [
+      {
+        id: "8-1",
+        size: "M",
+        price: 1200000,
+        stock: 12,
+        color: { id: "8", name: "Xanh Navy", code: "#000080" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "9",
@@ -114,9 +226,23 @@ const fallbackProducts: Product[] = [
     imageUrl:
       "https://product.hstatic.net/200000163591/product/ao-so-mi-nam-wls241__1__6166e6338acf4419a324c0f30edd7e04_master.png",
     brand: "H&M",
+    categoryId: "1",
+    status: "active",
+    tags: "ao-so-mi",
     ratingAverage: 4.2,
     ratingCount: 200,
-    price: 650000,
+    variants: [
+      {
+        id: "9-1",
+        size: "L",
+        price: 650000,
+        stock: 20,
+        color: { id: "9", name: "Hồng", code: "#FFC0CB" },
+        images: [],
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
 ];
 
@@ -135,6 +261,7 @@ const HomePage = () => {
   });
 
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const itemsPerPage = 9;
 
   // Lấy sản phẩm
@@ -205,7 +332,7 @@ const HomePage = () => {
 
   return (
     <div className="container mx-auto py-10 px-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {products.map((product: Product) => (
           <motion.div
             key={product.id}
@@ -254,7 +381,11 @@ const HomePage = () => {
 
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-xl font-bold text-blue-600">
-                  {product.price?.toLocaleString("vi-VN")}₫
+                  {product.variants && product.variants.length > 0
+                    ? product.variants[0].price.toLocaleString("vi-VN")
+                    : (product as any).price?.toLocaleString("vi-VN") ||
+                      "Liên hệ"}
+                  ₫
                 </p>
               </div>
             </div>

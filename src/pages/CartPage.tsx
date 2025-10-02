@@ -1,42 +1,25 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-// Định nghĩa type cho sản phẩm trong giỏ
-type CartItem = {
-  id: string;
-  name: string;
-  price: number;
-  qty: number;
-  image: string;
-};
+import { useCart } from "../contexts/CartContext";
 
 export default function CartPage() {
   const navigate = useNavigate();
-
-  const [cart, setCart] = useState<CartItem[]>([]);
-
-  // Lấy dữ liệu từ localStorage khi load trang
-  useEffect(() => {
-    const storedCart: CartItem[] = JSON.parse(
-      localStorage.getItem("cart") || "[]"
-    );
-    setCart(storedCart);
-  }, []);
+  const { cart, updateCart } = useCart();
 
   // Cập nhật số lượng
   const updateQty = (id: string, newQty: number) => {
     const updatedCart = cart.map((item) =>
       item.id === id ? { ...item, qty: Math.max(1, newQty) } : item
     );
-    setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
+    updateCart();
   };
 
   // Xóa sản phẩm
   const removeItem = (id: string) => {
     const updatedCart = cart.filter((item) => item.id !== id);
-    setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
+    updateCart();
   };
 
   // Tính tổng tiền

@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:3636/api/v1',
+  BASE_URL: '/api/v1', // Temporary absolute URL để test
   ENDPOINTS: {
     PRODUCTS: '/products',
     AUTH: {

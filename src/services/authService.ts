@@ -45,6 +45,17 @@ export interface OtpVerifyResponse {
   verificationToken: string;
 }
 
+export interface UserProfileResponse {
+  id: string;
+  fullname: string;
+  email: string;
+  dob?: string;
+  gender?: 'male' | 'female' | 'other';
+  phone?: string;
+  avt?: string;
+  role: string;
+}
+
 export interface UpdateUserRequest {
   id: string;
   fullname?: string;
@@ -154,6 +165,20 @@ class AuthService {
     });
  }
 
+
+  async getUserProfile(userId: string): Promise<UserProfileResponse> {
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('Chưa đăng nhập');
+    }
+
+    return this.makeRequest<UserProfileResponse>(`${API_CONFIG.ENDPOINTS.USERS.PROFILE}/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  }
 
   // Local storage helpers
   saveToken(token: string): void {

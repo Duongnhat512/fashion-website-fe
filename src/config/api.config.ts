@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: '/api/v1', // Temporary absolute URL để test
+  BASE_URL: '/api/v1', 
   ENDPOINTS: {
     PRODUCTS: '/products',
     AUTH: {
@@ -11,6 +11,12 @@ export const API_CONFIG = {
       REGISTER: '/users/register',
       PROFILE: '/users',
       UPDATE: '/users/update',
+    },
+    ORDERS: {
+      CREATE: '/orders',
+      GET_BY_USER: '/orders/user',
+      GET_BY_ID: '/orders',
+      UPDATE: '/orders',
     },
   },
   DEFAULT_PAGINATION: {

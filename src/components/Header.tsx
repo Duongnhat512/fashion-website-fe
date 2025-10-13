@@ -3,60 +3,203 @@ import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
 import UserDropdown from "./UserDropdown";
 import { Badge } from "antd";
+import { useState } from "react";
 
 export default function Header() {
   const { isAuthenticated, user } = useAuth();
   const { cartCount } = useCart();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: Implement search functionality
+    console.log("Searching for:", searchQuery);
+  };
 
   return (
-    <header className="bg-white shadow">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+    <header className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-2xl shadow-purple-500/25 backdrop-blur-lg z-50">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12 animate-pulse animation-delay-2000"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto flex items-center justify-between px-6 py-5 gap-8">
+        {/* Logo */}
         <Link
           to="/"
-          className="text-xl font-bold hover:text-gray-600 transition-colors"
+          className="group flex items-center space-x-3 flex-shrink-0"
         >
-          BOOBOO
+          <div className="relative p-2 bg-white/20 rounded-xl backdrop-blur-sm group-hover:bg-white/30 transition-all duration-300">
+            <div className="w-8 h-8 bg-gradient-to-br from-white to-gray-100 rounded-lg flex items-center justify-center">
+              <span className="text-purple-600 font-bold text-lg">B</span>
+            </div>
+          </div>
+          <span className="text-2xl font-bold text-white group-hover:text-purple-100 transition-colors duration-300">
+            BOOBOO
+          </span>
         </Link>
 
-        <nav className="flex items-center gap-6">
-          <Link to="/" className="hover:text-gray-600 transition-colors">
-            Trang chủ
+        {/* Search Bar */}
+        <div className="flex-1 max-w-2xl mx-6">
+          <form onSubmit={handleSearch} className="relative">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm sản phẩm..."
+                className="w-full px-6 py-3 pl-12 pr-16 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:border-white/60 focus:bg-white/30 transition-all duration-300"
+              />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg
+                  className="h-5 w-5 text-white/70"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <button
+                type="submit"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <div className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all duration-300 group">
+                  <svg
+                    className="h-4 w-4 text-white group-hover:scale-110 transition-transform duration-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </div>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex items-center gap-3 flex-shrink-0">
+          <Link
+            to="/"
+            className="relative group px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
+          >
+            <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
+            <div className="relative z-10 flex items-center space-x-2">
+              <svg
+                className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+              <span>Trang chủ</span>
+            </div>
           </Link>
 
           {/* Cart with badge */}
           <Link
             to="/cart"
-            className="relative hover:text-gray-600 transition-colors flex items-center"
+            className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
+            <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
             <Badge
               count={cartCount > 99 ? "99+" : cartCount}
-              color="red"
-              offset={[10, -5]} // chỉnh vị trí badge
+              color="#ef4444"
+              offset={[10, -5]}
               style={{
                 fontWeight: 600,
-                boxShadow: "0 0 0 1px #fff", // bo viền trắng cho rõ hơn
+                boxShadow: "0 0 0 2px rgba(255,255,255,0.5)",
+                borderRadius: "12px",
               }}
             >
-              <span className="text-base">Giỏ hàng</span>
+              <div className="relative z-10 flex items-center space-x-2">
+                <svg
+                  className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+                <span className="text-base">Giỏ hàng</span>
+              </div>
             </Badge>
           </Link>
 
           {/* Authentication Section */}
           {isAuthenticated && user ? (
-            <UserDropdown user={user} />
+            <div className="relative">
+              <UserDropdown user={user} />
+            </div>
           ) : (
             <div className="flex items-center gap-4">
               <Link
                 to="/login"
-                className="text-gray-600 hover:text-gray-800 transition-colors"
+                className="relative group px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
               >
-                Đăng nhập
+                <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
+                <div className="relative z-10 flex items-center space-x-2">
+                  <svg
+                    className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                    />
+                  </svg>
+                  <span>Đăng nhập</span>
+                </div>
               </Link>
               <Link
                 to="/register"
-                className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                className="relative group bg-white/20 backdrop-blur-sm text-white px-6 py-2 rounded-xl hover:bg-white/30 hover:shadow-lg transition-all duration-300 font-semibold"
               >
-                Đăng ký
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <span className="relative z-10 flex items-center space-x-2">
+                  <svg
+                    className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
+                  </svg>
+                  <span>Đăng ký</span>
+                </span>
               </Link>
             </div>
           )}

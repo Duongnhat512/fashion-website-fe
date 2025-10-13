@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { authService } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 
 interface FormData {
   fullName: string;
@@ -31,6 +32,7 @@ type RegistrationStep = "form" | "otp" | "success";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [currentStep, setCurrentStep] = useState<RegistrationStep>("form");
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
@@ -45,7 +47,13 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [verificationToken, setVerificationToken] = useState("");
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>

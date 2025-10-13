@@ -1,18 +1,18 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  qty: number;
-  image: string;
-}
+import React, { createContext, useContext } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  addToCart as addToCartAction,
+  updateQuantity,
+  removeFromCart,
+  type CartItem,
+} from "../store/slices/cartSlice";
 
 interface CartContextType {
   cart: CartItem[];
   cartCount: number;
-  addToCart: (product: any) => void;
-  updateCart: () => void;
+  addToCart: (product: any, qty?: number) => void;
+  updateQuantity: (cartKey: string, qty: number) => void;
+  removeFromCart: (cartKey: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -30,56 +30,47 @@ interface CartProviderProps {
 }
 
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const dispatch = useAppDispatch();
+  const cart = useAppSelector((state) => state.cart.items);
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    updateCart();
-  }, []);
+  const handleUpdateQuantity = (cartKey: string, qty: number) => {
+    dispatch(updateQuantity({ cartKey, qty }));
+  };
 
-  const updateCart = () => {
-    const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    setCart(storedCart);
+  const handleRemoveFromCart = (cartKey: string) => {
+    dispatch(removeFromCart(cartKey));
   };
 
   const addToCart = (product: any, qty: number = 1) => {
-    const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
-
     // Nếu có variant thì dùng id của variant để phân biệt
     const variant =
       product.variants && product.variants.length > 0
         ? product.variants[0]
         : null;
     const cartKey = variant ? `${product.id}-${variant.id}` : product.id;
-
-    const existingIndex = existingCart.findIndex(
-      (item: any) => item.cartKey === cartKey
-    );
-
     const price = variant ? variant.price : product.price || 0;
 
-    if (existingIndex >= 0) {
-      existingCart[existingIndex].qty += qty;
-    } else {
-      existingCart.push({
-        cartKey, // khóa riêng để phân biệt variant
-        id: product.id,
-        name: product.name,
-        price: price,
-        qty: qty,
-        image: variant?.images?.[0] || product.imageUrl,
-        variant: variant
-          ? {
-              id: variant.id,
-              size: variant.size,
-              color: variant.color,
-            }
-          : null,
-      });
-    }
+    const cartItem: CartItem = {
+      id: product.id,
+      cartKey,
+      name: product.name,
+      price: price,
+      qty: qty,
+      image: variant?.images?.[0] || product.imageUrl,
+      productId: product.id,
+      variantId: variant?.id,
+      variant: variant
+        ? {
+            id: variant.id,
+            size: variant.size,
+            color: variant.color,
+            sku: variant.sku || "",
+          }
+        : undefined,
+    };
 
-    localStorage.setItem("cart", JSON.stringify(existingCart));
-    updateCart();
+    dispatch(addToCartAction(cartItem));
+
     alert(
       `Đã thêm ${qty} x ${product.name}${
         variant ? ` (${variant.size} - ${variant.color})` : ""
@@ -93,7 +84,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     cart,
     cartCount,
     addToCart,
-    updateCart,
+    updateQuantity: handleUpdateQuantity,
+    removeFromCart: handleRemoveFromCart,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

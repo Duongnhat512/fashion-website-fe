@@ -33,6 +33,7 @@ interface FormErrors {
 export default function UserProfilePage() {
   const navigate = useNavigate();
   const { user: authUser, isAuthenticated, updateUser } = useAuth();
+
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +48,7 @@ export default function UserProfilePage() {
     avt: null,
   });
 
+  // Load user profile
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -54,39 +56,39 @@ export default function UserProfilePage() {
     }
 
     const loadUserProfile = async () => {
-      if (authUser?.id) {
-        try {
-          const userProfile = await authService.getUserProfile(authUser.id);
-          setUser(userProfile);
-          setFormData({
-            fullname: userProfile.fullname || "",
-            phone: userProfile.phone || "",
-            dob: userProfile.dob ? userProfile.dob.split("T")[0] : "",
-            gender: userProfile.gender || "",
-            avt: null,
-          });
-          setPreviewImage(userProfile.avt || null);
-        } catch {
-          if (authUser) {
-            setUser(authUser as UserProfile);
-            setFormData({
-              fullname: authUser.fullname || "",
-              phone: (authUser as any).phone || "",
-              dob: (authUser as any).dob
-                ? (authUser as any).dob.split("T")[0]
-                : "",
-              gender: (authUser as any).gender || "",
-              avt: null,
-            });
-            setPreviewImage((authUser as any).avt || null);
-          }
-        }
+      if (!authUser?.id) return;
+
+      try {
+        const userProfile = await authService.getUserProfile(authUser.id);
+        setUser(userProfile);
+
+        setFormData({
+          fullname: userProfile.fullname || "",
+          phone: userProfile.phone || "",
+          dob: userProfile.dob ? userProfile.dob.split("T")[0] : "",
+          gender: userProfile.gender || "",
+          avt: null,
+        });
+
+        setPreviewImage(userProfile.avt || null);
+      } catch {
+        const fallbackUser = authUser as UserProfile;
+        setUser(fallbackUser);
+        setFormData({
+          fullname: fallbackUser.fullname || "",
+          phone: fallbackUser.phone || "",
+          dob: fallbackUser.dob ? fallbackUser.dob.split("T")[0] : "",
+          gender: fallbackUser.gender || "",
+          avt: null,
+        });
+        setPreviewImage(fallbackUser.avt || null);
       }
     };
 
     loadUserProfile();
   }, [navigate, isAuthenticated, authUser]);
 
+  // Handle input change
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -97,6 +99,7 @@ export default function UserProfilePage() {
     }
   };
 
+  // Handle avatar change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -105,6 +108,7 @@ export default function UserProfilePage() {
     }
   };
 
+  // Validate form
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     if (!formData.fullname.trim()) newErrors.fullname = "Họ tên là bắt buộc";
@@ -125,33 +129,53 @@ export default function UserProfilePage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Save changes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+
     setIsLoading(true);
     setErrors({});
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("id", user!.id);
-      formDataToSend.append("fullname", formData.fullname);
-      if (formData.phone) formDataToSend.append("phone", formData.phone);
-      if (formData.dob) formDataToSend.append("dob", formData.dob);
-      if (formData.gender) formDataToSend.append("gender", formData.gender);
-      if (formData.avt) formDataToSend.append("avt", formData.avt);
-
-      await updateUser(formDataToSend);
-
-      const updatedUser: UserProfile = {
-        ...user!,
+      // Tạo payload object JS (nếu API không cần FormData)
+      const payload: Partial<UserProfile> = {
+        id: user!.id,
         fullname: formData.fullname,
         phone: formData.phone || undefined,
         dob: formData.dob || undefined,
         gender: formData.gender || undefined,
-        avt: previewImage || user!.avt,
+        avt: previewImage || user!.avt, // avatar URL hoặc cũ
       };
 
+      // Nếu API cần FormData, uncomment đoạn dưới và sửa updateUser
+      // const formDataToSend = new FormData();
+      // formDataToSend.append("id", user!.id);
+      // formDataToSend.append("fullname", formData.fullname);
+      // formDataToSend.append("phone", formData.phone || "");
+      // formDataToSend.append("dob", formData.dob || "");
+      // formDataToSend.append("gender", formData.gender || "");
+      // if (formData.avt) formDataToSend.append("avt", formData.avt);
+      // await updateUser(formDataToSend as any);
+
+      await updateUser(payload);
+
+      // Update local state
+      const updatedUser: UserProfile = {
+        ...user!,
+        ...payload,
+      };
       setUser(updatedUser);
+
+      // Đồng bộ formData với dữ liệu mới
+      setFormData({
+        fullname: updatedUser.fullname || "",
+        phone: updatedUser.phone || "",
+        dob: updatedUser.dob ? updatedUser.dob.split("T")[0] : "",
+        gender: updatedUser.gender || "",
+        avt: null,
+      });
+
       setIsEditing(false);
       setErrors({ general: "Cập nhật thông tin thành công!" });
       setTimeout(() => setErrors({}), 3000);
@@ -167,6 +191,7 @@ export default function UserProfilePage() {
     }
   };
 
+  // Cancel editing
   const handleCancel = () => {
     if (user) {
       setFormData({
@@ -184,64 +209,130 @@ export default function UserProfilePage() {
 
   if (!user)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-500 border-t-transparent"></div>
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50 relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        </div>
+
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-purple-200 border-t-purple-600 mx-auto mb-4"></div>
+              <div className="absolute inset-0 animate-ping rounded-full h-20 w-20 border-4 border-purple-300 opacity-20 mx-auto"></div>
+            </div>
+            <p className="text-purple-600 font-semibold text-lg">
+              Đang tải thông tin...
+            </p>
+          </div>
+        </div>
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-3xl mx-auto"
-      >
-        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-          {/* Header */}
-          <div className="px-8 py-6 border-b border-gray-200">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900">
-                Thông tin cá nhân
-              </h1>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
 
-          {/* Notification */}
-          {errors.general && (
-            <div
-              className={`mx-8 mt-4 px-4 py-3 rounded-xl text-center font-medium ${
-                errors.general.includes("thành công")
-                  ? "bg-green-50 border border-green-300 text-green-700"
-                  : "bg-red-50 border border-red-300 text-red-700"
-              }`}
-            >
-              {errors.general}
-            </div>
-          )}
-
-          {/* Form */}
-          <div className="px-8 py-6">
-            <form onSubmit={handleSave}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Avatar */}
-                <div className="md:col-span-2 flex justify-center mb-8">
-                  <div className="relative">
-                    <div className="w-28 h-28 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center shadow-lg">
-                      {previewImage ? (
-                        <img
-                          src={previewImage}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
+      <div className="relative z-10 py-12 px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="max-w-4xl mx-auto"
+        >
+          <div className="bg-white/90 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden border border-white/50">
+            {/* Header */}
+            <div className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 px-8 py-8 text-white overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-700 via-blue-700 to-cyan-700 opacity-50"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-center space-x-3 mb-2">
+                  <div className="relative p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 rounded-xl blur opacity-75"></div>
+                    <div className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 p-1 rounded-xl">
+                      <svg
+                        className="h-6 w-6 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                         />
-                      ) : (
-                        <span className="text-3xl text-gray-500 font-semibold">
-                          {user.fullname.charAt(0).toUpperCase()}
-                        </span>
-                      )}
+                      </svg>
                     </div>
+                  </div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-cyan-100 bg-clip-text text-transparent">
+                    Thông tin cá nhân
+                  </h1>
+                </div>
+                <p className="text-center text-white/80 text-lg">
+                  Quản lý và cập nhật thông tin tài khoản của bạn
+                </p>
+              </div>
+
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full -ml-8 -mb-8"></div>
+            </div>
+
+            {/* Notification */}
+            {errors.general && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mx-8 mt-6 px-6 py-4 rounded-xl text-center font-medium backdrop-blur-sm ${
+                  errors.general.includes("thành công")
+                    ? "bg-green-100/80 border border-green-300/50 text-green-700"
+                    : "bg-red-100/80 border border-red-300/50 text-red-700"
+                }`}
+              >
+                {errors.general}
+              </motion.div>
+            )}
+
+            {/* Form Content */}
+            <div className="px-8 py-8">
+              <form onSubmit={handleSave} className="space-y-8">
+                {/* Avatar Section */}
+                <div className="text-center">
+                  <div className="relative inline-block group">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                      className="relative"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 p-1">
+                        <div className="w-full h-full rounded-full bg-white overflow-hidden flex items-center justify-center">
+                          {previewImage ? (
+                            <img
+                              src={previewImage}
+                              alt="Avatar"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl text-gray-500 font-bold">
+                              {user.fullname.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
                     {isEditing && (
-                      <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-blue-700 cursor-pointer shadow-lg">
+                      <motion.label
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="absolute bottom-2 right-2 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+                      >
                         <input
                           type="file"
                           accept="image/*"
@@ -249,171 +340,246 @@ export default function UserProfilePage() {
                           onChange={handleImageChange}
                         />
                         <svg
-                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
                           fill="none"
                           viewBox="0 0 24 24"
-                          strokeWidth={2}
                           stroke="currentColor"
-                          className="w-5 h-5"
                         >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            strokeWidth={2}
+                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                           />
                         </svg>
-                      </label>
+                      </motion.label>
                     )}
                   </div>
-                </div>
-
-                {/* Fullname */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Họ và tên <span className="text-red-500">*</span>
-                  </label>
-                  {isEditing ? (
-                    <input
-                      name="fullname"
-                      value={formData.fullname}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
-                    />
-                  ) : (
-                    <p className="text-gray-900 font-medium">{user.fullname}</p>
-                  )}
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <p className="text-gray-500">{user.email}</p>
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số điện thoại
-                  </label>
-                  {isEditing ? (
-                    <input
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
-                    />
-                  ) : (
-                    <p className="text-gray-500">
-                      {user.phone || "Chưa cập nhật"}
-                    </p>
-                  )}
-                </div>
-
-                {/* DOB */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày sinh
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="date"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
-                    />
-                  ) : (
-                    <p className="text-gray-500">
-                      {user.dob
-                        ? new Date(user.dob).toLocaleDateString("vi-VN")
-                        : "Chưa cập nhật"}
-                    </p>
-                  )}
-                </div>
-
-                {/* Gender */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Giới tính
-                  </label>
-                  {isEditing ? (
-                    <select
-                      name="gender"
-                      value={formData.gender}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
-                    >
-                      <option value="">Chọn giới tính</option>
-                      <option value="male">Nam</option>
-                      <option value="female">Nữ</option>
-                      <option value="other">Khác</option>
-                    </select>
-                  ) : (
-                    <p className="text-gray-500">
-                      {user.gender === "male"
-                        ? "Nam"
-                        : user.gender === "female"
-                        ? "Nữ"
-                        : user.gender === "other"
-                        ? "Khác"
-                        : "Chưa cập nhật"}
-                    </p>
-                  )}
-                </div>
-
-                {/* Role */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Vai trò
-                  </label>
-                  <p className="text-gray-500">
-                    {user.role === "ADMIN" ? "Quản trị viên" : "Người dùng"}
+                  <p className="mt-4 text-sm text-gray-500">
+                    {isEditing
+                      ? "Nhấp vào biểu tượng để thay đổi ảnh đại diện"
+                      : "Ảnh đại diện"}
                   </p>
                 </div>
-              </div>
-            </form>
-          </div>
 
-          {/* Footer */}
-          <div className="px-8 py-4 border-t bg-gray-50 flex justify-between items-center">
-            <button
-              onClick={() => navigate("/")}
-              className="text-gray-600 hover:text-gray-900 font-medium transition"
-            >
-              ← Về trang chủ
-            </button>
+                {/* Personal Information Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Fullname */}
+                  <div className="relative group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Họ và tên <span className="text-red-500">*</span>
+                    </label>
+                    {isEditing ? (
+                      <div className="relative">
+                        <input
+                          name="fullname"
+                          value={formData.fullname}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-transparent focus:ring-2 focus:ring-purple-500 bg-white/50 backdrop-blur-sm transition-all duration-300 group-hover:border-purple-300"
+                          placeholder="Nhập họ và tên"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-cyan-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                        {errors.fullname && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.fullname}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-900 font-medium bg-gray-50/80 backdrop-blur-sm px-4 py-3 rounded-xl border">
+                        {user.fullname}
+                      </p>
+                    )}
+                  </div>
 
-            <div className="flex items-center gap-3">
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-5 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
-                >
-                  Chỉnh sửa
-                </button>
-              ) : (
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCancel}
-                    className="px-5 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={isLoading}
-                    className="px-5 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 disabled:bg-gray-400 transition"
-                  >
-                    {isLoading ? "Đang lưu..." : "Lưu"}
-                  </button>
+                  {/* Email */}
+                  <div className="relative group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <p className="text-gray-600 bg-gray-50/80 backdrop-blur-sm px-4 py-3 rounded-xl border">
+                      {user.email}
+                    </p>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="relative group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Số điện thoại
+                    </label>
+                    {isEditing ? (
+                      <div className="relative">
+                        <input
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-transparent focus:ring-2 focus:ring-purple-500 bg-white/50 backdrop-blur-sm transition-all duration-300 group-hover:border-purple-300"
+                          placeholder="Nhập số điện thoại"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-cyan-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                        {errors.phone && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.phone}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 bg-gray-50/80 backdrop-blur-sm px-4 py-3 rounded-xl border">
+                        {user.phone || "Chưa cập nhật"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div className="relative group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Ngày sinh
+                    </label>
+                    {isEditing ? (
+                      <div className="relative">
+                        <input
+                          type="date"
+                          name="dob"
+                          value={formData.dob}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-transparent focus:ring-2 focus:ring-purple-500 bg-white/50 backdrop-blur-sm transition-all duration-300 group-hover:border-purple-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-cyan-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                        {errors.dob && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.dob}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 bg-gray-50/80 backdrop-blur-sm px-4 py-3 rounded-xl border">
+                        {user.dob
+                          ? new Date(user.dob).toLocaleDateString("vi-VN")
+                          : "Chưa cập nhật"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Gender */}
+                  <div className="relative group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Giới tính
+                    </label>
+                    {isEditing ? (
+                      <div className="relative">
+                        <select
+                          name="gender"
+                          value={formData.gender}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-transparent focus:ring-2 focus:ring-purple-500 bg-white/50 backdrop-blur-sm transition-all duration-300 group-hover:border-purple-300"
+                        >
+                          <option value="">Chọn giới tính</option>
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                          <option value="other">Khác</option>
+                        </select>
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-cyan-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 bg-gray-50/80 backdrop-blur-sm px-4 py-3 rounded-xl border">
+                        {user.gender === "male"
+                          ? "Nam"
+                          : user.gender === "female"
+                          ? "Nữ"
+                          : user.gender === "other"
+                          ? "Khác"
+                          : "Chưa cập nhật"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Role */}
+                  <div className="relative group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Vai trò
+                    </label>
+                    <p className="text-gray-600 bg-gray-50/80 backdrop-blur-sm px-4 py-3 rounded-xl border">
+                      {user.role === "ADMIN" ? "Quản trị viên" : "Người dùng"}
+                    </p>
+                  </div>
                 </div>
-              )}
+              </form>
+            </div>
+
+            {/* Footer with Action Buttons */}
+            <div className="px-8 py-6 bg-gradient-to-r from-gray-50/80 via-white/50 to-gray-50/80 backdrop-blur-sm border-t border-gray-200/50">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate("/")}
+                  className="text-gray-600 hover:text-purple-600 font-medium transition-colors duration-300 flex items-center space-x-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  <span>Về trang chủ</span>
+                </motion.button>
+
+                <div className="flex items-center gap-3">
+                  {!isEditing ? (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setIsEditing(true)}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 relative overflow-hidden group"
+                    >
+                      <span className="relative z-10">Chỉnh sửa</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-700 via-blue-700 to-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </motion.button>
+                  ) : (
+                    <div className="flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleCancel}
+                        className="px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300"
+                      >
+                        Hủy
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleSave}
+                        disabled={isLoading}
+                        className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-green-500/30 disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none transition-all duration-300 relative overflow-hidden group"
+                      >
+                        <span className="relative z-10">
+                          {isLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                        </span>
+                        {!isLoading && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        )}
+                      </motion.button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

@@ -92,9 +92,10 @@ export default function LoginPage() {
       console.error("Login error:", error);
       setErrors({
         general:
-          error instanceof Error
+          error instanceof Error && error.message
             ? error.message
-            : "Đăng nhập không thành công. Vui lòng thử lại.",
+            : (error as any)?.message ||
+              "Đăng nhập không thành công. Vui lòng thử lại.",
       });
     } finally {
       setIsLoading(false);

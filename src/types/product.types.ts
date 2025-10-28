@@ -1,3 +1,29 @@
+export interface Color {
+  id: string;
+  name: string;
+  code: string;
+  hex: string;
+  imageUrl?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProductVariant {
+  id: string;
+  sku: string;
+  size: string;
+  price: number;
+  discountPrice: number;
+  discountPercent?: number;
+  imageUrl: string;
+  onSales?: boolean;
+  saleNote?: string;
+  color: Color;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -5,30 +31,14 @@ export interface Product {
   shortDescription: string;
   imageUrl: string;
   brand: string;
-  categoryId: string;
   status: string;
   tags: string;
   ratingAverage: number;
   ratingCount: number;
-  // variants: ProductVariant[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ProductVariant {
-  id: string;
-  size: string;
-  price: number;
-  salePrice?: number;
-  stock: number;
-  color: Color;
-  images: string[];
-}
-
-export interface Color {
-  id: string;
-  name: string;
-  code: string;
+  createdAt: string;
+  updatedAt: string;
+  variants: ProductVariant[];
+  categoryId: string;
 }
 
 export interface Pagination {

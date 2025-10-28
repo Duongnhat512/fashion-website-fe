@@ -11,6 +11,7 @@ import {
   Space,
   InputNumber,
   Select,
+  message,
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -20,8 +21,7 @@ import {
 } from "@ant-design/icons";
 import type { Product, ProductVariant } from "../types/product.types";
 import { useCart } from "../contexts/CartContext";
-import products from "../data/products.json";
-import productVariants from "../data/product_variants.json";
+import { useSearch } from "../contexts/SearchContext";
 
 const { Option } = Select;
 
@@ -29,54 +29,33 @@ export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { products } = useSearch();
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [mainImage, setMainImage] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     null
   );
+  const [mainImage, setMainImage] = useState("");
 
   useEffect(() => {
-    if (!slug) return;
-
-    // Tìm sản phẩm theo slug
+    if (!slug || !products.length) return;
     const found = products.find((p) => p.slug === slug);
-
-    if (found) {
-      // Ghép variants từ product_variants.json theo productId
-      const variants = productVariants.filter(
-        (v: ProductVariant) => v.productId === found.id
-      );
-
-      const mergedProduct: Product = {
-        ...found,
-        variants,
-      };
-
-      setProduct(mergedProduct);
-
-      if (variants.length > 0) {
-        setSelectedVariant(variants[0]);
-        setMainImage(
-          variants[0].images?.[0] || variants[0].imageUrl || found.imageUrl
-        );
-      } else {
-        setMainImage(found.imageUrl);
-      }
-
-      setRelatedProducts(
-        products.filter((p) => p.slug !== found.slug).slice(0, 4)
-      );
-
-      console.log("Found product:", mergedProduct);
-    } else {
-      setProduct(null);
+    if (!found) {
+      message.error("Không tìm thấy sản phẩm!");
+      return;
     }
-  }, [slug]);
 
-  if (!product) {
+    setProduct(found);
+    if (found.variants?.length > 0) {
+      setSelectedVariant(found.variants[0]);
+      setMainImage(found.variants[0].imageUrl || found.imageUrl);
+    } else {
+      setMainImage(found.imageUrl);
+    }
+  }, [slug, products]);
+
+  if (!product)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="text-center p-8">
@@ -93,11 +72,9 @@ export default function ProductDetail() {
         </Card>
       </div>
     );
-  }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      {/* Breadcrumb */}
       <Breadcrumb
         className="mb-6"
         items={[
@@ -108,7 +85,6 @@ export default function ProductDetail() {
       />
 
       <Row gutter={[32, 32]}>
-        {/* Image */}
         <Col xs={24} lg={12}>
           <Card className="overflow-hidden">
             <img
@@ -119,7 +95,6 @@ export default function ProductDetail() {
           </Card>
         </Col>
 
-        {/* Details */}
         <Col xs={24} lg={12}>
           <Space direction="vertical" size="large" className="w-full">
             <div>
@@ -136,29 +111,23 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            {/* ✅ Variant selection */}
-            {product.variants && product.variants.length > 0 && (
+            {product.variants?.length > 0 && (
               <div>
                 <span className="font-semibold mr-2">Chọn phiên bản:</span>
                 <Select
                   value={selectedVariant?.id}
                   onChange={(value) => {
                     const variant =
-                      product.variants?.find((v) => v.id === value) || null;
+                      product.variants.find((v) => v.id === value) || null;
                     setSelectedVariant(variant);
-                    if (variant) {
-                      setMainImage(
-                        variant.images?.[0] ||
-                          variant.imageUrl ||
-                          product.imageUrl
-                      );
-                    }
+                    if (variant)
+                      setMainImage(variant.imageUrl || product.imageUrl);
                   }}
                   style={{ minWidth: 200 }}
                 >
                   {product.variants.map((variant) => (
                     <Option key={variant.id} value={variant.id}>
-                      {variant.color || "Màu"} - Size {variant.size}
+                      {variant.color?.name || "Màu"} - Size {variant.size}
                     </Option>
                   ))}
                 </Select>
@@ -166,11 +135,11 @@ export default function ProductDetail() {
             )}
 
             <div className="text-3xl font-bold text-red-600">
-              {selectedVariant
-                ? (
-                    selectedVariant.salePrice || selectedVariant.price
-                  ).toLocaleString("vi-VN")
-                : "Liên hệ"}
+              {(
+                selectedVariant?.discountPrice ||
+                selectedVariant?.price ||
+                0
+              ).toLocaleString("vi-VN")}
               ₫
             </div>
 
@@ -178,7 +147,6 @@ export default function ProductDetail() {
               {product.shortDescription}
             </p>
 
-            {/* Quantity + Add to Cart */}
             <Space>
               <Button
                 icon={<MinusOutlined />}
@@ -187,9 +155,9 @@ export default function ProductDetail() {
               <InputNumber
                 min={1}
                 value={quantity}
-                onChange={(value) => setQuantity(value || 1)}
+                onChange={(v) => setQuantity(v || 1)}
                 style={{ width: 80 }}
-                controls={false} // tắt nút mặc định của Antd
+                controls={false}
               />
               <Button
                 icon={<PlusOutlined />}
@@ -208,6 +176,7 @@ export default function ProductDetail() {
                       { ...product, variants: [selectedVariant] },
                       quantity
                     );
+                    message.success("Đã thêm vào giỏ hàng!");
                   }
                 }}
                 className="bg-black hover:bg-gray-800 border-black"
@@ -225,46 +194,6 @@ export default function ProductDetail() {
           </Space>
         </Col>
       </Row>
-
-      {/* Related Products */}
-      {relatedProducts.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-2xl font-semibold mb-6">Sản phẩm liên quan</h2>
-          <Row gutter={[16, 16]}>
-            {relatedProducts.map((p) => (
-              <Col key={p.slug} xs={12} sm={6} md={6} lg={6}>
-                <Card
-                  hoverable
-                  cover={
-                    <img
-                      src={p.imageUrl}
-                      alt={p.name}
-                      className="w-full h-96 object-cover"
-                    />
-                  }
-                  onClick={() => navigate(`/product/${p.slug}`)}
-                  className="h-full"
-                >
-                  <Card.Meta
-                    title={<div className="truncate text-sm">{p.name}</div>}
-                    description={
-                      <Space direction="vertical" size="small">
-                        <Tag color="blue">{p.brand}</Tag>
-                        <div className="flex items-center justify-between">
-                          <Rate disabled defaultValue={p.ratingAverage} />
-                          <span className="text-xs text-gray-500">
-                            ({p.ratingCount || 0} đánh giá)
-                          </span>
-                        </div>
-                      </Space>
-                    }
-                  />
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </div>
-      )}
     </div>
   );
 }

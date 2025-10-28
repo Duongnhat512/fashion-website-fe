@@ -1,7 +1,10 @@
 export const API_CONFIG = {
   BASE_URL: '/api/v1', 
   ENDPOINTS: {
-    PRODUCTS: '/products',
+    PRODUCTS: {
+      GET_ALL: '/products',
+      SEARCH: '/products/search',
+    },
     AUTH: {
       LOGIN: '/auth/login',
       SEND_OTP: '/auth/send-otp',

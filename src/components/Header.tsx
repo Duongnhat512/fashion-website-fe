@@ -1,34 +1,39 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
+import { useSearch } from "../contexts/SearchContext";
 import UserDropdown from "./UserDropdown";
 import { Badge } from "antd";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Header() {
   const { isAuthenticated, user } = useAuth();
   const { cartCount } = useCart();
+  const { handleSearch, clearSearch } = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement search functionality
-    console.log("Searching for:", searchQuery);
-  };
+  // 🧠 Debounce search để không gọi API liên tục
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    const delay = setTimeout(() => {
+      if (!trimmed) {
+        clearSearch();
+      } else {
+        handleSearch(trimmed);
+      }
+    }, 500); // gọi API sau 0.5s khi dừng gõ
+
+    return () => clearTimeout(delay);
+  }, [searchQuery]);
 
   return (
-    <header className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-2xl shadow-purple-500/25 backdrop-blur-lg z-50">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12 animate-pulse animation-delay-2000"></div>
-      </div>
-
+    <header className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-2xl backdrop-blur-lg z-50">
       <div className="relative z-10 max-w-7xl mx-auto flex items-center justify-between px-6 py-5 gap-8">
         {/* Logo */}
         <Link
           to="/"
           className="group flex items-center space-x-3 flex-shrink-0"
+          onClick={clearSearch}
         >
           <div className="relative p-2 bg-white/20 rounded-xl backdrop-blur-sm group-hover:bg-white/30 transition-all duration-300">
             <div className="w-8 h-8 bg-gradient-to-br from-white to-gray-100 rounded-lg flex items-center justify-center">
@@ -40,60 +45,41 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Search Bar */}
-        <div className="flex-1 max-w-2xl mx-6">
-          <form onSubmit={handleSearch} className="relative">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm sản phẩm..."
-                className="w-full px-6 py-3 pl-12 pr-16 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:border-white/60 focus:bg-white/30 transition-all duration-300"
+        {/* 🔍 Search realtime */}
+        <div className="flex-1 max-w-2xl mx-6 relative group">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm kiếm sản phẩm..."
+            className="w-full px-6 py-3 pl-12 pr-12 rounded-2xl text-white
+              placeholder-white/70 bg-white/10 border border-white/30
+              backdrop-blur-md transition-all duration-300
+              focus:outline-none focus:bg-white/20 focus:border-white/60
+              group-hover:bg-white/15"
+          />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg
+              className="h-5 w-5 text-white/70"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg
-                  className="h-5 w-5 text-white/70"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              <button
-                type="submit"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                <div className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all duration-300 group">
-                  <svg
-                    className="h-4 w-4 text-white group-hover:scale-110 transition-transform duration-300"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7l5 5m0 0l-5 5m5-5H6"
-                    />
-                  </svg>
-                </div>
-              </button>
-            </div>
-          </form>
+            </svg>
+          </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex items-center gap-3 flex-shrink-0">
           <Link
             to="/"
+            onClick={clearSearch}
             className="relative group px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
             <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
@@ -115,12 +101,11 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Cart with badge */}
+          {/* Cart */}
           <Link
             to="/cart"
             className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
-            <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
             <Badge
               count={cartCount > 99 ? "99+" : cartCount}
               color="#ef4444"
@@ -150,7 +135,7 @@ export default function Header() {
             </Badge>
           </Link>
 
-          {/* Authentication Section */}
+          {/* Auth */}
           {isAuthenticated && user ? (
             <div className="relative">
               <UserDropdown user={user} />

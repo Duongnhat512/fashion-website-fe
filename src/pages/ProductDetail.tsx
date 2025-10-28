@@ -74,7 +74,7 @@ export default function ProductDetail() {
     );
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-[1600px] mx-auto px-8 py-10">
       <Breadcrumb
         className="mb-6"
         items={[
@@ -86,11 +86,11 @@ export default function ProductDetail() {
 
       <Row gutter={[32, 32]}>
         <Col xs={24} lg={12}>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden flex items-center justify-center bg-gray-50 rounded-2xl">
             <img
               src={mainImage}
               alt={product.name}
-              className="w-full h-[520px] object-cover rounded-lg"
+              className="w-full max-h-[600px] aspect-[3/4] object-contain rounded-2xl transition-transform duration-300 hover:scale-105"
             />
           </Card>
         </Col>

@@ -65,6 +65,7 @@ class ProductService {
     const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_ALL}/${id}`;
     return this.makeRequest<Product>(url);
   }
+  
 }
 
 export const productService = new ProductService();

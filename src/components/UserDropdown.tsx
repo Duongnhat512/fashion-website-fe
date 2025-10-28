@@ -50,8 +50,11 @@ export default function UserDropdown({ user }: UserDropdownProps) {
       {/* Avatar Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex items-center space-x-3 px-3 py-2 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-all duration-300 border border-white/20"
+        className="group relative flex items-center space-x-3 px-3 py-2
+             bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30
+             transition-all duration-300 border border-white/20"
       >
+        {/* 🖼 Avatar */}
         {user.avt ? (
           <img
             src={user.avt}
@@ -65,17 +68,18 @@ export default function UserDropdown({ user }: UserDropdownProps) {
             </span>
           </div>
         )}
-        {/* Chỉ hiển thị tên cho Admin */}
-        {user.role === "ADMIN" && (
-          <div className="hidden sm:block text-left">
-            <p className="text-sm font-semibold text-white leading-tight">
-              {user.fullname}
-            </p>
-            <p className="text-xs text-white/70">
-              {user.role === "ADMIN" ? "Quản trị viên" : "Khách hàng"}
-            </p>
-          </div>
-        )}
+
+        {/* ✨ Tên người dùng (hiển thị luôn, không chỉ admin) */}
+        <div className="text-left hidden sm:block">
+          <p className="text-sm font-semibold text-white leading-tight truncate max-w-[120px]">
+            {user.fullname}
+          </p>
+          <p className="text-xs text-white/70">
+            {user.role === "ADMIN" ? "Quản trị viên" : "Khách hàng"}
+          </p>
+        </div>
+
+        {/* Mũi tên */}
         <svg
           className={`w-4 h-4 text-white/80 transition-transform duration-300 ${
             isOpen ? "rotate-180" : ""

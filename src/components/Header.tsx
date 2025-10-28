@@ -137,7 +137,8 @@ export default function Header() {
 
           {/* Auth */}
           {isAuthenticated && user ? (
-            <div className="relative">
+            <div className="relative flex items-center gap-3">
+              <span className="text-white text-sm sm:text-base">Xin chào,</span>
               <UserDropdown user={user} />
             </div>
           ) : (
@@ -164,6 +165,7 @@ export default function Header() {
                   <span>Đăng nhập</span>
                 </div>
               </Link>
+
               <Link
                 to="/register"
                 className="relative group bg-white/20 backdrop-blur-sm text-white px-6 py-2 rounded-xl hover:bg-white/30 hover:shadow-lg transition-all duration-300 font-semibold"

@@ -30,6 +30,12 @@ export const API_CONFIG = {
       GET_BY_ID: '/orders',
       UPDATE: '/orders',
     },
+      CART: {
+      ADD_ITEM: '/carts/item',         // Thêm sản phẩm vào giỏ
+      REMOVE_ITEM: '/carts/delete/item', // Xóa sản phẩm khỏi giỏ
+      GET_CART: '/carts',              // Lấy giỏ hàng
+      UPDATE_ITEM: '/carts/update/item', // Cập nhật giỏ hàng
+    },
   },
 
   DEFAULT_PAGINATION: {

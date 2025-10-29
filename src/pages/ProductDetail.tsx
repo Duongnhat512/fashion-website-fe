@@ -20,16 +20,15 @@ import {
   MinusOutlined,
 } from "@ant-design/icons";
 import type { Product, ProductVariant } from "../types/product.types";
-import { useCart } from "../contexts/CartContext";
-import { useSearch } from "../contexts/SearchContext";
+import { cartService } from "../services/cartService"; // Import cartService
+import { useSearch } from "../contexts/SearchContext"; // Import useSearch context
 
 const { Option } = Select;
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const { products } = useSearch();
+  const { products } = useSearch(); // Lấy products từ context useSearch
 
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -41,6 +40,7 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!slug || !products.length) return;
     const found = products.find((p) => p.slug === slug);
+    console.log("Tìm sản phẩm với slug:", slug, found);
     if (!found) {
       message.error("Không tìm thấy sản phẩm!");
       return;
@@ -72,6 +72,32 @@ export default function ProductDetail() {
         </Card>
       </div>
     );
+
+  const handleAddToCart = async () => {
+    if (selectedVariant) {
+      try {
+        // Gọi API để thêm sản phẩm vào giỏ hàng
+        const item = {
+          productId: product.id,
+          variantId: selectedVariant.id,
+          quantity,
+        };
+
+        const response = await cartService.addItemToCart(item);
+
+        // Kiểm tra phản hồi và hiển thị thông báo cho người dùng
+        if (response && response.success) {
+          // Kiểm tra nếu API trả về kết quả thành công
+          alert("Đã thêm vào giỏ hàng!"); // Hiển thị thông báo thành công
+        } else {
+          alert("Không thể thêm sản phẩm vào giỏ hàng"); // Thông báo lỗi
+        }
+      } catch (error) {
+        console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
+        alert("Không thể thêm sản phẩm vào giỏ hàng"); // Thông báo khi gặp lỗi
+      }
+    }
+  };
 
   return (
     <div className="max-w-[1600px] mx-auto px-8 py-10">
@@ -170,15 +196,7 @@ export default function ProductDetail() {
                 type="primary"
                 size="large"
                 icon={<ShoppingCartOutlined />}
-                onClick={() => {
-                  if (selectedVariant) {
-                    addToCart(
-                      { ...product, variants: [selectedVariant] },
-                      quantity
-                    );
-                    message.success("Đã thêm vào giỏ hàng!");
-                  }
-                }}
+                onClick={handleAddToCart} // Sử dụng API để thêm vào giỏ hàng
                 className="bg-black hover:bg-gray-800 border-black"
               >
                 Thêm vào giỏ hàng

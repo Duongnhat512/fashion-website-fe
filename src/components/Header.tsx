@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useCart } from "../contexts/CartContext";
 import { useSearch } from "../contexts/SearchContext";
 import UserDropdown from "./UserDropdown";
 import { Badge } from "antd";
@@ -8,7 +7,6 @@ import { useState, useEffect } from "react";
 
 export default function Header() {
   const { isAuthenticated, user } = useAuth();
-  const { cartCount } = useCart();
   const { handleSearch, clearSearch } = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -107,7 +105,7 @@ export default function Header() {
             className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
             <Badge
-              count={cartCount > 99 ? "99+" : cartCount}
+              // count={cartCount > 99 ? "99+" : cartCount}
               color="#ef4444"
               offset={[10, -5]}
               style={{

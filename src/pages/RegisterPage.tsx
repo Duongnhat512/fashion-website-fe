@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../services/productService";
-import { useCart } from "../contexts/CartContext";
+// import { useCart } from "../contexts/CartContext";
 import { Carousel, Pagination, Rate } from "antd";
 
 interface Color {
@@ -51,7 +51,7 @@ const HomePage = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { addToCart } = useCart();
+  // const { addToCart } = useCart();
   const itemsPerPage = 16;
 
   // Lấy query search từ URL (?search=polo)

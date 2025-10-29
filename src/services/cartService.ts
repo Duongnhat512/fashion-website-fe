@@ -3,7 +3,7 @@ import type { ApiResponse } from '../types/product.types';
 
 interface CartItemRequest {
   productId: string;
-  variantId: string;
+  variantId: string;  // variantId phải là string
   quantity: number;
 }
 
@@ -17,13 +17,20 @@ export const cartService = {
   async addItemToCart(item: CartItemRequest): Promise<ApiResponse<any>> {
     const token = this.getAuthToken(); // Lấy token xác thực
 
+    // Kiểm tra variantId, nếu undefined thì gán giá trị mặc định (chuỗi rỗng)
+    const variantId = item.variantId || "";
+
     const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CART.ADD_ITEM}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : '', // Thêm token vào header nếu có
       },
-      body: JSON.stringify(item),
+      body: JSON.stringify({
+        productId: item.productId,
+        variantId: variantId, // Đảm bảo rằng variantId là một chuỗi hợp lệ
+        quantity: item.quantity,
+      }),
     });
 
     if (!res.ok) throw new Error('Không thể thêm sản phẩm vào giỏ hàng');
@@ -34,13 +41,20 @@ export const cartService = {
   async removeItemFromCart(item: CartItemRequest): Promise<ApiResponse<any>> {
     const token = this.getAuthToken(); // Lấy token xác thực
 
+    // Kiểm tra variantId, nếu undefined thì gán giá trị mặc định (chuỗi rỗng)
+    const variantId = item.variantId || "";
+
     const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CART.REMOVE_ITEM}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : '', // Thêm token vào header nếu có
       },
-      body: JSON.stringify(item),
+      body: JSON.stringify({
+        productId: item.productId,
+        variantId: variantId, // Đảm bảo rằng variantId là một chuỗi hợp lệ
+        quantity: item.quantity,
+      }),
     });
 
     if (!res.ok) throw new Error('Không thể xóa sản phẩm khỏi giỏ hàng');
@@ -51,13 +65,20 @@ export const cartService = {
   async updateCartItem(item: CartItemRequest): Promise<ApiResponse<any>> {
     const token = this.getAuthToken(); // Lấy token xác thực
 
+    // Kiểm tra variantId, nếu undefined thì gán giá trị mặc định (chuỗi rỗng)
+    const variantId = item.variantId || "";
+
     const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CART.UPDATE_ITEM}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : '', // Thêm token vào header nếu có
       },
-      body: JSON.stringify(item),
+      body: JSON.stringify({
+        productId: item.productId,
+        variantId: variantId, // Đảm bảo rằng variantId là một chuỗi hợp lệ
+        quantity: item.quantity,
+      }),
     });
 
     if (!res.ok) throw new Error('Không thể cập nhật sản phẩm trong giỏ hàng');

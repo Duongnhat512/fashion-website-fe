@@ -20,9 +20,8 @@ import {
   MinusOutlined,
 } from "@ant-design/icons";
 import type { Product, ProductVariant } from "../types/product.types";
-import { cartService } from "../services/cartService"; // Import cartService
 import { useSearch } from "../contexts/SearchContext"; // Import useSearch context
-
+import { useCart } from "../contexts/CartContext"; // ✅ Thêm dòng này
 const { Option } = Select;
 
 export default function ProductDetail() {
@@ -36,7 +35,7 @@ export default function ProductDetail() {
     null
   );
   const [mainImage, setMainImage] = useState("");
-
+  const { addToCart } = useCart(); // ✅ Lấy từ context
   useEffect(() => {
     if (!slug || !products.length) return;
     const found = products.find((p) => p.slug === slug);
@@ -73,30 +72,21 @@ export default function ProductDetail() {
       </div>
     );
 
-  const handleAddToCart = async () => {
-    if (selectedVariant) {
-      try {
-        // Gọi API để thêm sản phẩm vào giỏ hàng
-        const item = {
-          productId: product.id,
-          variantId: selectedVariant.id,
-          quantity,
-        };
-
-        const response = await cartService.addItemToCart(item);
-
-        // Kiểm tra phản hồi và hiển thị thông báo cho người dùng
-        if (response && response.success) {
-          // Kiểm tra nếu API trả về kết quả thành công
-          alert("Đã thêm vào giỏ hàng!"); // Hiển thị thông báo thành công
-        } else {
-          alert("Không thể thêm sản phẩm vào giỏ hàng"); // Thông báo lỗi
-        }
-      } catch (error) {
-        console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
-        alert("Không thể thêm sản phẩm vào giỏ hàng"); // Thông báo khi gặp lỗi
-      }
+  const handleAddToCart = () => {
+    if (!selectedVariant) {
+      message.warning("Vui lòng chọn phiên bản sản phẩm!");
+      return;
     }
+
+    addToCart(
+      {
+        ...product,
+        variants: [selectedVariant],
+      },
+      quantity
+    );
+
+    message.success("Đã thêm vào giỏ hàng!");
   };
 
   return (

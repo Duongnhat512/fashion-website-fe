@@ -4,13 +4,15 @@ import { useSearch } from "../contexts/SearchContext";
 import UserDropdown from "./UserDropdown";
 import { Badge } from "antd";
 import { useState, useEffect } from "react";
+import { useCart } from "../contexts/CartContext";
 
 export default function Header() {
+  const { cartCount } = useCart();
+  console.log("Cart count in Header:", cartCount);
   const { isAuthenticated, user } = useAuth();
   const { handleSearch, clearSearch } = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 🧠 Debounce search để không gọi API liên tục
   useEffect(() => {
     const trimmed = searchQuery.trim();
     const delay = setTimeout(() => {
@@ -101,11 +103,15 @@ export default function Header() {
 
           {/* Cart */}
           <Link
-            to="/cart"
+            to="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = "/cart"; // reload lại page
+            }}
             className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
             <Badge
-              // count={cartCount > 99 ? "99+" : cartCount}
+              count={cartCount > 99 ? "99+" : cartCount}
               color="#ef4444"
               offset={[10, -5]}
               style={{

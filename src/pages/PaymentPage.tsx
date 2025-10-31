@@ -49,7 +49,7 @@ const PaymentPage = () => {
     ? selectedItem.price * selectedItem.qty
     : selectedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  const shippingFee = total >= 500000 ? 0 : 30000;
+  const shippingFee = 0; // Giả sử miễn phí vận chuyển cho đơn hàng
   const grandTotal = total + shippingFee;
 
   const handleFormChange = (
@@ -71,7 +71,7 @@ const PaymentPage = () => {
 
     const orderData: CreateOrderRequest = {
       status: "unpaid", // Giá trị hợp lệ từ 'unpaid', 'paid', 'shipped', 'delivered', 'completed', 'canceled'
-      discount: 10, // Giảm giá (10%)
+      discount: 0, // Giảm giá (0%)
       shippingFee, // Phí vận chuyển (được tính trong hàm này)
       isCOD: form.paymentMethod === "cod", // Kiểm tra phương thức thanh toán COD
       items: selectedItem
@@ -285,7 +285,7 @@ const PaymentPage = () => {
               onClick={handlePlaceOrder}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 rounded-xl hover:from-purple-700 hover:to-blue-700 transition"
             >
-              Thanh toán ngay
+              Đặt hàng ngay
             </button>
           </div>
         </div>

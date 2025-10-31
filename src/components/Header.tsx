@@ -8,7 +8,6 @@ import { useCart } from "../contexts/CartContext";
 
 export default function Header() {
   const { cartCount } = useCart();
-  console.log("Cart count in Header:", cartCount);
   const { isAuthenticated, user } = useAuth();
   const { handleSearch, clearSearch } = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,15 +20,14 @@ export default function Header() {
       } else {
         handleSearch(trimmed);
       }
-    }, 500); // gọi API sau 0.5s khi dừng gõ
-
+    }, 500);
     return () => clearTimeout(delay);
   }, [searchQuery]);
 
   return (
     <header className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-2xl backdrop-blur-lg z-50">
       <div className="relative z-10 max-w-7xl mx-auto flex items-center justify-between px-6 py-5 gap-8">
-        {/* Logo */}
+        {/* 🟣 Logo */}
         <Link
           to="/"
           className="group flex items-center space-x-3 flex-shrink-0"
@@ -45,7 +43,7 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* 🔍 Search realtime */}
+        {/* 🔍 Thanh tìm kiếm */}
         <div className="flex-1 max-w-2xl mx-6 relative group">
           <input
             type="text"
@@ -75,8 +73,9 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Navigation */}
+        {/* 🧭 Navigation */}
         <nav className="flex items-center gap-3 flex-shrink-0">
+          {/* Trang chủ */}
           <Link
             to="/"
             onClick={clearSearch}
@@ -101,12 +100,12 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Cart */}
+          {/* 🛒 Giỏ hàng */}
           <Link
             to="#"
             onClick={(e) => {
               e.preventDefault();
-              window.location.href = "/cart"; // reload lại page
+              window.location.href = "/cart";
             }}
             className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
@@ -139,7 +138,33 @@ export default function Header() {
             </Badge>
           </Link>
 
-          {/* Auth */}
+          {/* 🧾 Đơn hàng - chỉ hiện nếu user thường */}
+          {isAuthenticated && user?.role !== "admin" && (
+            <Link
+              to="/orders/all"
+              className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
+            >
+              <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
+              <div className="relative z-10 flex items-center space-x-2">
+                <svg
+                  className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <span className="text-base">Đơn hàng</span>
+              </div>
+            </Link>
+          )}
+
+          {/* 👤 Auth */}
           {isAuthenticated && user ? (
             <div className="relative flex items-center gap-3">
               <span className="text-white text-sm sm:text-base">Xin chào,</span>

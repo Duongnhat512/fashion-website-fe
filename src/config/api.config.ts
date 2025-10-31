@@ -27,6 +27,7 @@ export const API_CONFIG = {
     ORDERS: {
       CREATE: '/orders',                  // Tạo đơn hàng
       GET_BY_ID: '/orders/:id',           // Lấy đơn hàng theo ID
+      GET_ALL: '/orders',                  // Lấy tất cả đơn hàng
       UPDATE: '/orders',                  // Cập nhật đơn hàng
       DELETE: '/orders/delete/:id',       // Xóa đơn hàng
       CANCEL: '/orders/cancel/:id',       // Hủy đơn hàng

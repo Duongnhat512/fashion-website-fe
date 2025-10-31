@@ -141,7 +141,7 @@ export default function Header() {
           {/* 🧾 Đơn hàng - chỉ hiện nếu user thường */}
           {isAuthenticated && user?.role !== "admin" && (
             <Link
-              to="/orders/all"
+              to="/orders"
               className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
             >
               <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>

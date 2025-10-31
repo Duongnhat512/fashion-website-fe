@@ -13,6 +13,7 @@ import UserProfilePage from "./pages/UserProfilePage";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import RevenueStatistics from "./pages/Admin/RevenueStatistics";
 import SuccessPage from "./pages/SuccessPage";
+import OrdersPage from "./pages/OrdersPage";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
               <Routes>
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/success" element={<SuccessPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/" element={<HomePage />} />
                 <Route path="/product/:slug" element={<ProductDetail />} />
                 <Route path="/cart" element={<CartPage />} />

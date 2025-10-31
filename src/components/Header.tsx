@@ -5,9 +5,12 @@ import UserDropdown from "./UserDropdown";
 import { Badge } from "antd";
 import { useState, useEffect } from "react";
 import { useCart } from "../contexts/CartContext";
-
+import LoginDialog from "./LoginDialog";
+import AccountDropdown from "./AccountDropdown";
+import logo from "../assets/BooBoo.png";
 export default function Header() {
   const { cartCount } = useCart();
+  const [showLogin, setShowLogin] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const { handleSearch, clearSearch } = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,19 +28,19 @@ export default function Header() {
   }, [searchQuery]);
 
   return (
-    <header className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-2xl backdrop-blur-lg z-50">
-      <div className="relative z-10 max-w-7xl mx-auto flex items-center justify-between px-6 py-5 gap-8">
+    <header className="sticky top-0 w-full bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-2xl backdrop-blur-lg z-50">
+      <div className="relative z-10 flex items-center justify-between px-8 py-4 gap-6">
         {/* 🟣 Logo */}
         <Link
           to="/"
           className="group flex items-center space-x-3 flex-shrink-0"
           onClick={clearSearch}
         >
-          <div className="relative p-2 bg-white/20 rounded-xl backdrop-blur-sm group-hover:bg-white/30 transition-all duration-300">
-            <div className="w-8 h-8 bg-gradient-to-br from-white to-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-purple-600 font-bold text-lg">B</span>
-            </div>
-          </div>
+          <img
+            src={logo}
+            alt="BooBoo Logo"
+            className="w-16 h-16 object-contain rounded-full transition-transform duration-300 group-hover:scale-105"
+          />
           <span className="text-2xl font-bold text-white group-hover:text-purple-100 transition-colors duration-300">
             BOOBOO
           </span>
@@ -100,43 +103,70 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* 🛒 Giỏ hàng */}
+          {/* 🔔 Thông báo */}
           <Link
-            to="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.location.href = "/cart";
-            }}
-            className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
+            to="/notifications"
+            className="relative group flex items-center gap-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
-            <Badge
-              count={cartCount > 99 ? "99+" : cartCount}
-              color="#ef4444"
-              offset={[10, -5]}
-              style={{
-                fontWeight: 600,
-                boxShadow: "0 0 0 2px rgba(255,255,255,0.5)",
-                borderRadius: "12px",
-              }}
-            >
-              <div className="relative z-10 flex items-center space-x-2">
-                <svg
-                  className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
-                <span className="text-base">Giỏ hàng</span>
-              </div>
-            </Badge>
+            <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
+            <div className="relative z-10 flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+              <span>Thông báo</span>
+            </div>
           </Link>
+
+          {/* 🛒 Giỏ hàng - chỉ hiện khi đã đăng nhập */}
+          {isAuthenticated && (
+            <Link
+              to="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = "/cart";
+              }}
+              className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
+            >
+              <Badge
+                count={cartCount > 99 ? "99+" : cartCount}
+                color="#ef4444"
+                offset={[10, -5]}
+                style={{
+                  fontWeight: 600,
+                  boxShadow: "0 0 0 2px rgba(255,255,255,0.5)",
+                  borderRadius: "12px",
+                }}
+              >
+                <div className="relative z-10 flex items-center space-x-2">
+                  <svg
+                    className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                    />
+                  </svg>
+                  <span className="text-base">Giỏ hàng</span>
+                </div>
+              </Badge>
+            </Link>
+          )}
 
           {/* 🧾 Đơn hàng - chỉ hiện nếu user thường */}
           {isAuthenticated && user?.role !== "admin" && (
@@ -171,56 +201,11 @@ export default function Header() {
               <UserDropdown user={user} />
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <Link
-                to="/login"
-                className="relative group px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
-              >
-                <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
-                <div className="relative z-10 flex items-center space-x-2">
-                  <svg
-                    className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                    />
-                  </svg>
-                  <span>Đăng nhập</span>
-                </div>
-              </Link>
-
-              <Link
-                to="/register"
-                className="relative group bg-white/20 backdrop-blur-sm text-white px-6 py-2 rounded-xl hover:bg-white/30 hover:shadow-lg transition-all duration-300 font-semibold"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <span className="relative z-10 flex items-center space-x-2">
-                  <svg
-                    className="h-4 w-4 group-hover:scale-110 transition-transform duration-300"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                    />
-                  </svg>
-                  <span>Đăng ký</span>
-                </span>
-              </Link>
-            </div>
+            <AccountDropdown onLoginClick={() => setShowLogin(true)} />
           )}
         </nav>
       </div>
+      <LoginDialog open={showLogin} onClose={() => setShowLogin(false)} />
     </header>
   );
 }

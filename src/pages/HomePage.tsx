@@ -162,11 +162,12 @@ const HomePage = () => {
                     <div
                       key={p.id}
                       onClick={() => navigate(`/product/${p.slug}`)}
-                      className="relative bg-white rounded-2xl shadow-md hover:shadow-2xl
-             transition-all duration-300 overflow-hidden cursor-pointer group
-             border border-transparent hover:border-purple-200"
+                      className="relative rounded-2xl overflow-hidden cursor-pointer
+    border border-transparent
+    bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
+    transition-all duration-300 shadow-md hover:shadow-2xl"
                     >
-                      {/* 🖼 Ảnh sản phẩm (motion cha) */}
+                      {/* 🖼 Ảnh sản phẩm */}
                       <motion.div
                         className="relative overflow-hidden"
                         initial="hidden"
@@ -179,11 +180,11 @@ const HomePage = () => {
                           className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                         />
 
-                        {/* Thanh đen ngang giữa ảnh */}
+                        {/* Thanh overlay chi tiết */}
                         <motion.div
                           className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent
-             opacity-0 group-hover:opacity-100 transition-opacity duration-500
-             flex items-center justify-center"
+        opacity-0 group-hover:opacity-100 transition-opacity duration-500
+        flex items-center justify-center"
                           variants={{
                             hidden: { y: "150%", opacity: 0 },
                             visible: { y: "0%", opacity: 1 },
@@ -192,10 +193,10 @@ const HomePage = () => {
                         >
                           <div
                             className="w-[90%] text-center py-3
-                                  bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500
-                                  text-white font-bold uppercase tracking-wider text-base
-                                  shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
-                                  border border-white/10 cursor-pointer"
+          bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500
+          text-white font-bold uppercase tracking-wider text-base
+          shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
+          border border-white/10 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/product/${p.slug}`);
@@ -206,14 +207,14 @@ const HomePage = () => {
                         </motion.div>
                       </motion.div>
 
-                      {/* 🧾 Thông tin sản phẩm */}
-                      <div className="p-4 flex flex-col justify-between h-[140px]">
-                        <h3 className="font-semibold text-gray-900 text-base line-clamp-2 min-h-[48px]">
+                      {/* Thông tin sản phẩm */}
+                      <div className="p-4 flex flex-col justify-between h-[140px] text-gray-900">
+                        <h3 className="font-semibold text-base line-clamp-2 min-h-[48px]">
                           {p.name}
                         </h3>
 
                         <div className="flex justify-between items-center mt-3">
-                          <span className="text-lg font-bold text-pink-600">
+                          <span className="text-lg font-bold text-gray-900">
                             {(v?.price || 0).toLocaleString("vi-VN")}₫
                           </span>
                           <div className="flex items-center gap-1">
@@ -226,7 +227,7 @@ const HomePage = () => {
                                   p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
                               }}
                             />
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-700">
                               ({p.ratingCount || 0})
                             </span>
                           </div>
@@ -252,6 +253,7 @@ const HomePage = () => {
                   onChange={handlePageChange}
                   showSizeChanger={false}
                   showQuickJumper
+                  locale={{ jump_to: "Đi đến trang", page: "" }}
                   showTotal={(total, range) =>
                     `${range[0]}-${range[1]} của ${total} sản phẩm`
                   }

@@ -1,5 +1,4 @@
-
-
+import logo from "../assets/BooBoo.png";
 export default function Footer() {
   return (
     <footer className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white overflow-hidden">
@@ -10,18 +9,20 @@ export default function Footer() {
         <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-white/5 rounded-full -ml-12 -mt-12 animate-pulse animation-delay-4000"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-6">
+      <div className="relative z-10 flex flex-col mx-auto px-8 py-4 gap-6">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {/* Brand Section */}
           <div className="md:col-span-2">
             <div className="flex items-center space-x-3 mb-2">
-              <div className="relative p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                <div className="w-8 h-8 bg-gradient-to-br from-white to-gray-100 rounded-lg flex items-center justify-center">
-                  <span className="text-purple-600 font-bold text-xl">B</span>
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold text-white">BOOBOO</h3>
+              <img
+                src={logo}
+                alt="BooBoo Logo"
+                className="w-16 h-16 object-contain rounded-full transition-transform duration-300 group-hover:scale-105"
+              />
+              <span className="text-2xl font-bold text-white group-hover:text-purple-100 transition-colors duration-300">
+                BOOBOO
+              </span>
             </div>
             <p className="text-white/80 text-base leading-relaxed mb-3 max-w-md">
               Thời trang hiện đại, phong cách trẻ trung. Mang đến cho bạn những

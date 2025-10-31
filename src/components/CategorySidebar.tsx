@@ -121,7 +121,7 @@ function CategorySidebar({ onSelectCategory, selectedCategoryId }: Props) {
   return (
     <aside
       className="w-64 bg-white/90 backdrop-blur-xl rounded-2xl p-5 shadow-[0_4px_30px_rgba(0,0,0,0.08)] 
-      border border-purple-100 sticky top-6 h-fit relative overflow-hidden"
+  border border-purple-100 relative overflow-hidden"
     >
       {/* 🌈 Hiệu ứng ánh sáng nhẹ */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-100/40 via-blue-100/30 to-transparent animate-pulse-slow pointer-events-none"></div>

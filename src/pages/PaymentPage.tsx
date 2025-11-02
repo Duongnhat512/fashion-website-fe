@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext"; // ✅ Thêm vào để lấy user từ context
+import { useAuth } from "../contexts/AuthContext";
 import { orderService } from "../services/orderService";
 import type { CreateOrderRequest } from "../services/orderService";
+
 // Hàm định dạng tiền tệ
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("vi-VN", {
@@ -14,7 +15,7 @@ const formatCurrency = (amount: number) =>
 const PaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth(); // ✅ Lấy user từ AuthContext
+  const { user } = useAuth();
 
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -26,7 +27,7 @@ const PaymentPage = () => {
     district: "",
     ward: "",
     note: "",
-    paymentMethod: "cod",
+    paymentMethod: "cod", // ✅ Mặc định là thanh toán khi nhận hàng
   });
 
   useEffect(() => {
@@ -49,11 +50,13 @@ const PaymentPage = () => {
     ? selectedItem.price * selectedItem.qty
     : selectedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  const shippingFee = 0; // Giả sử miễn phí vận chuyển cho đơn hàng
+  const shippingFee = 0;
   const grandTotal = total + shippingFee;
 
   const handleFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     setForm({
       ...form,
@@ -61,7 +64,6 @@ const PaymentPage = () => {
     });
   };
 
-  // ✅ Lấy user.id từ AuthContext để gửi lên backend
   const handlePlaceOrder = async () => {
     if (!user || !user.id || !user.fullname || !user.email) {
       alert("Vui lòng đăng nhập trước khi đặt hàng!");
@@ -70,19 +72,15 @@ const PaymentPage = () => {
     }
 
     const orderData: CreateOrderRequest = {
-      status: "unpaid", // Giá trị hợp lệ từ 'unpaid', 'paid', 'shipped', 'delivered', 'completed', 'canceled'
-      discount: 0, // Giảm giá (0%)
-      shippingFee, // Phí vận chuyển (được tính trong hàm này)
-      isCOD: form.paymentMethod === "cod", // Kiểm tra phương thức thanh toán COD
+      status: "unpaid",
+      discount: 0,
+      shippingFee,
+      isCOD: form.paymentMethod === "cod",
       items: selectedItem
         ? [
             {
-              product: {
-                id: selectedItem.productId,
-              },
-              variant: {
-                id: selectedItem.variantId,
-              },
+              product: { id: selectedItem.productId },
+              variant: { id: selectedItem.variantId },
               quantity: selectedItem.qty,
               rate: selectedItem.price,
             },
@@ -106,15 +104,11 @@ const PaymentPage = () => {
         district: form.district,
         ward: form.ward,
       },
-      user: {
-        id: user.id,
-      },
+      user: { id: user.id },
     };
 
     try {
       const response = await orderService.createOrder(orderData);
-
-      // Kiểm tra kết quả trả về từ API
       if (response.id) {
         navigate("/success");
       } else {
@@ -129,7 +123,7 @@ const PaymentPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* --- Sản phẩm --- */}
+        {/* --- Danh sách sản phẩm --- */}
         <div className="xl:col-span-2 space-y-6">
           {selectedItem && (
             <div
@@ -220,7 +214,7 @@ const PaymentPage = () => {
             <span>{formatCurrency(grandTotal)}</span>
           </div>
 
-          {/* Form thông tin */}
+          {/* --- Form thông tin --- */}
           <div>
             <input
               type="text"
@@ -277,17 +271,38 @@ const PaymentPage = () => {
               placeholder="Ghi chú"
               className="w-full p-3 border rounded-md mb-4"
             />
+
+            {/* --- Thêm phương thức thanh toán --- */}
+            {/* --- Phương thức thanh toán (chỉ COD) --- */}
+            <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <input
+                type="checkbox"
+                id="cod"
+                name="paymentMethod"
+                checked={form.paymentMethod === "cod"}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    paymentMethod: e.target.checked ? "cod" : "",
+                  })
+                }
+                className="w-5 h-5 accent-purple-600 cursor-pointer"
+              />
+              <label
+                htmlFor="cod"
+                className="text-gray-800 cursor-pointer font-medium"
+              >
+                💵 Thanh toán khi nhận hàng (COD)
+              </label>
+            </div>
           </div>
 
-          {/* Nút thanh toán */}
-          <div className="flex justify-between">
-            <button
-              onClick={handlePlaceOrder}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 rounded-xl hover:from-purple-700 hover:to-blue-700 transition"
-            >
-              Đặt hàng ngay
-            </button>
-          </div>
+          <button
+            onClick={handlePlaceOrder}
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 rounded-xl hover:from-purple-700 hover:to-blue-700 transition"
+          >
+            Đặt hàng ngay
+          </button>
         </div>
       </div>
     </div>

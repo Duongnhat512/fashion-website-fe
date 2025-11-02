@@ -8,7 +8,7 @@ export const API_CONFIG = {
     },
 
     CATEGORIES: {
-      TREE: '/categories/tree', // 🆕 Lấy cây danh mục (có cấp con)
+      TREE: '/categories/tree',
       GET_ALL: '/categories',
     },
 
@@ -25,22 +25,29 @@ export const API_CONFIG = {
     },
 
     ORDERS: {
-      CREATE: '/orders',                  // Tạo đơn hàng
-      GET_BY_ID: '/orders/:id',           // Lấy đơn hàng theo ID
-      GET_ALL: '/orders',                  // Lấy tất cả đơn hàng
-      UPDATE: '/orders',                  // Cập nhật đơn hàng
-      DELETE: '/orders/delete/:id',       // Xóa đơn hàng
-      CANCEL: '/orders/cancel/:id',       // Hủy đơn hàng
-      MARK_AS_DELIVERED: '/orders/mark-as-delivered',   // Đánh dấu là đã giao
-      MARK_AS_READY_TO_SHIP: '/orders/mark-as-ready-to-ship', // Đánh dấu là sẵn sàng giao
-      CONFIRM_AS_COMPLETED: '/orders/confirm-as-completed', // Xác nhận hoàn thành đơn hàng
+      CREATE: '/orders',
+      GET_BY_ID: '/orders/:id',
+      GET_ALL: '/orders',
+      UPDATE: '/orders',
+      DELETE: '/orders/delete/:id',
+      CANCEL: '/orders/cancel/:id',
+      MARK_AS_DELIVERED: '/orders/mark-as-delivered',
+      MARK_AS_READY_TO_SHIP: '/orders/mark-as-ready-to-ship',
+      CONFIRM_AS_COMPLETED: '/orders/confirm-as-completed',
+      GET_USER_ORDERS: '/orders/user/:userId',
     },
 
     CART: {
-      ADD_ITEM: '/carts/item',           // Thêm sản phẩm vào giỏ
-      REMOVE_ITEM: '/carts/delete/item', // Xóa sản phẩm khỏi giỏ
-      GET_CART: '/carts',                // Lấy giỏ hàng
-      UPDATE_ITEM: '/carts/update/item', // Cập nhật giỏ hàng
+      ADD_ITEM: '/carts/item',
+      REMOVE_ITEM: '/carts/delete/item',
+      GET_CART: '/carts',
+      UPDATE_ITEM: '/carts/update/item',
+    },
+
+    // 🆕 Thêm nhóm Payment
+    PAYMENTS: {
+      CREATE_URL: '/payments/create-payment-url', // Tạo link thanh toán
+      REDIRECT: '/payments/payment-redirect',     // Callback trả về sau khi thanh toán
     },
   },
 

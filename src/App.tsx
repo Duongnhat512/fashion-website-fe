@@ -14,6 +14,8 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import RevenueStatistics from "./pages/Admin/RevenueStatistics";
 import SuccessPage from "./pages/SuccessPage";
 import OrdersPage from "./pages/OrdersPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailure from "./pages/PaymentFailure";
 
 function App() {
   return (
@@ -31,6 +33,8 @@ function App() {
                 <Route path="/product/:slug" element={<ProductDetail />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/payment/success" element={<PaymentSuccess />} />
+                <Route path="/payment/failure" element={<PaymentFailure />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile" element={<UserProfilePage />} />

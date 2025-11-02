@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { authService } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
-
 interface FormData {
   fullName: string;
   email: string;
@@ -31,6 +30,7 @@ interface FormErrors {
 type RegistrationStep = "form" | "otp" | "success";
 
 export default function RegisterPage() {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const [currentStep, setCurrentStep] = useState<RegistrationStep>("form");
@@ -192,9 +192,29 @@ export default function RegisterPage() {
         phone: formData.phone || undefined,
         verificationToken: token,
       });
-
+      alert(
+        "🎉 Đăng ký tài khoản thành công! Hệ thống sẽ tự động đăng nhập..."
+      );
       setCurrentStep("success");
-      setTimeout(() => navigate("/login"), 3000);
+      setTimeout(async () => {
+        try {
+          const loginResponse = await authService.login({
+            email: formData.email,
+            password: formData.password,
+          });
+
+          login(loginResponse.user, loginResponse.accessToken);
+          navigate("/", { replace: true });
+        } catch (loginError) {
+          console.error("Login error:", loginError);
+        }
+      }, 1000);
+      const loginResponse = await authService.login({
+        email: formData.email,
+        password: formData.password,
+      });
+      login(loginResponse.user, loginResponse.accessToken);
+      navigate("/", { replace: true });
     } catch (error) {
       console.error("Register error:", error);
       setErrors({

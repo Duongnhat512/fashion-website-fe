@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Rate, Pagination } from "antd";
+import { Rate, Pagination, Select } from "antd";
 import { motion } from "framer-motion";
 import CategorySidebar from "../components/CategorySidebar";
 import { productService } from "../services/productService";
@@ -24,6 +24,7 @@ const Products = () => {
     string | null
   >(null);
   const [priceRange, setPriceRange] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>("default");
 
   // 🔍 Lấy search query từ URL
   useEffect(() => {
@@ -101,31 +102,47 @@ const Products = () => {
   };
 
   // 💰 Lọc sản phẩm theo giá và tìm kiếm
-  const filteredProducts = products.filter((p) => {
-    // Lọc theo giá
-    if (priceRange) {
-      const price = p.variants?.[0]?.price || 0;
-      const range = priceRanges.find((r) => r.value === priceRange);
-      if (range && (price < range.min || price > range.max)) {
-        return false;
+  const filteredProducts = products
+    .filter((p) => {
+      // Lọc theo giá
+      if (priceRange) {
+        const price = p.variants?.[0]?.price || 0;
+        const range = priceRanges.find((r) => r.value === priceRange);
+        if (range && (price < range.min || price > range.max)) {
+          return false;
+        }
       }
-    }
 
-    // Lọc theo search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const name = p.name?.toLowerCase() || "";
-      const shortDesc = p.shortDescription?.toLowerCase() || "";
-      const brand = p.brand?.toLowerCase() || "";
-      return (
-        name.includes(query) ||
-        shortDesc.includes(query) ||
-        brand.includes(query)
-      );
-    }
+      // Lọc theo search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const name = p.name?.toLowerCase() || "";
+        const shortDesc = p.shortDescription?.toLowerCase() || "";
+        const brand = p.brand?.toLowerCase() || "";
+        return (
+          name.includes(query) ||
+          shortDesc.includes(query) ||
+          brand.includes(query)
+        );
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      // Sắp xếp theo sortBy
+      switch (sortBy) {
+        case "price-asc":
+          return (a.variants?.[0]?.price || 0) - (b.variants?.[0]?.price || 0);
+        case "price-desc":
+          return (b.variants?.[0]?.price || 0) - (a.variants?.[0]?.price || 0);
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
 
   // 📄 Phân trang client-side cho filteredProducts
   const itemsPerPage = 16;
@@ -188,7 +205,50 @@ const Products = () => {
         {/* 🧱 Bố cục chính */}
         <div className="flex gap-8">
           {/* ⬅️ SIDEBAR */}
-          <div className="hidden lg:block">
+          <div className="hidden lg:block w-64">
+            {/* Bộ sắp xếp */}
+            <div className="mb-6 bg-white rounded-2xl p-6 shadow-lg">
+              <h3 className="text-lg font-bold mb-4 text-gray-800">Sắp xếp</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Theo giá:
+                  </label>
+                  <Select
+                    value={sortBy.startsWith("price") ? sortBy : "default"}
+                    onChange={(value) => setSortBy(value)}
+                    style={{ width: "100%" }}
+                    size="large"
+                  >
+                    <Select.Option value="default">Mặc định</Select.Option>
+                    <Select.Option value="price-asc">
+                      Giá tăng dần
+                    </Select.Option>
+                    <Select.Option value="price-desc">
+                      Giá giảm dần
+                    </Select.Option>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Theo tên:
+                  </label>
+                  <Select
+                    value={sortBy.startsWith("name") ? sortBy : "default"}
+                    onChange={(value) => setSortBy(value)}
+                    style={{ width: "100%" }}
+                    size="large"
+                  >
+                    <Select.Option value="default">Mặc định</Select.Option>
+                    <Select.Option value="name-asc">Tên A-Z</Select.Option>
+                    <Select.Option value="name-desc">Tên Z-A</Select.Option>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
             <CategorySidebar
               onSelectCategory={handleSelectCategory}
               selectedCategoryId={selectedCategoryId}

@@ -1,6 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useSearch } from "../contexts/SearchContext";
 import UserDropdown from "./UserDropdown";
 import { Badge } from "antd";
 import { useState, useEffect } from "react";
@@ -12,20 +11,28 @@ export default function Header() {
   const { cartCount } = useCart();
   const [showLogin, setShowLogin] = useState(false);
   const { isAuthenticated, user } = useAuth();
-  const { handleSearch, clearSearch } = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Clear search text khi URL không có search params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (!params.has("search")) {
+      setSearchQuery("");
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const trimmed = searchQuery.trim();
     const delay = setTimeout(() => {
-      if (!trimmed) {
-        clearSearch();
-      } else {
-        handleSearch(trimmed);
+      if (trimmed) {
+        // Navigate to products page with search query
+        navigate(`/products?search=${encodeURIComponent(trimmed)}`);
       }
     }, 500);
     return () => clearTimeout(delay);
-  }, [searchQuery]);
+  }, [searchQuery, navigate]);
 
   return (
     <header className="sticky top-0 w-full bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-2xl backdrop-blur-lg z-50">
@@ -34,13 +41,30 @@ export default function Header() {
         <Link
           to="/"
           className="group flex items-center space-x-3 flex-shrink-0"
-          onClick={clearSearch}
+          onClick={() => {
+            setSearchQuery("");
+          }}
         >
-          <img
-            src={logo}
-            alt="BooBoo Logo"
-            className="w-16 h-16 object-contain rounded-full transition-transform duration-300 group-hover:scale-105"
-          />
+          <div className="relative">
+            <img
+              src={logo}
+              alt="BooBoo Logo"
+              className="w-16 h-16 object-contain rounded-full transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 animate-float"
+            />
+            <style>{`
+              @keyframes float {
+                0%, 100% {
+                  transform: translateY(0px);
+                }
+                50% {
+                  transform: translateY(-8px);
+                }
+              }
+              .animate-float {
+                animation: float 3s ease-in-out infinite;
+              }
+            `}</style>
+          </div>
           <span className="text-2xl font-bold text-white group-hover:text-purple-100 transition-colors duration-300">
             BOOBOO
           </span>
@@ -81,7 +105,9 @@ export default function Header() {
           {/* Trang chủ */}
           <Link
             to="/"
-            onClick={clearSearch}
+            onClick={() => {
+              setSearchQuery("");
+            }}
             className="relative group px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
             <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
@@ -103,28 +129,28 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* 🔔 Thông báo */}
+          {/* 🛍️ Sản phẩm */}
           <Link
-            to="/notifications"
+            to="/products"
             className="relative group flex items-center gap-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
           >
             <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
             <div className="relative z-10 flex items-center gap-2">
+              {/* Icon áo thật sự */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
-                fill="none"
                 viewBox="0 0 24 24"
+                fill="none"
                 stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
+                <path d="M20.5 7L16 4l-2 2h-4L8 4 3.5 7l2 4V20h13V11l2-4z" />
               </svg>
-              <span>Thông báo</span>
+
+              <span>Sản phẩm</span>
             </div>
           </Link>
 
@@ -138,6 +164,7 @@ export default function Header() {
               }}
               className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"
             >
+              <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm"></div>
               <Badge
                 count={cartCount > 99 ? "99+" : cartCount}
                 color="#ef4444"
@@ -148,7 +175,7 @@ export default function Header() {
                   borderRadius: "12px",
                 }}
               >
-                <div className="relative z-10 flex items-center space-x-2">
+                <div className="relative z-10 flex items-center space-x-2 text-white">
                   <svg
                     className="h-5 w-5 group-hover:scale-110 transition-transform duration-300"
                     fill="none"
@@ -162,7 +189,7 @@ export default function Header() {
                       d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                     />
                   </svg>
-                  <span className="text-base">Giỏ hàng</span>
+                  <span className="text-base text-white">Giỏ hàng</span>
                 </div>
               </Badge>
             </Link>
@@ -197,7 +224,6 @@ export default function Header() {
           {/* 👤 Auth */}
           {isAuthenticated && user ? (
             <div className="relative flex items-center gap-3">
-              <span className="text-white text-sm sm:text-base">Xin chào,</span>
               <UserDropdown user={user} />
             </div>
           ) : (

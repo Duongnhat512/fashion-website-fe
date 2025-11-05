@@ -1,5 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import logo from "../assets/BooBoo.png";
+
 export default function Footer() {
+  const navigate = useNavigate();
+
   return (
     <footer className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white overflow-hidden">
       {/* Background decorative elements */}
@@ -14,7 +18,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {/* Brand Section */}
           <div className="md:col-span-2">
-            <div className="flex items-center space-x-3 mb-2">
+            <div
+              className="flex items-center space-x-3 mb-2 cursor-pointer group"
+              onClick={() => navigate("/")}
+            >
               <img
                 src={logo}
                 alt="BooBoo Logo"
@@ -56,31 +63,34 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-3 text-white">Liên kết</h4>
             <ul className="space-y-1">
-              {["Trang chủ", "Sản phẩm", "Về chúng tôi", "Liên hệ"].map(
-                (link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="group flex items-center space-x-2 text-white/70 hover:text-white transition-all duration-300"
+              {[
+                { name: "Trang chủ", path: "/" },
+                { name: "Sản phẩm", path: "/products" },
+                { name: "Về chúng tôi", path: "#" },
+                { name: "Liên hệ", path: "#" },
+              ].map((link) => (
+                <li key={link.name}>
+                  <div
+                    onClick={() => link.path !== "#" && navigate(link.path)}
+                    className="group flex items-center space-x-2 text-white/70 hover:text-white transition-all duration-300 cursor-pointer"
+                  >
+                    <svg
+                      className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      <svg
-                        className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                      <span>{link}</span>
-                    </a>
-                  </li>
-                )
-              )}
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    <span>{link.name}</span>
+                  </div>
+                </li>
+              ))}
             </ul>
           </div>
 

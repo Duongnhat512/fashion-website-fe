@@ -66,7 +66,7 @@ export default function CartPage() {
             Giỏ hàng của bạn đang trống
           </h3>
           <Link
-            to="/"
+            to="/products"
             className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-8 py-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
           >
             Khám phá sản phẩm

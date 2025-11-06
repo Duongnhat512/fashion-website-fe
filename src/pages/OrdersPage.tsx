@@ -104,6 +104,22 @@ const OrdersPage = () => {
     }
   };
 
+  const handleConfirmCompleted = async (orderId: string) => {
+    if (!window.confirm("Bạn xác nhận đã nhận được hàng?")) return;
+    try {
+      await orderService.confirmOrderAsCompleted(orderId);
+      message.success("Đã xác nhận nhận hàng thành công!");
+      // Cập nhật trạng thái đơn hàng trong danh sách
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: OrderStatus.COMPLETED } : o
+        )
+      );
+    } catch {
+      message.error("Xác nhận thất bại, vui lòng thử lại!");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-purple-50 to-pink-50 p-6">
       <div className="max-w-6xl mx-auto bg-white rounded-3xl shadow-xl p-8">
@@ -245,6 +261,17 @@ const OrdersPage = () => {
                           ❌ Hủy đơn
                         </motion.button>
                       </>
+                    )}
+
+                    {order.status === OrderStatus.DELIVERED && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleConfirmCompleted(order.id)}
+                        className="px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all"
+                      >
+                        Xác nhận
+                      </motion.button>
                     )}
                   </div>
                 </div>

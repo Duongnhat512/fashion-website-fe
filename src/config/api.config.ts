@@ -31,9 +31,10 @@ export const API_CONFIG = {
       UPDATE: '/orders',
       DELETE: '/orders/delete/:id',
       CANCEL: '/orders/cancel/:id',
-      MARK_AS_DELIVERED: '/orders/mark-as-delivered',
-      MARK_AS_READY_TO_SHIP: '/orders/mark-as-ready-to-ship',
-      CONFIRM_AS_COMPLETED: '/orders/confirm-as-completed',
+      MARK_AS_DELIVERED: '/orders/mark-as-delivered/:id',
+      MARK_AS_READY_TO_SHIP: '/orders/mark-as-ready-to-ship/:id',
+      CONFIRM_AS_COMPLETED: '/orders/confirm-as-completed/:id',
+      MARK_AS_SHIPPING: '/orders/mark-as-shipping/:id',
       GET_USER_ORDERS: '/orders/user/:userId',
     },
 
@@ -55,4 +56,4 @@ export const API_CONFIG = {
     PAGE: 1,
     LIMIT: 10,
   },
-} as const;
+};

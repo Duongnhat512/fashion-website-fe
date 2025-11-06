@@ -22,6 +22,10 @@ const HomePage = () => {
     [key: string]: Product[];
   }>({});
 
+  const handleToDetail = (p: Product) => {
+    navigate(`/products/${p.slug}`, { state: { product: p } });
+  };
+
   // 🧩 Load danh mục và sản phẩm theo từng danh mục
   useEffect(() => {
     const loadData = async () => {
@@ -73,7 +77,7 @@ const HomePage = () => {
     return (
       <div
         key={p.id}
-        onClick={() => navigate(`/products/${p.slug}`)}
+        onClick={() => handleToDetail(p)}
         className="relative rounded-2xl overflow-hidden cursor-pointer
           border border-transparent
           bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
@@ -157,7 +161,7 @@ const HomePage = () => {
                 border border-white/10 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/products/${p.slug}`);
+                handleToDetail(p);
               }}
             >
               XEM CHI TIẾT &nbsp; ➜

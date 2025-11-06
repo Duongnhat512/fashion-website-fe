@@ -71,6 +71,11 @@ const Products = () => {
     },
   ];
 
+  // 🔗 Hàm chuyển đến trang chi tiết
+  const handleToDetail = (p: Product) => {
+    navigate(`/products/${p.slug}`, { state: { product: p } });
+  };
+
   // 🧩 Hàm tải danh sách sản phẩm
   const fetchProducts = async (categoryId?: string, search?: string) => {
     try {
@@ -291,7 +296,7 @@ const Products = () => {
                   return (
                     <div
                       key={p.id}
-                      onClick={() => navigate(`/products/${p.slug}`)}
+                      onClick={() => handleToDetail(p)}
                       className="relative rounded-2xl overflow-hidden cursor-pointer
     border border-transparent
     bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
@@ -328,8 +333,9 @@ const Products = () => {
           shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
           border border-white/10 cursor-pointer"
                             onClick={(e) => {
+                              console.log("Product clicked:", p);
                               e.stopPropagation();
-                              navigate(`/products/${p.slug}`);
+                              handleToDetail(p);
                             }}
                           >
                             XEM CHI TIẾT &nbsp; ➜

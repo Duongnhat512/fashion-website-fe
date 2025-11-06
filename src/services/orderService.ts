@@ -30,6 +30,7 @@ export interface OrderResponse {
   id: string;
   user: any;
   status: string;
+  isCOD: boolean;
   subTotal: number;
   discount: number;
   totalAmount: number;
@@ -86,6 +87,16 @@ class OrderService {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
+    });
+  }
+
+  // 🟢 Lấy tất cả đơn hàng (Admin)
+  async getAllOrders(): Promise<OrderResponse[]> {
+    const token = localStorage.getItem('authToken');
+
+    return this.makeRequest<OrderResponse[]>(API_CONFIG.ENDPOINTS.ORDERS.GET_ALL, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
     });
   }
 
@@ -149,30 +160,51 @@ async cancelOrder(orderId: string): Promise<void> {
   // 🟢 Đánh dấu đã giao
   async markOrderAsDelivered(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
+    const url = API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_DELIVERED.replace(':id', orderId);
 
-    return this.makeRequest<void>(API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_DELIVERED, {
+    return this.makeRequest<void>(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
     });
   }
 
   // 🟢 Sẵn sàng giao hàng
   async markOrderAsReadyToShip(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
+    const url = API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_READY_TO_SHIP.replace(':id', orderId);
 
-    return this.makeRequest<void>(API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_READY_TO_SHIP, {
+    return this.makeRequest<void>(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
     });
   }
 
   // 🟢 Xác nhận hoàn thành đơn hàng
   async confirmOrderAsCompleted(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
+    const url = API_CONFIG.ENDPOINTS.ORDERS.CONFIRM_AS_COMPLETED.replace(':id', orderId);
 
-    return this.makeRequest<void>(API_CONFIG.ENDPOINTS.ORDERS.CONFIRM_AS_COMPLETED, {
+    return this.makeRequest<void>(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
+    });
+  }
+  // 🟢 Đánh dấu đơn hàng đang giao
+  async markOrderAsShipping(orderId: string): Promise<void> {
+    const token = localStorage.getItem('authToken');
+    const endpoint = API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_SHIPPING;
+    if (!endpoint) {
+      throw new Error('MARK_AS_SHIPPING endpoint not found');
+    }
+    const url = endpoint.replace(':id', orderId);
+
+    return this.makeRequest<void>(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
     });
   }
 }

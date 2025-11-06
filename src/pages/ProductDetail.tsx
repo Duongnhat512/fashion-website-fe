@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Button,
   Rate,
@@ -28,6 +28,7 @@ const { Option } = Select;
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,40 +47,34 @@ export default function ProductDetail() {
     const loadProduct = async () => {
       if (!slug) return;
 
-      try {
-        setLoading(true);
-        const response = await productService.searchProducts({
-          slug,
-          limit: 1,
-        });
+      // Kiểm tra xem có product được truyền qua state không
+      const stateProduct = location.state?.product as Product | undefined;
 
-        if (response.products && response.products.length > 0) {
-          const found = response.products[0];
-          setProduct(found);
-          if (found.variants?.length > 0) {
-            setSelectedVariant(found.variants[0]);
-            setMainImage(found.variants[0].imageUrl || found.imageUrl);
-          } else {
-            setMainImage(found.imageUrl);
-          }
-
-          // Tải sản phẩm liên quan
-          loadRelatedProducts(found.name, found.id);
+      if (stateProduct && stateProduct.slug === slug) {
+        // Sử dụng product từ state
+        console.log("✅ Sử dụng product từ state:", stateProduct);
+        setProduct(stateProduct);
+        if (stateProduct.variants?.length > 0) {
+          setSelectedVariant(stateProduct.variants[0]);
+          setMainImage(
+            stateProduct.variants[0].imageUrl || stateProduct.imageUrl
+          );
         } else {
-          message.error("Không tìm thấy sản phẩm!");
-          navigate("/");
+          setMainImage(stateProduct.imageUrl);
         }
-      } catch (error) {
-        console.error("Lỗi tải sản phẩm:", error);
-        message.error("Lỗi tải sản phẩm!");
+        loadRelatedProducts(stateProduct.name, stateProduct.id);
+        setLoading(false);
+      } else {
+        // Không có product trong state
+        console.error("❌ Không tìm thấy sản phẩm!");
+        message.error("Không tìm thấy sản phẩm!");
         navigate("/");
-      } finally {
         setLoading(false);
       }
     };
 
     loadProduct();
-  }, [slug, navigate]);
+  }, [slug, navigate, location.state]);
 
   // Hàm tải sản phẩm liên quan
   const loadRelatedProducts = async (
@@ -354,7 +349,9 @@ export default function ProductDetail() {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => navigate(`/products/${p.slug}`)}
+                    onClick={() =>
+                      navigate(`/products/${p.slug}`, { state: { product: p } })
+                    }
                     className="relative rounded-2xl overflow-hidden cursor-pointer
                     border border-transparent
                     bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
@@ -392,7 +389,9 @@ export default function ProductDetail() {
                           border border-white/10 cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/products/${p.slug}`);
+                            navigate(`/products/${p.slug}`, {
+                              state: { product: p },
+                            });
                           }}
                         >
                           XEM CHI TIẾT &nbsp; ➜

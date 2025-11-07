@@ -17,6 +17,7 @@ interface CartContextType {
   addToCart: (product: any, qty?: number) => void;
   updateQuantity: (cartKey: string, qty: number) => void;
   removeFromCart: (cartKey: string) => void;
+  clearCart: () => void;
   fetchCart: () => void;
 }
 
@@ -123,6 +124,24 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
+  // 🧹 Xóa toàn bộ giỏ hàng
+  const handleClearCart = async () => {
+    try {
+      // Xóa từng item trong giỏ hàng
+      for (const item of cart) {
+        await cartService.removeItemFromCart({
+          productId: item.productId,
+          variantId: item.variantId ?? "",
+          quantity: item.qty,
+        });
+      }
+      // Reload lại giỏ hàng từ server
+      await fetchCart();
+    } catch (error) {
+      console.error("Lỗi khi xóa giỏ hàng:", error);
+    }
+  };
+
   // 🛒 Thêm sản phẩm vào giỏ hàng
   const addToCart = async (product: any, qty: number = 1) => {
     const variant = product.variants?.[0] ?? null;
@@ -177,6 +196,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     addToCart,
     updateQuantity: handleUpdateQuantity,
     removeFromCart: handleRemoveFromCart,
+    clearCart: handleClearCart,
     fetchCart,
   };
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useCart } from "../contexts/CartContext";
 import { orderService } from "../services/orderService";
 import type { CreateOrderRequest } from "../services/orderService";
 
@@ -16,6 +17,7 @@ const PaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { clearCart, removeFromCart } = useCart();
 
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -110,6 +112,17 @@ const PaymentPage = () => {
     try {
       const response = await orderService.createOrder(orderData);
       if (response.id) {
+        // ✅ Xóa các sản phẩm đã được đặt hàng khỏi giỏ hàng
+        if (selectedItem) {
+          // Nếu chỉ đặt 1 sản phẩm
+          await removeFromCart(selectedItem.cartKey);
+        } else if (selectedItems.length > 0) {
+          // Nếu đặt nhiều sản phẩm
+          for (const item of selectedItems) {
+            await removeFromCart(item.cartKey);
+          }
+        }
+
         navigate("/success");
       } else {
         alert("Đặt hàng thất bại!");

@@ -17,7 +17,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { orderService } from "../../services/orderService";
 import type { OrderResponse } from "../../services/orderService";
-import { Table, Tag, Button, Space, Modal, message } from "antd";
+import { Table, Tag, Button, Space, Modal, message, Pagination } from "antd";
 
 // Component card nhỏ hiển thị dữ liệu tóm tắt
 const StatCard = ({ title, value, icon: Icon, color, onClick }: any) => (
@@ -51,6 +51,8 @@ const AdminDashboard = () => {
   );
   const [modalVisible, setModalVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const navigate = useNavigate();
 
   // Lấy danh sách đơn hàng
@@ -266,6 +268,11 @@ const AdminDashboard = () => {
         ? orders
         : orders.filter((order) => order.status === statusFilter);
 
+    // Phân trang
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
     switch (activeTab) {
       case "users":
         return <div>👥 Trang quản lý người dùng (User Management)</div>;
@@ -342,16 +349,32 @@ const AdminDashboard = () => {
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
               <Table
                 columns={orderColumns}
-                dataSource={filteredOrders}
+                dataSource={paginatedOrders}
                 loading={loading}
                 rowKey="id"
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: true,
-                  showTotal: (total) => `Tổng ${total} đơn hàng`,
-                }}
+                pagination={false}
               />
             </div>
+
+            {/* Phân trang tùy chỉnh */}
+            {filteredOrders.length > 0 && (
+              <div className="flex justify-center mt-8">
+                <Pagination
+                  current={currentPage}
+                  total={filteredOrders.length}
+                  pageSize={pageSize}
+                  onChange={(page) => {
+                    setCurrentPage(page);
+                  }}
+                  showSizeChanger={false}
+                  showQuickJumper
+                  locale={{ jump_to: "Đi đến trang", page: "" }}
+                  showTotal={(total, range) =>
+                    `${range[0]}-${range[1]} của ${total} đơn hàng`
+                  }
+                />
+              </div>
+            )}
 
             {/* Modal chi tiết đơn hàng */}
             <Modal

@@ -258,9 +258,21 @@ const OrdersPage = () => {
                           onClick={() => handleCancel(order.id)}
                           className="px-5 py-2 bg-red-500 text-white font-semibold rounded-xl shadow hover:bg-red-600 transition-all"
                         >
-                          ❌ Hủy đơn
+                          Hủy đơn
                         </motion.button>
                       </>
+                    )}
+
+                    {(order.status === OrderStatus.PENDING ||
+                      order.status === OrderStatus.READY_TO_SHIP) && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleCancel(order.id)}
+                        className="px-5 py-2 bg-red-500 text-white font-semibold rounded-xl shadow hover:bg-red-600 transition-all"
+                      >
+                        Hủy đơn
+                      </motion.button>
                     )}
 
                     {order.status === OrderStatus.DELIVERED && (
@@ -270,7 +282,7 @@ const OrdersPage = () => {
                         onClick={() => handleConfirmCompleted(order.id)}
                         className="px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all"
                       >
-                        Xác nhận
+                        ✅ Đã nhận hàng
                       </motion.button>
                     )}
                   </div>

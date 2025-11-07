@@ -134,23 +134,30 @@ export default function UserProfilePage() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    if (!user || !user.id) {
+      setErrors({ general: "Không tìm thấy thông tin người dùng!" });
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
 
     try {
       // Tạo payload object JS (nếu API không cần FormData)
       const payload: Partial<UserProfile> = {
-        id: user!.id,
+        id: user.id,
         fullname: formData.fullname,
         phone: formData.phone || undefined,
         dob: formData.dob || undefined,
         gender: formData.gender || undefined,
-        avt: previewImage || user!.avt, // avatar URL hoặc cũ
+        avt: previewImage || user.avt, // avatar URL hoặc cũ
       };
+
+      console.log("📤 Payload gửi đi:", payload);
 
       // Nếu API cần FormData, uncomment đoạn dưới và sửa updateUser
       // const formDataToSend = new FormData();
-      // formDataToSend.append("id", user!.id);
+      // formDataToSend.append("id", user.id);
       // formDataToSend.append("fullname", formData.fullname);
       // formDataToSend.append("phone", formData.phone || "");
       // formDataToSend.append("dob", formData.dob || "");
@@ -162,7 +169,7 @@ export default function UserProfilePage() {
 
       // Update local state
       const updatedUser: UserProfile = {
-        ...user!,
+        ...user,
         ...payload,
       };
       setUser(updatedUser);
@@ -180,6 +187,7 @@ export default function UserProfilePage() {
       setErrors({ general: "Cập nhật thông tin thành công!" });
       setTimeout(() => setErrors({}), 3000);
     } catch (error) {
+      console.error("❌ Lỗi cập nhật:", error);
       setErrors({
         general:
           error instanceof Error

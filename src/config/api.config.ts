@@ -22,6 +22,7 @@ export const API_CONFIG = {
       REGISTER: '/users/register',
       PROFILE: '/users',
       UPDATE: '/users/update',
+      GET_ALL: '/users',
     },
 
     ORDERS: {

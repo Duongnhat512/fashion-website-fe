@@ -26,7 +26,6 @@ const HomePage = () => {
     navigate(`/products/${p.slug}`, { state: { product: p } });
   };
 
-  // 🧩 Load danh mục và sản phẩm theo từng danh mục
   useEffect(() => {
     const loadData = async () => {
       try {

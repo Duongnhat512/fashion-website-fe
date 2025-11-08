@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { authService } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotification } from "../components/NotificationProvider";
 interface FormData {
   fullName: string;
   email: string;
@@ -48,6 +49,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string>("");
+  const notify = useNotification();
 
   // Nếu đã đăng nhập thì quay lại home
   useEffect(() => {
@@ -192,8 +194,8 @@ export default function RegisterPage() {
         phone: formData.phone || undefined,
         verificationToken: token,
       });
-      alert(
-        "🎉 Đăng ký tài khoản thành công! Hệ thống sẽ tự động đăng nhập..."
+      notify.success(
+        "Đăng ký tài khoản thành công! Hệ thống sẽ tự động đăng nhập..."
       );
       setCurrentStep("success");
       setTimeout(async () => {

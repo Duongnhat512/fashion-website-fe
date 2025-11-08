@@ -4,6 +4,7 @@ import { message } from "antd";
 import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
+import { useNotification } from "../components/NotificationProvider";
 
 interface UserProfile {
   id: string;
@@ -32,6 +33,7 @@ interface FormErrors {
 }
 
 export default function UserProfilePage() {
+  const notify = useNotification();
   const navigate = useNavigate();
   const { user: authUser, isAuthenticated, updateUser } = useAuth();
 
@@ -117,11 +119,11 @@ export default function UserProfilePage() {
             setUser(newUser);
             // persist into localStorage for other parts of app
             authService.saveUser(newUser);
-            message.success("Cập nhật ảnh đại diện thành công");
+            notify.success("Cập nhật ảnh đại diện thành công");
             setPreviewImage(updated.avt || URL.createObjectURL(file));
           } catch (err: any) {
             console.error("Upload avatar error", err);
-            message.error(
+            notify.error(
               err?.message || "Không thể tải ảnh lên. Vui lòng thử lại."
             );
             // fallback: revert preview to previous

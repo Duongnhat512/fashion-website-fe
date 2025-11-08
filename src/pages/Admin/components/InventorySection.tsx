@@ -18,8 +18,10 @@ import { warehouseService } from "../../../services/warehouseService";
 import { inventoryService } from "../../../services/inventoryService";
 import { productService } from "../../../services/productService";
 import type { Warehouse, StockEntry } from "../../../services/warehouseService";
+import { useNotification } from "../../../components/NotificationProvider";
 
 const InventorySection: React.FC = () => {
+  const notify = useNotification();
   const [activeTab, setActiveTab] = useState("stock-entries");
   const [stockEntries, setStockEntries] = useState<StockEntry[]>([]);
   const [inventoryList, setInventoryList] = useState<any[]>([]);
@@ -85,7 +87,7 @@ const InventorySection: React.FC = () => {
       );
       setStockEntries(sortedEntries);
     } catch (error) {
-      message.error("Không thể tải dữ liệu kho");
+      notify.error("Không thể tải dữ liệu kho");
       console.error(error);
     } finally {
       setWarehouseLoading(false);
@@ -98,7 +100,7 @@ const InventorySection: React.FC = () => {
       const data = await warehouseService.getAllWarehouses();
       setWarehouses(data);
     } catch (error) {
-      message.error("Không thể tải danh sách chi nhánh");
+      notify.error("Không thể tải danh sách chi nhánh");
       console.error(error);
     } finally {
       setWarehouseLoading(false);
@@ -108,12 +110,12 @@ const InventorySection: React.FC = () => {
   const handleCreateWarehouse = async (values: any) => {
     try {
       await warehouseService.createWarehouse(values);
-      message.success("Tạo chi nhánh thành công!");
+      notify.success("Tạo chi nhánh thành công!");
       setWarehouseModalVisible(false);
       warehouseForm.resetFields();
       fetchWarehouses();
     } catch (error) {
-      message.error("Không thể tạo chi nhánh");
+      notify.error("Không thể tạo chi nhánh");
       console.error(error);
     }
   };
@@ -129,13 +131,13 @@ const InventorySection: React.FC = () => {
         address: values.address,
         status: values.status,
       });
-      message.success("Cập nhật chi nhánh thành công!");
+      notify.success("Cập nhật chi nhánh thành công!");
       setWarehouseModalVisible(false);
       warehouseForm.resetFields();
       setEditingWarehouse(null);
       fetchWarehouses();
     } catch (error) {
-      message.error("Không thể cập nhật chi nhánh");
+      notify.error("Không thể cập nhật chi nhánh");
       console.error(error);
     }
   };
@@ -183,7 +185,7 @@ const InventorySection: React.FC = () => {
       setInventoryList(enrichedInventories);
       setProducts(productsData.products);
     } catch (error) {
-      message.error("Không thể tải dữ liệu tồn kho");
+      notify.error("Không thể tải dữ liệu tồn kho");
       console.error(error);
     } finally {
       setWarehouseLoading(false);
@@ -199,14 +201,14 @@ const InventorySection: React.FC = () => {
         stockEntryItems: values.items || [],
         note: values.note,
       });
-      message.success("Tạo phiếu kho thành công!");
+      notify.success("Tạo phiếu kho thành công!");
       setCreateModalVisible(false);
       stockEntryForm.resetFields();
       setSelectedProductForItem({});
       setSelectedVariantForItem({});
       fetchWarehouseData();
     } catch (error) {
-      message.error("Không thể tạo phiếu kho");
+      notify.error("Không thể tạo phiếu kho");
       console.error(error);
     }
   };
@@ -214,10 +216,10 @@ const InventorySection: React.FC = () => {
   const handleSubmitStockEntry = async (stockEntryId: string) => {
     try {
       await warehouseService.submitStockEntry(stockEntryId);
-      message.success("Đã xác nhận phiếu kho!");
+      notify.success("Đã xác nhận phiếu kho!");
       fetchWarehouseData();
     } catch (error) {
-      message.error("Không thể xác nhận phiếu kho");
+      notify.error("Không thể xác nhận phiếu kho");
       console.error(error);
     }
   };
@@ -226,11 +228,11 @@ const InventorySection: React.FC = () => {
     try {
       console.log("Đang hủy phiếu kho:", stockEntryId);
       await warehouseService.cancelStockEntry(stockEntryId);
-      message.success("Đã hủy phiếu kho thành công!");
+      notify.success("Đã hủy phiếu kho thành công!");
       await fetchWarehouseData();
     } catch (error: any) {
       console.error("Lỗi khi hủy phiếu kho:", error);
-      message.error(
+      notify.error(
         error?.message || "Không thể hủy phiếu kho. Vui lòng thử lại!"
       );
     }
@@ -304,7 +306,7 @@ const InventorySection: React.FC = () => {
       });
     } catch (error) {
       console.error("Lỗi khi tải thông tin phiếu kho:", error);
-      message.error("Không thể tải thông tin phiếu kho");
+      notify.error("Không thể tải thông tin phiếu kho");
     }
 
     setUpdateModalVisible(true);
@@ -332,7 +334,7 @@ const InventorySection: React.FC = () => {
       };
 
       await warehouseService.updateStockEntry(editingStockEntry.id, updateData);
-      message.success("Đã cập nhật số lượng và giá!");
+      notify.success("Đã cập nhật số lượng và giá!");
       setUpdateModalVisible(false);
       stockEntryForm.resetFields();
       setSelectedProductForItem({});
@@ -340,7 +342,7 @@ const InventorySection: React.FC = () => {
       setEditingStockEntry(null);
       fetchWarehouseData();
     } catch (error) {
-      message.error("Không thể cập nhật phiếu kho");
+      notify.error("Không thể cập nhật phiếu kho");
       console.error(error);
     }
   };
@@ -399,7 +401,7 @@ const InventorySection: React.FC = () => {
       setEnrichedItems(itemsWithDetails);
     } catch (error) {
       console.error("Lỗi khi tải chi tiết phiếu kho:", error);
-      message.error("Không thể tải chi tiết phiếu kho");
+      notify.error("Không thể tải chi tiết phiếu kho");
     } finally {
       setLoadingDetail(false);
     }

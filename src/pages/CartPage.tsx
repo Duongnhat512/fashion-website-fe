@@ -5,6 +5,7 @@ import {
   MinusIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
+import { useNotification } from "../components/NotificationProvider";
 
 // Hàm định dạng tiền tệ Việt Nam
 const formatCurrency = (amount: number) =>
@@ -15,6 +16,7 @@ const formatCurrency = (amount: number) =>
   });
 
 export default function CartPage() {
+  const notify = useNotification();
   const navigate = useNavigate();
   const { cart, updateQuantity, removeFromCart, loading } = useCart();
 
@@ -31,7 +33,7 @@ export default function CartPage() {
     navigate("/payment", { state: { selectedItem: item } });
 
   const placeOrderAll = () => {
-    if (cart.length === 0) return alert("Giỏ hàng trống!");
+    if (cart.length === 0) return notify.error("Giỏ hàng của bạn đang trống!");
     navigate("/payment", { state: { selectedItems: cart } });
   };
 

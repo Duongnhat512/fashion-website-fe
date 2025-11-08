@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
 import { orderService } from "../services/orderService";
 import type { CreateOrderRequest } from "../services/orderService";
+import { useNotification } from "../components/NotificationProvider";
 
 // Hàm định dạng tiền tệ
 const formatCurrency = (amount: number) =>
@@ -18,6 +19,7 @@ const PaymentPage = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { clearCart, removeFromCart } = useCart();
+  const notify = useNotification();
 
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -68,7 +70,7 @@ const PaymentPage = () => {
 
   const handlePlaceOrder = async () => {
     if (!user || !user.id || !user.fullname || !user.email) {
-      alert("Vui lòng đăng nhập trước khi đặt hàng!");
+      notify.error("Vui lòng đăng nhập trước khi đặt hàng!");
       navigate("/login");
       return;
     }
@@ -125,11 +127,11 @@ const PaymentPage = () => {
 
         navigate("/success");
       } else {
-        alert("Đặt hàng thất bại!");
+        notify.error("Đặt hàng thất bại!");
       }
     } catch (error) {
       console.error("Error placing order:", error);
-      alert("Có lỗi xảy ra khi đặt hàng!");
+      notify.error("Có lỗi xảy ra khi đặt hàng!");
     }
   };
 

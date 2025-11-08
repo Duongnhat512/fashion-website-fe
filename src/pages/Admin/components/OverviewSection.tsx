@@ -12,7 +12,7 @@ import { orderService } from "../../../services/orderService";
 import { userService } from "../../../services/userService";
 import { productService } from "../../../services/productService";
 import { inventoryService } from "../../../services/inventoryService";
-import { message } from "antd";
+import { useNotification } from "../../../components/NotificationProvider";
 
 // Custom hook để animate số chạy
 const useCountUp = (end: number, duration: number = 2000) => {
@@ -104,6 +104,7 @@ const OverviewSection: React.FC<{ onTabChange?: (tab: string) => void }> = ({
   }, []);
 
   const fetchStatistics = async () => {
+    const notify = useNotification();
     try {
       const [ordersData, usersData, productsData, inventoryData] =
         await Promise.all([
@@ -144,7 +145,7 @@ const OverviewSection: React.FC<{ onTabChange?: (tab: string) => void }> = ({
       setMonthlyRevenue(revenue);
     } catch (error) {
       console.error("Không thể tải thống kê:", error);
-      message.error("Không thể tải thống kê");
+      notify.error("Không thể tải thống kê");
     }
   };
 

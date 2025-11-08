@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
+import { useNotification } from "./NotificationProvider";
 
 type ForgotPasswordStep = "email" | "otp" | "password" | "success";
 
@@ -24,6 +25,7 @@ export default function LoginDialog({
 }) {
   const { login } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const notify = useNotification();
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
@@ -101,7 +103,7 @@ export default function LoginDialog({
   const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
-      message.error("Vui lòng nhập email");
+      notify.error("Vui lòng nhập email");
       return;
     }
     try {

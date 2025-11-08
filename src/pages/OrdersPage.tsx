@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { message, Empty, Spin, Tag } from "antd";
 import orderService from "../services/orderService";
 import paymentService from "../services/paymentService";
+import { u } from "framer-motion/client";
+import { useNotification } from "../components/NotificationProvider";
 
 export const OrderStatus = {
   UNPAID: "unpaid",
@@ -48,6 +50,7 @@ const ORDER_TABS = [
 ];
 
 const OrdersPage = () => {
+  const notify = useNotification();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,7 +64,7 @@ const OrdersPage = () => {
         if (activeTab === "all") setOrders(result);
         else setOrders(result.filter((o: any) => o.status === activeTab));
       } catch {
-        message.error("Không thể tải danh sách đơn hàng!");
+        notify.error("Không thể tải danh sách đơn hàng!");
       } finally {
         setLoading(false);
       }
@@ -87,9 +90,9 @@ const OrdersPage = () => {
         (res as any)?.response ||
         (res as any)?.paymentUrl;
       if (paymentUrl) window.location.href = paymentUrl;
-      else message.warning("Không tìm thấy link thanh toán trong phản hồi!");
+      else notify.warning("Không tìm thấy link thanh toán trong phản hồi!");
     } catch {
-      message.error("Không thể tạo link thanh toán!");
+      notify.error("Không thể tạo link thanh toán!");
     }
   };
 
@@ -97,10 +100,10 @@ const OrdersPage = () => {
     if (!window.confirm("Bạn có chắc muốn hủy đơn hàng này không?")) return;
     try {
       await orderService.cancelOrder(orderId);
-      message.success("Đã hủy đơn hàng!");
+      notify.success("Đã hủy đơn hàng!");
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch {
-      message.error("Hủy đơn thất bại, vui lòng thử lại!");
+      notify.error("Hủy đơn thất bại, vui lòng thử lại!");
     }
   };
 
@@ -108,7 +111,7 @@ const OrdersPage = () => {
     if (!window.confirm("Bạn xác nhận đã nhận được hàng?")) return;
     try {
       await orderService.confirmOrderAsCompleted(orderId);
-      message.success("Đã xác nhận nhận hàng thành công!");
+      notify.success("Đã xác nhận nhận hàng thành công!");
       // Cập nhật trạng thái đơn hàng trong danh sách
       setOrders((prev) =>
         prev.map((o) =>
@@ -116,7 +119,7 @@ const OrdersPage = () => {
         )
       );
     } catch {
-      message.error("Xác nhận thất bại, vui lòng thử lại!");
+      notify.error("Xác nhận thất bại, vui lòng thử lại!");
     }
   };
 

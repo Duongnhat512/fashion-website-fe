@@ -3,6 +3,7 @@ import { Eye, CheckCircle, Truck } from "lucide-react";
 import { Table, Tag, Button, Space, Modal, message, Pagination } from "antd";
 import { orderService } from "../../../services/orderService";
 import type { OrderResponse } from "../../../services/orderService";
+import { useNotification } from "../../../components/NotificationProvider";
 
 const OrderManagement: React.FC = () => {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -14,7 +15,7 @@ const OrderManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
-
+  const notify = useNotification();
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -29,7 +30,7 @@ const OrderManagement: React.FC = () => {
       );
       setOrders(sortedData);
     } catch (error) {
-      message.error("Không thể tải danh sách đơn hàng");
+      notify.error("Không thể tải danh sách đơn hàng");
       console.error(error);
     } finally {
       setLoading(false);
@@ -61,10 +62,10 @@ const OrderManagement: React.FC = () => {
   const handleMarkAsReadyToShip = async (orderId: string) => {
     try {
       await orderService.markOrderAsReadyToShip(orderId);
-      message.success("Đã đánh dấu đơn hàng sẵn sàng giao!");
+      notify.success("Đã đánh dấu đơn hàng sẵn sàng giao!");
       fetchOrders();
     } catch (error) {
-      message.error("Không thể cập nhật trạng thái đơn hàng");
+      notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
     }
   };
@@ -72,10 +73,10 @@ const OrderManagement: React.FC = () => {
   const handleMarkAsDelivered = async (orderId: string) => {
     try {
       await orderService.markOrderAsDelivered(orderId);
-      message.success("Đã xác nhận đơn hàng đã giao!");
+      notify.success("Đã xác nhận đơn hàng đã giao!");
       fetchOrders();
     } catch (error) {
-      message.error("Không thể cập nhật trạng thái đơn hàng");
+      notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
     }
   };
@@ -83,10 +84,10 @@ const OrderManagement: React.FC = () => {
   const handleMarkAsShipping = async (orderId: string) => {
     try {
       await orderService.markOrderAsShipping(orderId);
-      message.success("Đã xác nhận đơn hàng đang giao!");
+      notify.success("Đã xác nhận đơn hàng đang giao!");
       fetchOrders();
     } catch (error) {
-      message.error("Không thể cập nhật trạng thái đơn hàng");
+      notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
     }
   };

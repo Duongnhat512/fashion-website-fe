@@ -9,6 +9,8 @@ import {
   type CartItem,
 } from "../store/slices/cartSlice";
 import { cartService } from "../services/cartService";
+import { u } from "framer-motion/client";
+import { useNotification } from "../components/NotificationProvider";
 
 interface CartContextType {
   cart: CartItem[];
@@ -39,6 +41,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const dispatch = useAppDispatch();
   const cart = useAppSelector((state) => state.cart.items);
   const [loading, setLoading] = useState<boolean>(true);
+  const notify = useNotification();
 
   useEffect(() => {
     fetchCart();
@@ -135,7 +138,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           quantity: item.qty,
         });
       }
-      // Reload lại giỏ hàng từ server
       await fetchCart();
     } catch (error) {
       console.error("Lỗi khi xóa giỏ hàng:", error);
@@ -176,11 +178,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       if (response.success) {
         dispatch(addToCartAction(cartItem));
-        alert(
-          `Đã thêm ${qty} x ${product.name}${
-            variant ? ` (${variant.size} - ${variant.color})` : ""
-          } vào giỏ hàng!`
-        );
+        notify.success("Đã thêm sản phẩm vào giỏ hàng!");
       }
     } catch (error) {
       console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);

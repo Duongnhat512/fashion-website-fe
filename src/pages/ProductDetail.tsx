@@ -25,6 +25,7 @@ import { productService } from "../services/productService";
 import { inventoryService } from "../services/inventoryService";
 import { useCart } from "../contexts/CartContext";
 const { Option } = Select;
+import { useNotification } from "../components/NotificationProvider";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -42,7 +43,7 @@ export default function ProductDetail() {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [inventoryData, setInventoryData] = useState<any[]>([]);
   const [totalStock, setTotalStock] = useState<number>(0);
-
+  const notify = useNotification();
   useEffect(() => {
     // Scroll to top khi vào trang
     window.scrollTo(0, 0);
@@ -70,7 +71,7 @@ export default function ProductDetail() {
       } else {
         // Không có product trong state
         console.error("❌ Không tìm thấy sản phẩm!");
-        message.error("Không tìm thấy sản phẩm!");
+        notify.error("Không tìm thấy sản phẩm!");
         navigate("/");
         setLoading(false);
       }
@@ -190,19 +191,19 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!selectedVariant) {
-      message.warning("Vui lòng chọn phiên bản sản phẩm!");
+      notify.warning("Vui lòng chọn phiên bản sản phẩm!");
       return;
     }
 
     // Kiểm tra tồn kho
     if (totalStock === 0) {
-      message.error("Sản phẩm này hiện đã hết hàng!");
+      notify.error("Sản phẩm này hiện đã hết hàng!");
       return;
     }
 
     // Kiểm tra số lượng đặt có vượt quá tồn kho không
     if (quantity > totalStock) {
-      message.warning(`Số lượng tồn kho chỉ còn ${totalStock} sản phẩm!`);
+      notify.warning(`Số lượng tồn kho chỉ còn ${totalStock} sản phẩm!`);
       return;
     }
 
@@ -213,8 +214,6 @@ export default function ProductDetail() {
       },
       quantity
     );
-
-    message.success("Đã thêm vào giỏ hàng!");
   };
 
   return (

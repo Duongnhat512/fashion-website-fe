@@ -79,9 +79,29 @@ export interface UpdateUserResponse {
   avt?: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface VerifyResetOtpRequest {
+  email: string;
+  otp: number; // Đổi từ string sang number
+}
+
+export interface VerifyResetOtpResponse {
+  resetToken: string; // API trả về resetToken, nhưng sẽ gửi lại dưới tên token
+}
+
+export interface ResetPasswordRequest {
+  token: string; // Đổi từ resetToken sang token
+  password: string;
+  confirmPassword: string; // Thêm confirmPassword
+}
+
 class AuthService {
   private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
   try {
+    console.log('API Request:', { url, method: options?.method, body: options?.body });
     const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
       ...options,
       headers: {
@@ -91,6 +111,8 @@ class AuthService {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', { status: response.status, body: errorText });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -177,6 +199,29 @@ class AuthService {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+    });
+  }
+
+  // Forgot Password Flow
+  async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
+    return this.makeRequest<void>(API_CONFIG.ENDPOINTS.USERS.FORGOT_PASSWORD, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async verifyResetOtp(request: VerifyResetOtpRequest): Promise<VerifyResetOtpResponse> {
+    return this.makeRequest<VerifyResetOtpResponse>(API_CONFIG.ENDPOINTS.USERS.VERIFY_RESET_OTP, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async resetPassword(request: ResetPasswordRequest): Promise<void> {
+    console.log('Reset password request:', request);
+    return this.makeRequest<void>(API_CONFIG.ENDPOINTS.USERS.RESET_PASSWORD, {
+      method: 'POST',
+      body: JSON.stringify(request),
     });
   }
 

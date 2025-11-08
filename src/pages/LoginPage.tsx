@@ -205,12 +205,12 @@ export default function LoginPage() {
             </div>
 
             <div className="text-sm">
-              <a
-                href="#"
+              <Link
+                to="/forgot-password"
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
                 Quên mật khẩu?
-              </a>
+              </Link>
             </div>
           </div>
 

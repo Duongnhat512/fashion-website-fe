@@ -3,7 +3,9 @@ import { categoryService } from "../../../services/categoryService";
 import { colorService } from "../../../services/colorService";
 import { authService } from "../../../services/authService";
 import { productService } from "../../../services/productService";
-import { Table, Button, Pagination, Input, Modal, Select } from "antd";
+import { Table, Button, Pagination, Input, Modal, Select, Upload } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd/es/upload/interface";
 import { useNotification } from "../../../components/NotificationProvider";
 import type { Product } from "../../../types/product.types";
 
@@ -60,6 +62,12 @@ const ProductManagement: React.FC = () => {
   const [variantPrice, setVariantPrice] = useState<number>(0);
   const [variantStock, setVariantStock] = useState<number>(0);
   const [variantColorId, setVariantColorId] = useState<string | null>(null);
+
+  // File upload state
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [productImageFileList, setProductImageFileList] = useState<
+    UploadFile[]
+  >([]);
 
   useEffect(() => {
     (async () => {
@@ -146,6 +154,10 @@ const ProductManagement: React.FC = () => {
       notify.warning("Vui lòng chọn màu");
       return;
     }
+    if (!productImageFile && !imageUrl) {
+      notify.warning("Vui lòng chọn ảnh sản phẩm");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -155,12 +167,23 @@ const ProductManagement: React.FC = () => {
         return;
       }
 
-      // Payload theo ProductRequestDto của backend
-      const payload = {
+      // Tạo FormData để gửi file
+      const formData = new FormData();
+
+      // Thêm product image file nếu có
+      if (productImageFile) {
+        formData.append("productImage", productImageFile);
+        // Thêm cùng file cho variant image (variant[0][image])
+        formData.append("variants[0][image]", productImageFile);
+      }
+
+      // Tạo productData object
+      const productData = {
         name,
         slug,
         shortDescription,
-        imageUrl,
+        // Chỉ gửi imageUrl nếu KHÔNG upload file (fallback mode)
+        ...(imageUrl && !productImageFile ? { imageUrl } : {}),
         brand,
         status,
         tags,
@@ -170,10 +193,11 @@ const ProductManagement: React.FC = () => {
             sku: `${slug || "SKU"}-${variantSize}`,
             size: variantSize,
             price: variantPrice,
-            discountPrice: variantPrice, // Mặc định = giá gốc (không giảm)
+            discountPrice: variantPrice,
             discountPercent: 0,
             stock: variantStock,
-            imageUrl,
+            // Chỉ gửi imageUrl cho variant nếu KHÔNG upload file
+            ...(imageUrl && !productImageFile ? { imageUrl } : {}),
             onSales: false,
             saleNote: "",
             color: { id: variantColorId },
@@ -181,8 +205,27 @@ const ProductManagement: React.FC = () => {
         ],
       };
 
-      // Sử dụng productService
-      await productService.createProduct(payload, token);
+      // Thêm productData vào FormData
+      formData.append("productData", JSON.stringify(productData));
+
+      // Gửi request với FormData
+      const response = await fetch(`/api/v1/products`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Lỗi khi tạo sản phẩm");
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Lỗi khi tạo sản phẩm");
+      }
 
       notify.success("Tạo sản phẩm thành công");
 
@@ -197,6 +240,8 @@ const ProductManagement: React.FC = () => {
       setVariantStock(0);
       setCategoryId(null);
       setVariantColorId(null);
+      setProductImageFile(null);
+      setProductImageFileList([]);
 
       // Close modal and reload products
       setCreateModalVisible(false);
@@ -528,12 +573,56 @@ const ProductManagement: React.FC = () => {
                 rows={3}
               />
             </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">Ảnh URL</label>
+            <div className="md:col-span-2">
+              <label className="block mb-1 text-sm font-medium">
+                Ảnh sản phẩm
+              </label>
+              <Upload
+                listType="picture"
+                maxCount={1}
+                fileList={productImageFileList}
+                beforeUpload={(file) => {
+                  const isImage = file.type.startsWith("image/");
+                  if (!isImage) {
+                    notify.error("Chỉ được upload file ảnh!");
+                    return Upload.LIST_IGNORE;
+                  }
+                  const isLt5M = file.size / 1024 / 1024 < 5;
+                  if (!isLt5M) {
+                    notify.error("Ảnh phải nhỏ hơn 5MB!");
+                    return Upload.LIST_IGNORE;
+                  }
+                  setProductImageFile(file);
+                  setProductImageFileList([
+                    {
+                      uid: file.uid,
+                      name: file.name,
+                      status: "done",
+                      url: URL.createObjectURL(file),
+                    },
+                  ]);
+                  return false;
+                }}
+                onRemove={() => {
+                  setProductImageFile(null);
+                  setProductImageFileList([]);
+                }}
+              >
+                <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+              </Upload>
+              <div className="text-xs text-gray-500 mt-1">
+                Hoặc nhập URL ảnh bên dưới
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block mb-1 text-sm font-medium">
+                Ảnh URL (tùy chọn)
+              </label>
               <Input
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Ảnh URL"
+                placeholder="https://example.com/image.jpg"
+                disabled={!!productImageFile}
               />
             </div>
             <div>

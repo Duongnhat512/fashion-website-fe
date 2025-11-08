@@ -196,7 +196,7 @@ export default function Header() {
           )}
 
           {/* 🧾 Đơn hàng - chỉ hiện nếu user thường */}
-          {isAuthenticated && user?.role !== "admin" && (
+          {isAuthenticated && (
             <Link
               to="/orders"
               className="relative group flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white transition-all duration-300 font-medium"

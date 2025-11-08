@@ -23,6 +23,9 @@ export const API_CONFIG = {
       PROFILE: '/users',
       UPDATE: '/users/update',
       GET_ALL: '/users',
+      FORGOT_PASSWORD: '/users/forgot-password',
+      RESET_PASSWORD: '/users/reset-password',
+      VERIFY_RESET_OTP: '/users/verify-reset-otp',
     },
 
     ORDERS: {
@@ -45,11 +48,28 @@ export const API_CONFIG = {
       GET_CART: '/carts',
       UPDATE_ITEM: '/carts/update/item',
     },
+    WAREHOUSE: {
+          GET_BY_ID: '/warehouses/:id',
+          CREATE: '/warehouses',
+          UPDATE: '/warehouses',
+          GET_ALL: '/warehouses',
+      },
 
-    // 🆕 Thêm nhóm Payment
     PAYMENTS: {
-      CREATE_URL: '/payments/create-payment-url', // Tạo link thanh toán
-      REDIRECT: '/payments/payment-redirect',     // Callback trả về sau khi thanh toán
+      CREATE_URL: '/payments/create-payment-url', 
+      REDIRECT: '/payments/payment-redirect',     
+    },
+    STOCK_ENTRIES: {
+      CREATE: '/stock-entries',
+      SUBMIT: '/stock-entries/:id/submit',
+      CANCEL: '/stock-entries/:id/cancel',
+      UPDATE: '/stock-entries/:id',
+    },
+    INVENTORY: {
+      GET_ALL: '/inventorys',
+      GET_BY_ID: '/inventorys/:id',
+      GET_BY_WAREHOUSE: '/inventorys/warehouse/:warehouseId',
+      GET_BY_VARIANT: '/inventorys/variant/:variantId',
     },
   },
 

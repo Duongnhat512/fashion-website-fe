@@ -22,6 +22,7 @@ import {
 import { motion } from "framer-motion";
 import type { Product, ProductVariant } from "../types/product.types";
 import { productService } from "../services/productService";
+import { inventoryService } from "../services/inventoryService";
 import { useCart } from "../contexts/CartContext";
 const { Option } = Select;
 
@@ -39,6 +40,8 @@ export default function ProductDetail() {
   const [mainImage, setMainImage] = useState("");
   const { addToCart } = useCart();
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [inventoryData, setInventoryData] = useState<any[]>([]);
+  const [totalStock, setTotalStock] = useState<number>(0);
 
   useEffect(() => {
     // Scroll to top khi vào trang
@@ -75,6 +78,33 @@ export default function ProductDetail() {
 
     loadProduct();
   }, [slug, navigate, location.state]);
+
+  // Load inventory khi chọn variant
+  useEffect(() => {
+    const loadInventory = async () => {
+      if (!selectedVariant?.id) return;
+
+      try {
+        const inventories = await inventoryService.getInventoryByVariant(
+          selectedVariant.id
+        );
+        setInventoryData(inventories);
+
+        // Tính tổng số lượng tồn kho
+        const total = inventories.reduce(
+          (sum, inv) => sum + (inv.onHand || 0),
+          0
+        );
+        setTotalStock(total);
+      } catch (error) {
+        console.error("Lỗi khi tải thông tin tồn kho:", error);
+        setInventoryData([]);
+        setTotalStock(0);
+      }
+    };
+
+    loadInventory();
+  }, [selectedVariant]);
 
   // Hàm tải sản phẩm liên quan
   const loadRelatedProducts = async (
@@ -161,6 +191,18 @@ export default function ProductDetail() {
   const handleAddToCart = () => {
     if (!selectedVariant) {
       message.warning("Vui lòng chọn phiên bản sản phẩm!");
+      return;
+    }
+
+    // Kiểm tra tồn kho
+    if (totalStock === 0) {
+      message.error("Sản phẩm này hiện đã hết hàng!");
+      return;
+    }
+
+    // Kiểm tra số lượng đặt có vượt quá tồn kho không
+    if (quantity > totalStock) {
+      message.warning(`Số lượng tồn kho chỉ còn ${totalStock} sản phẩm!`);
       return;
     }
 
@@ -266,6 +308,26 @@ export default function ProductDetail() {
                       </div>
                     )}
 
+                    {/* Hiển thị tồn kho */}
+                    {selectedVariant && totalStock !== null && (
+                      <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-lg text-gray-700">
+                            Tồn kho:
+                          </span>
+                          <span
+                            className={`text-xl font-bold ${
+                              totalStock > 0 ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {totalStock > 0
+                              ? `${totalStock} sản phẩm`
+                              : "Hết hàng"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-4">
                       {selectedVariant?.price && (
                         <div className="text-2xl text-gray-400 line-through font-medium">
@@ -293,20 +355,24 @@ export default function ProductDetail() {
                         size="large"
                         icon={<MinusOutlined />}
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={totalStock === 0}
                       />
                       <InputNumber
                         min={1}
+                        max={totalStock > 0 ? totalStock : 0}
                         value={quantity}
                         onChange={(v) => setQuantity(v || 1)}
                         style={{ width: 100 }}
                         controls={false}
                         size="large"
                         className="text-lg"
+                        disabled={totalStock === 0}
                       />
                       <Button
                         size="large"
                         icon={<PlusOutlined />}
                         onClick={() => setQuantity(quantity + 1)}
+                        disabled={totalStock === 0 || quantity >= totalStock}
                       />
                     </Space>
 
@@ -316,9 +382,14 @@ export default function ProductDetail() {
                         size="large"
                         icon={<ShoppingCartOutlined />}
                         onClick={handleAddToCart}
-                        className="bg-black hover:bg-gray-800 border-black text-base font-medium px-8"
+                        disabled={totalStock === 0}
+                        className={`text-base font-medium px-8 ${
+                          totalStock === 0
+                            ? "bg-gray-400 border-gray-400 cursor-not-allowed"
+                            : "bg-black hover:bg-gray-800 border-black"
+                        }`}
                       >
-                        Thêm vào giỏ hàng
+                        {totalStock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
                       </Button>
                       <Button
                         size="large"

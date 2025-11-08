@@ -1,0 +1,1172 @@
+import React, { useState, useEffect } from "react";
+import { Eye, Edit, Package, FileText, MapPin } from "lucide-react";
+import {
+  Table,
+  Tag,
+  Button,
+  Space,
+  Modal,
+  message,
+  Form,
+  Input,
+  Select,
+  InputNumber,
+  Tabs,
+  Pagination,
+} from "antd";
+import { warehouseService } from "../../../services/warehouseService";
+import { inventoryService } from "../../../services/inventoryService";
+import { productService } from "../../../services/productService";
+import type { Warehouse, StockEntry } from "../../../services/warehouseService";
+
+const InventorySection: React.FC = () => {
+  const [activeTab, setActiveTab] = useState("stock-entries");
+  const [stockEntries, setStockEntries] = useState<StockEntry[]>([]);
+  const [inventoryList, setInventoryList] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseLoading, setWarehouseLoading] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [editingStockEntry, setEditingStockEntry] = useState<StockEntry | null>(
+    null
+  );
+  const [stockEntryForm] = Form.useForm();
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedProductForItem, setSelectedProductForItem] = useState<{
+    [key: number]: string;
+  }>({});
+  const [selectedVariantForItem, setSelectedVariantForItem] = useState<{
+    [key: number]: string;
+  }>({});
+  const [selectedStockEntry, setSelectedStockEntry] =
+    useState<StockEntry | null>(null);
+  const [stockEntryDetailVisible, setStockEntryDetailVisible] = useState(false);
+  const [enrichedItems, setEnrichedItems] = useState<any[]>([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Warehouse management states
+  const [warehouseModalVisible, setWarehouseModalVisible] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
+    null
+  );
+  const [warehouseForm] = Form.useForm();
+
+  // Pagination states
+  const [warehouseCurrentPage, setWarehouseCurrentPage] = useState(1);
+  const [stockEntryCurrentPage, setStockEntryCurrentPage] = useState(1);
+  const [inventoryCurrentPage, setInventoryCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+
+  useEffect(() => {
+    fetchWarehouseData();
+  }, []);
+
+  const fetchWarehouseData = async () => {
+    try {
+      setWarehouseLoading(true);
+      const [warehousesData, stockEntriesData, productsData] =
+        await Promise.all([
+          warehouseService.getAllWarehouses(),
+          warehouseService.getAllStockEntries(),
+          productService.getAllProducts(1, 1000),
+        ]);
+      setWarehouses(warehousesData);
+      setProducts(productsData.products);
+      const sortedEntries = stockEntriesData.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setStockEntries(sortedEntries);
+    } catch (error) {
+      message.error("Không thể tải dữ liệu kho");
+      console.error(error);
+    } finally {
+      setWarehouseLoading(false);
+    }
+  };
+
+  const fetchWarehouses = async () => {
+    try {
+      setWarehouseLoading(true);
+      const data = await warehouseService.getAllWarehouses();
+      setWarehouses(data);
+    } catch (error) {
+      message.error("Không thể tải danh sách chi nhánh");
+      console.error(error);
+    } finally {
+      setWarehouseLoading(false);
+    }
+  };
+
+  const handleCreateWarehouse = async (values: any) => {
+    try {
+      await warehouseService.createWarehouse(values);
+      message.success("Tạo chi nhánh thành công!");
+      setWarehouseModalVisible(false);
+      warehouseForm.resetFields();
+      fetchWarehouses();
+    } catch (error) {
+      message.error("Không thể tạo chi nhánh");
+      console.error(error);
+    }
+  };
+
+  const handleUpdateWarehouse = async (values: any) => {
+    console.log("Cập nhật kho với values:", values);
+    if (!editingWarehouse) return;
+    try {
+      await warehouseService.updateWarehouse({
+        id: editingWarehouse.id,
+        name: values.name,
+        code: values.code,
+        address: values.address,
+        status: values.status,
+      });
+      message.success("Cập nhật chi nhánh thành công!");
+      setWarehouseModalVisible(false);
+      warehouseForm.resetFields();
+      setEditingWarehouse(null);
+      fetchWarehouses();
+    } catch (error) {
+      message.error("Không thể cập nhật chi nhánh");
+      console.error(error);
+    }
+  };
+
+  const showEditWarehouseModal = (warehouse: Warehouse) => {
+    setEditingWarehouse(warehouse);
+    warehouseForm.setFieldsValue({
+      name: warehouse.name,
+      code: warehouse.code,
+      address: warehouse.address,
+      status: warehouse.status || "active", // giữ nguyên status
+    });
+    setWarehouseModalVisible(true);
+  };
+
+  const fetchInventoryList = async () => {
+    try {
+      setWarehouseLoading(true);
+      const [inventoriesData, productsData] = await Promise.all([
+        inventoryService.getAllInventories(),
+        productService.getAllProducts(1, 1000),
+      ]);
+
+      // Enrich inventory data with product info
+      const enrichedInventories = inventoriesData.map((inv: any) => {
+        const product = productsData.products.find((p: any) =>
+          p.variants?.some((v: any) => v.id === inv.variant?.id)
+        );
+
+        // Lấy thông tin color từ product variant
+        const fullVariant = product?.variants?.find(
+          (v: any) => v.id === inv.variant?.id
+        );
+
+        return {
+          ...inv,
+          product,
+          variant: {
+            ...inv.variant,
+            color: fullVariant?.color || null,
+          },
+        };
+      });
+
+      setInventoryList(enrichedInventories);
+      setProducts(productsData.products);
+    } catch (error) {
+      message.error("Không thể tải dữ liệu tồn kho");
+      console.error(error);
+    } finally {
+      setWarehouseLoading(false);
+    }
+  };
+
+  const handleCreateStockEntry = async (values: any) => {
+    try {
+      await warehouseService.createStockEntry({
+        type: values.type,
+        supplierName: values.supplierName,
+        warehouseId: values.warehouseId,
+        stockEntryItems: values.items || [],
+        note: values.note,
+      });
+      message.success("Tạo phiếu kho thành công!");
+      setCreateModalVisible(false);
+      stockEntryForm.resetFields();
+      setSelectedProductForItem({});
+      setSelectedVariantForItem({});
+      fetchWarehouseData();
+    } catch (error) {
+      message.error("Không thể tạo phiếu kho");
+      console.error(error);
+    }
+  };
+
+  const handleSubmitStockEntry = async (stockEntryId: string) => {
+    try {
+      await warehouseService.submitStockEntry(stockEntryId);
+      message.success("Đã xác nhận phiếu kho!");
+      fetchWarehouseData();
+    } catch (error) {
+      message.error("Không thể xác nhận phiếu kho");
+      console.error(error);
+    }
+  };
+
+  const handleCancelStockEntry = async (stockEntryId: string) => {
+    try {
+      console.log("Đang hủy phiếu kho:", stockEntryId);
+      await warehouseService.cancelStockEntry(stockEntryId);
+      message.success("Đã hủy phiếu kho thành công!");
+      await fetchWarehouseData();
+    } catch (error: any) {
+      console.error("Lỗi khi hủy phiếu kho:", error);
+      message.error(
+        error?.message || "Không thể hủy phiếu kho. Vui lòng thử lại!"
+      );
+    }
+  };
+
+  const showUpdateStockEntryModal = async (stockEntry: StockEntry) => {
+    setEditingStockEntry(stockEntry);
+
+    try {
+      const itemsWithDetails = await Promise.all(
+        stockEntry.stockEntryItems.map(async (item, index) => {
+          if (item.inventory?.id) {
+            try {
+              const inventoryDetail = await inventoryService.getInventoryById(
+                item.inventory.id
+              );
+
+              const variantId = inventoryDetail.variant?.id;
+
+              if (variantId) {
+                const foundProduct = products.find((p) =>
+                  p.variants?.some((v: any) => v.id === variantId)
+                );
+
+                if (foundProduct) {
+                  setSelectedProductForItem((prev) => ({
+                    ...prev,
+                    [index]: foundProduct.id,
+                  }));
+                  setSelectedVariantForItem((prev) => ({
+                    ...prev,
+                    [index]: variantId,
+                  }));
+
+                  return {
+                    productId: foundProduct.id,
+                    variantId: variantId,
+                    inventoryId: item.inventory.id,
+                    quantity: item.quantity,
+                    rate: item.rate,
+                  };
+                }
+              }
+            } catch (error) {
+              console.error(
+                `Lỗi khi lấy thông tin inventory cho item ${index}:`,
+                error
+              );
+            }
+          }
+          return null;
+        })
+      );
+
+      const validItems = itemsWithDetails.filter((item) => item !== null);
+
+      let warehouseId = "";
+      if (stockEntry.stockEntryItems[0]?.inventory?.id) {
+        const firstInventory = await inventoryService.getInventoryById(
+          stockEntry.stockEntryItems[0].inventory.id
+        );
+        warehouseId = firstInventory.warehouse?.id || "";
+      }
+
+      stockEntryForm.setFieldsValue({
+        type: stockEntry.type,
+        supplierName: stockEntry.supplierName,
+        warehouseId: warehouseId,
+        note: stockEntry.note,
+        items: validItems,
+      });
+    } catch (error) {
+      console.error("Lỗi khi tải thông tin phiếu kho:", error);
+      message.error("Không thể tải thông tin phiếu kho");
+    }
+
+    setUpdateModalVisible(true);
+  };
+
+  const handleUpdateStockEntry = async (values: any) => {
+    if (!editingStockEntry) return;
+
+    try {
+      const totalCost = values.items.reduce(
+        (sum: number, item: any) => sum + item.quantity * item.rate,
+        0
+      );
+
+      const updateData = {
+        type: values.type,
+        supplierName: values.supplierName,
+        stockEntryItems: values.items.map((item: any) => ({
+          inventory: { id: item.inventoryId },
+          quantity: item.quantity,
+          unitCost: item.rate,
+        })),
+        note: values.note || "",
+        totalCost: totalCost,
+      };
+
+      await warehouseService.updateStockEntry(editingStockEntry.id, updateData);
+      message.success("Đã cập nhật số lượng và giá!");
+      setUpdateModalVisible(false);
+      stockEntryForm.resetFields();
+      setSelectedProductForItem({});
+      setSelectedVariantForItem({});
+      setEditingStockEntry(null);
+      fetchWarehouseData();
+    } catch (error) {
+      message.error("Không thể cập nhật phiếu kho");
+      console.error(error);
+    }
+  };
+
+  const showStockEntryDetail = async (stockEntry: StockEntry) => {
+    setSelectedStockEntry(stockEntry);
+    setStockEntryDetailVisible(true);
+    setLoadingDetail(true);
+
+    try {
+      const itemsWithDetails = await Promise.all(
+        stockEntry.stockEntryItems.map(async (item, index) => {
+          if (item.inventory?.id) {
+            try {
+              const inventoryDetail = await inventoryService.getInventoryById(
+                item.inventory.id
+              );
+
+              const variantId = inventoryDetail.variant?.id;
+              let foundProduct: any = null;
+
+              if (variantId) {
+                foundProduct = products.find((p) =>
+                  p.variants?.some((v: any) => v.id === variantId)
+                );
+
+                if (foundProduct) {
+                  setSelectedProductForItem((prev) => ({
+                    ...prev,
+                    [index]: foundProduct.id,
+                  }));
+                  setSelectedVariantForItem((prev) => ({
+                    ...prev,
+                    [index]: variantId,
+                  }));
+
+                  if (inventoryDetail.variant) {
+                    inventoryDetail.variant.product = foundProduct;
+                  }
+                }
+              }
+
+              return {
+                ...item,
+                inventoryDetail,
+              };
+            } catch (error) {
+              console.error("Lỗi khi lấy inventory:", error);
+              return item;
+            }
+          }
+          return item;
+        })
+      );
+
+      setEnrichedItems(itemsWithDetails);
+    } catch (error) {
+      console.error("Lỗi khi tải chi tiết phiếu kho:", error);
+      message.error("Không thể tải chi tiết phiếu kho");
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const stockEntryColumns = [
+    {
+      title: "Mã phiếu",
+      dataIndex: "id",
+      key: "id",
+      render: (id: string) => (
+        <span className="font-mono text-xs">{id.slice(0, 8)}...</span>
+      ),
+    },
+    {
+      title: "Loại",
+      dataIndex: "type",
+      key: "type",
+      render: (type: string) => (
+        <Tag color={type === "IMPORT" ? "green" : "orange"}>
+          {type === "IMPORT" ? "Nhập kho" : "Xuất kho"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Nhà cung cấp",
+      dataIndex: "supplierName",
+      key: "supplierName",
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const statusMap: Record<string, { color: string; text: string }> = {
+          draft: { color: "default", text: "Nháp" },
+          submitted: { color: "blue", text: "Đã xác nhận" },
+          cancelled: { color: "red", text: "Đã hủy" },
+        };
+        const { color, text } = statusMap[status] || {
+          color: "default",
+          text: status,
+        };
+        return <Tag color={color}>{text}</Tag>;
+      },
+    },
+    {
+      title: "Tổng giá trị",
+      dataIndex: "totalCost",
+      key: "totalCost",
+      render: (cost: number) => (
+        <span className="font-bold text-purple-600">
+          {cost?.toLocaleString("vi-VN")}đ
+        </span>
+      ),
+    },
+    {
+      title: "Ghi chú",
+      dataIndex: "note",
+      key: "note",
+      render: (note: string) => note || "N/A",
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+    },
+    {
+      title: "Hành động",
+      key: "actions",
+      render: (_: any, record: StockEntry) => (
+        <Space direction="vertical" size="small">
+          <Button
+            icon={<Eye size={16} />}
+            size="small"
+            onClick={() => showStockEntryDetail(record)}
+            block
+          >
+            Xem
+          </Button>
+          {record.status === "draft" && (
+            <>
+              {/* <Button
+                type="default"
+                size="small"
+                icon={<Edit size={16} />}
+                onClick={() => showUpdateStockEntryModal(record)}
+                block
+              >
+                Cập nhật
+              </Button> */}
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => handleSubmitStockEntry(record.id)}
+                block
+              >
+                Xác nhận
+              </Button>
+            </>
+          )}
+          {record.status === "submitted" && (
+            <Button
+              danger
+              size="small"
+              onClick={() => handleCancelStockEntry(record.id)}
+              block
+            >
+              Hủy
+            </Button>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  const inventoryColumns = [
+    {
+      title: "Hình ảnh",
+      dataIndex: "variant",
+      key: "image",
+      width: 100,
+      render: (variant: any) => (
+        <img
+          src={variant?.imageUrl || "/placeholder-image.png"}
+          alt={variant?.sku || "Product"}
+          className="w-16 h-16 object-cover rounded-lg shadow-sm"
+        />
+      ),
+    },
+    {
+      title: "Sản phẩm",
+      key: "product",
+      width: 250,
+      render: (_: any, record: any) => (
+        <div>
+          <div className="font-semibold text-gray-900">
+            {record.product?.name || "N/A"}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {record.variant?.color?.name || "N/A"} -{" "}
+            {record.variant?.size || "N/A"}
+          </div>
+          <div className="text-xs text-gray-400 font-mono mt-0.5">
+            SKU: {record.variant?.sku || "N/A"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Giá bán",
+      dataIndex: "variant",
+      key: "price",
+      width: 130,
+      render: (variant: any) => (
+        <div>
+          <div className="font-semibold text-purple-600">
+            {variant?.price?.toLocaleString("vi-VN")}đ
+          </div>
+          {variant?.discountPercent > 0 && (
+            <Tag color="red" className="text-xs mt-1">
+              -{variant.discountPercent}%
+            </Tag>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Kho",
+      dataIndex: "warehouse",
+      key: "warehouse",
+      width: 150,
+      render: (warehouse: any) => (
+        <div>
+          <div className="font-medium text-gray-800">
+            {warehouse?.name || "N/A"}
+          </div>
+          <div className="text-xs text-gray-500">
+            Mã: {warehouse?.code || "N/A"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Tồn kho",
+      dataIndex: "onHand",
+      key: "onHand",
+      width: 100,
+      align: "center" as const,
+      sorter: (a: any, b: any) => (a.onHand || 0) - (b.onHand || 0),
+      defaultSortOrder: "descend" as const,
+      render: (qty: number) => (
+        <Tag
+          color={qty > 10 ? "green" : qty > 0 ? "orange" : "red"}
+          className="text-base font-bold px-3 py-1"
+        >
+          {qty || 0}
+        </Tag>
+      ),
+    },
+    {
+      title: "Đã đặt",
+      dataIndex: "reserved",
+      key: "reserved",
+      width: 100,
+      align: "center" as const,
+      render: (qty: number) => (
+        <span className="text-orange-600 font-semibold">{qty || 0}</span>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      width: 120,
+      align: "center" as const,
+      render: (_: any, record: any) => {
+        const qty = record.onHand || 0;
+        if (qty === 0) return <Tag color="red">Hết hàng</Tag>;
+        if (qty < 10) return <Tag color="orange">Sắp hết</Tag>;
+        return <Tag color="green">Còn hàng</Tag>;
+      },
+    },
+  ];
+
+  const warehouseColumns = [
+    {
+      title: "Mã chi nhánh",
+      dataIndex: "code",
+      key: "code",
+      width: 130,
+      render: (code: string) => (
+        <span className="font-mono font-bold text-purple-600">{code}</span>
+      ),
+    },
+    {
+      title: "Tên chi nhánh",
+      dataIndex: "name",
+      key: "name",
+      width: 200,
+      render: (name: string) => (
+        <span className="font-semibold text-gray-900">{name}</span>
+      ),
+    },
+    {
+      title: "Địa chỉ",
+      dataIndex: "address",
+      key: "address",
+      width: 300,
+      render: (address: string) => (
+        <span className="text-gray-600">{address || "N/A"}</span>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 120,
+      align: "center" as const,
+      render: (status: string) => {
+        const isActive = status?.toLowerCase() === "active";
+        return (
+          <Tag color={isActive ? "green" : "red"}>
+            {isActive ? "Hoạt động" : "Ngừng hoạt động"}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 130,
+      render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+    },
+    {
+      title: "Hành động",
+      key: "actions",
+      width: 100,
+      align: "center" as const,
+      render: (_: any, record: Warehouse) => (
+        <Button
+          type="default"
+          size="small"
+          icon={<Edit size={16} />}
+          onClick={() => showEditWarehouseModal(record)}
+        >
+          Sửa
+        </Button>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Quản lý kho</h2>
+      </div>
+
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => {
+          setActiveTab(key);
+          if (key === "inventory" && inventoryList.length === 0) {
+            fetchInventoryList();
+          }
+          if (key === "warehouses" && warehouses.length === 0) {
+            fetchWarehouses();
+          }
+        }}
+        items={[
+          {
+            key: "warehouses",
+            label: (
+              <span className="flex items-center gap-2">
+                <MapPin size={18} />
+                Chi nhánh
+              </span>
+            ),
+            children: (
+              <div>
+                <div className="mb-4 flex justify-end gap-2">
+                  <Button
+                    type="primary"
+                    onClick={() => {
+                      setEditingWarehouse(null);
+                      warehouseForm.resetFields();
+                      setWarehouseModalVisible(true);
+                    }}
+                  >
+                    Thêm chi nhánh
+                  </Button>
+                  <Button onClick={fetchWarehouses} loading={warehouseLoading}>
+                    Làm mới
+                  </Button>
+                </div>
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  <Table
+                    columns={warehouseColumns}
+                    dataSource={warehouses.slice(
+                      (warehouseCurrentPage - 1) * pageSize,
+                      warehouseCurrentPage * pageSize
+                    )}
+                    loading={warehouseLoading}
+                    rowKey="id"
+                    pagination={false}
+                  />
+                </div>
+
+                {warehouses.length > 0 && (
+                  <div className="flex justify-center mt-8">
+                    <Pagination
+                      current={warehouseCurrentPage}
+                      total={warehouses.length}
+                      pageSize={pageSize}
+                      onChange={(page) => setWarehouseCurrentPage(page)}
+                      showSizeChanger={false}
+                      showQuickJumper
+                      locale={{ jump_to: "Đi đến trang", page: "" }}
+                      showTotal={(total, range) =>
+                        `${range[0]}-${range[1]} của ${total} chi nhánh`
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: "stock-entries",
+            label: (
+              <span className="flex items-center gap-2">
+                <FileText size={18} />
+                Phiếu nhập kho
+              </span>
+            ),
+            children: (
+              <div>
+                <div className="mb-4 flex justify-end gap-2">
+                  <Button
+                    type="primary"
+                    onClick={() => setCreateModalVisible(true)}
+                  >
+                    Tạo phiếu nhập kho
+                  </Button>
+                  <Button
+                    onClick={fetchWarehouseData}
+                    loading={warehouseLoading}
+                  >
+                    Làm mới
+                  </Button>
+                </div>
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  <Table
+                    columns={stockEntryColumns}
+                    dataSource={stockEntries.slice(
+                      (stockEntryCurrentPage - 1) * pageSize,
+                      stockEntryCurrentPage * pageSize
+                    )}
+                    loading={warehouseLoading}
+                    rowKey="id"
+                    pagination={false}
+                  />
+                </div>
+
+                {stockEntries.length > 0 && (
+                  <div className="flex justify-center mt-8">
+                    <Pagination
+                      current={stockEntryCurrentPage}
+                      total={stockEntries.length}
+                      pageSize={pageSize}
+                      onChange={(page) => setStockEntryCurrentPage(page)}
+                      showSizeChanger={false}
+                      showQuickJumper
+                      locale={{ jump_to: "Đi đến trang", page: "" }}
+                      showTotal={(total, range) =>
+                        `${range[0]}-${range[1]} của ${total} phiếu kho`
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: "inventory",
+            label: (
+              <span className="flex items-center gap-2">
+                <Package size={18} />
+                Tồn kho hiện tại
+              </span>
+            ),
+            children: (
+              <div>
+                <div className="mb-4 flex justify-end">
+                  <Button
+                    onClick={fetchInventoryList}
+                    loading={warehouseLoading}
+                  >
+                    Làm mới
+                  </Button>
+                </div>
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  <Table
+                    columns={inventoryColumns}
+                    dataSource={inventoryList.slice(
+                      (inventoryCurrentPage - 1) * pageSize,
+                      inventoryCurrentPage * pageSize
+                    )}
+                    loading={warehouseLoading}
+                    rowKey="id"
+                    pagination={false}
+                  />
+                </div>
+
+                {inventoryList.length > 0 && (
+                  <div className="flex justify-center mt-8">
+                    <Pagination
+                      current={inventoryCurrentPage}
+                      total={inventoryList.length}
+                      pageSize={pageSize}
+                      onChange={(page) => setInventoryCurrentPage(page)}
+                      showSizeChanger={false}
+                      showQuickJumper
+                      locale={{ jump_to: "Đi đến trang", page: "" }}
+                      showTotal={(total, range) =>
+                        `${range[0]}-${range[1]} của ${total} sản phẩm`
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
+
+      {/* Modal tạo phiếu kho */}
+      <Modal
+        title="Tạo phiếu nhập kho"
+        open={createModalVisible}
+        onCancel={() => {
+          setCreateModalVisible(false);
+          stockEntryForm.resetFields();
+          setSelectedProductForItem({});
+          setSelectedVariantForItem({});
+        }}
+        footer={null}
+        width={1200}
+      >
+        <Form
+          form={stockEntryForm}
+          layout="vertical"
+          onFinish={handleCreateStockEntry}
+          className="mt-4"
+        >
+          <Form.Item
+            label="Loại phiếu"
+            name="type"
+            initialValue="IMPORT"
+            rules={[{ required: true }]}
+          >
+            <Select size="large">
+              <Select.Option value="IMPORT">Nhập kho</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Nhà cung cấp"
+            name="supplierName"
+            rules={[{ required: true, message: "Vui lòng nhập nhà cung cấp" }]}
+          >
+            <Input size="large" placeholder="Tên nhà cung cấp" />
+          </Form.Item>
+
+          <Form.Item
+            label="Kho"
+            name="warehouseId"
+            rules={[{ required: true, message: "Vui lòng chọn kho" }]}
+          >
+            <Select size="large" placeholder="Chọn kho">
+              {warehouses.map((warehouse) => (
+                <Select.Option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.name} ({warehouse.code})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item label="Ghi chú" name="note">
+            <Input.TextArea rows={3} placeholder="Ghi chú thêm..." />
+          </Form.Item>
+
+          <Form.List name="items">
+            {(fields, { add }) => (
+              <>
+                <div className="mb-2 flex justify-between items-center">
+                  <h4 className="font-semibold">Thông tin sản phẩm</h4>
+                  {fields.length === 0 && (
+                    <Button type="dashed" onClick={() => add()}>
+                      + Thêm sản phẩm
+                    </Button>
+                  )}
+                </div>
+                {fields.map((field) => {
+                  const selectedProduct = products.find(
+                    (p) => p.id === selectedProductForItem[field.name]
+                  );
+                  const selectedVariantId = selectedVariantForItem[field.name];
+                  const selectedVariant = selectedProduct?.variants?.find(
+                    (v: any) => v.id === selectedVariantId
+                  );
+
+                  return (
+                    <div
+                      key={field.key}
+                      className="border p-4 rounded-lg mb-3 bg-gray-50"
+                    >
+                      {selectedVariant && (
+                        <div className="flex items-center gap-4 mb-4 p-3 bg-white rounded-lg border-2 border-purple-200">
+                          <img
+                            src={selectedVariant.imageUrl}
+                            alt={selectedProduct?.name}
+                            className="w-24 h-24 object-cover rounded-lg shadow-md"
+                          />
+                          <div className="flex-1">
+                            <h5 className="font-bold text-lg text-purple-700">
+                              {selectedProduct?.name}
+                            </h5>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-semibold">Màu:</span>{" "}
+                              {selectedVariant.color?.name} |
+                              <span className="font-semibold ml-2">Size:</span>{" "}
+                              {selectedVariant.size}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-semibold">SKU:</span>{" "}
+                              {selectedVariant.sku}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-12 gap-3 items-start">
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "productId"]}
+                          label="Sản phẩm"
+                          rules={[{ required: true, message: "Chọn sản phẩm" }]}
+                          className="col-span-3 mb-0"
+                        >
+                          <Select
+                            placeholder="Chọn sản phẩm"
+                            showSearch
+                            filterOption={(input, option) =>
+                              (option?.label ?? "")
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                            }
+                            onChange={(value) => {
+                              setSelectedProductForItem((prev) => ({
+                                ...prev,
+                                [field.name]: value,
+                              }));
+                              setSelectedVariantForItem((prev) => {
+                                const newState = { ...prev };
+                                delete newState[field.name];
+                                return newState;
+                              });
+                              const items =
+                                stockEntryForm.getFieldValue("items");
+                              items[field.name].variantId = undefined;
+                              stockEntryForm.setFieldsValue({ items });
+                            }}
+                            options={products.map((product) => ({
+                              label: product.name,
+                              value: product.id,
+                            }))}
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "variantId"]}
+                          label="Biến thể (Màu - Size)"
+                          rules={[{ required: true, message: "Chọn biến thể" }]}
+                          className="col-span-3 mb-0"
+                        >
+                          <Select
+                            placeholder="Chọn màu và size"
+                            disabled={!selectedProduct}
+                            onChange={(value) => {
+                              setSelectedVariantForItem((prev) => ({
+                                ...prev,
+                                [field.name]: value,
+                              }));
+                            }}
+                            options={
+                              selectedProduct?.variants.map((variant: any) => ({
+                                label: `${variant.color.name} - ${variant.size}`,
+                                value: variant.id,
+                              })) || []
+                            }
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "quantity"]}
+                          label="Số lượng"
+                          rules={[{ required: true }]}
+                          className="col-span-2 mb-0"
+                        >
+                          <InputNumber
+                            min={1}
+                            placeholder="SL"
+                            className="w-full"
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          {...field}
+                          name={[field.name, "rate"]}
+                          label="Đơn giá nhập"
+                          rules={[{ required: true }]}
+                          className="col-span-3 mb-0"
+                        >
+                          <InputNumber
+                            min={0}
+                            placeholder="Giá"
+                            className="w-full"
+                            formatter={(value) =>
+                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                          />
+                        </Form.Item>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </Form.List>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button onClick={() => setCreateModalVisible(false)}>Hủy</Button>
+            <Button type="primary" htmlType="submit">
+              Tạo phiếu
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Modal thêm/sửa chi nhánh */}
+      <Modal
+        title={editingWarehouse ? "Cập nhật chi nhánh" : "Thêm chi nhánh mới"}
+        open={warehouseModalVisible}
+        onCancel={() => {
+          setWarehouseModalVisible(false);
+          warehouseForm.resetFields();
+          setEditingWarehouse(null);
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={warehouseForm}
+          layout="vertical"
+          onFinish={
+            editingWarehouse ? handleUpdateWarehouse : handleCreateWarehouse
+          }
+          className="mt-4"
+        >
+          <Form.Item
+            label="Tên chi nhánh"
+            name="name"
+            rules={[{ required: true, message: "Vui lòng nhập tên chi nhánh" }]}
+          >
+            <Input size="large" placeholder="Ví dụ: Chi nhánh Quận 1" />
+          </Form.Item>
+
+          <Form.Item
+            label="Mã chi nhánh"
+            name="code"
+            rules={[{ required: true, message: "Vui lòng nhập mã chi nhánh" }]}
+          >
+            <Input
+              size="large"
+              placeholder="Ví dụ: CN001"
+              disabled={!!editingWarehouse}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Địa chỉ"
+            name="address"
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder="Nhập địa chỉ chi tiết của chi nhánh"
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Trạng thái"
+            name="status"
+            initialValue="active"
+            rules={[{ required: true }]}
+          >
+            <Select size="large">
+              <Select.Option value="active">Hoạt động</Select.Option>
+              <Select.Option value="inactive">Ngừng hoạt động</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              onClick={() => {
+                setWarehouseModalVisible(false);
+                warehouseForm.resetFields();
+                setEditingWarehouse(null);
+              }}
+            >
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit">
+              {editingWarehouse ? "Cập nhật" : "Tạo mới"}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+export default InventorySection;

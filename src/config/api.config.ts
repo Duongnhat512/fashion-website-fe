@@ -48,28 +48,32 @@ export const API_CONFIG = {
       GET_CART: '/carts',
       UPDATE_ITEM: '/carts/update/item',
     },
-    WAREHOUSE: {
-          GET_BY_ID: '/warehouses/:id',
-          CREATE: '/warehouses',
-          UPDATE: '/warehouses',
-          GET_ALL: '/warehouses',
-      },
+
+    WAREHOUSES: {
+      GET_ALL: '/warehouses',
+      GET_BY_ID: '/warehouses/:id',
+      CREATE: '/warehouses',
+      UPDATE: '/warehouses',
+    },
 
     PAYMENTS: {
       CREATE_URL: '/payments/create-payment-url', 
       REDIRECT: '/payments/payment-redirect',     
     },
+
     STOCK_ENTRIES: {
+      GET_ALL: '/stock-entries',
       CREATE: '/stock-entries',
       SUBMIT: '/stock-entries/:id/submit',
       CANCEL: '/stock-entries/:id/cancel',
       UPDATE: '/stock-entries/:id',
     },
-    INVENTORY: {
-      GET_ALL: '/inventorys',
-      GET_BY_ID: '/inventorys/:id',
-      GET_BY_WAREHOUSE: '/inventorys/warehouse/:warehouseId',
-      GET_BY_VARIANT: '/inventorys/variant/:variantId',
+
+    INVENTORIES: {
+      GET_ALL: '/inventories',
+      GET_BY_ID: '/inventories/:id',
+      GET_BY_WAREHOUSE: '/inventories/warehouse/:warehouseId',
+      GET_BY_VARIANT: '/inventories/variant/:variantId',
     },
   },
 

@@ -198,6 +198,7 @@ const UserManagement: React.FC = () => {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Quản lý người dùng</h2>
         <Button type="primary" onClick={fetchUsers} loading={userLoading}>
           Làm mới
         </Button>

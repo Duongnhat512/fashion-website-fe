@@ -13,6 +13,7 @@ import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";
 import OrderManagement from "./components/OrderManagement";
 import InventorySection from "./components/InventorySection";
+import RevenueStatistics from "./components/RevenueStatistics";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -25,6 +26,7 @@ const AdminDashboard = () => {
     { key: "orders", label: "Quản lý đơn hàng", icon: Package },
     { key: "inventory", label: "Quản lý kho", icon: Warehouse },
     { key: "products", label: "Quản lý sản phẩm", icon: Package },
+    { key: "revenue", label: "Thống kê doanh thu", icon: DollarSign },
   ];
 
   const renderContent = () => {
@@ -37,6 +39,8 @@ const AdminDashboard = () => {
         return <InventorySection />;
       case "products":
         return <div>🛍 Trang quản lý sản phẩm (Product Management)</div>;
+      case "revenue":
+        return <RevenueStatistics />;
       default:
         return <OverviewSection />;
     }
@@ -76,46 +80,26 @@ const AdminDashboard = () => {
             </button>
           ))}
 
-          <button
-            onClick={() => navigate("/admin/revenue")}
-            className="flex items-center w-full p-3 rounded-xl text-left hover:bg-gray-100 text-gray-700 transition"
-          >
-            <DollarSign className="mr-3" size={20} />
-            Thống kê doanh thu
-          </button>
-
           <hr className="my-4" />
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center w-full p-3 rounded-xl text-left text-gray-700 hover:bg-gray-100"
-          >
-            <LogOut className="mr-3" size={20} />
-            Đăng xuất
-          </button>
         </nav>
       </div>
 
       {/* Nội dung chính */}
       <div className="flex-1 flex flex-col">
         {/* Topbar */}
-        <div className="flex items-center justify-between bg-white shadow-md px-6 py-4">
+        <div className="relative bg-white shadow-lg px-6 py-10 flex items-center min-h-[80px]">
+          {/* Nút menu bên trái */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden text-gray-600"
+            className="lg:hidden text-gray-600 z-10"
           >
             <Menu size={24} />
           </button>
-          <h2 className="text-xl font-semibold text-gray-700">
-            {menuItems.find((m) => m.key === activeTab)?.label || "Tổng quan"}
-          </h2>
-          <div className="flex items-center gap-3">
-            <img
-              src="https://api.dicebear.com/8.x/identicon/svg?seed=admin"
-              className="w-10 h-10 rounded-full border"
-              alt="avatar"
-            />
-            <span className="font-semibold text-gray-700">Admin</span>
-          </div>
+
+          {/* Tiêu đề ở giữa */}
+          <h1 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-extrabold text-4xl bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent text-center whitespace-nowrap">
+            Quản lý hệ thống
+          </h1>
         </div>
 
         {/* Main Content */}

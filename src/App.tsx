@@ -11,7 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
-import RevenueStatistics from "./pages/Admin/RevenueStatistics";
+import RevenueStatistics from "./pages/Admin/components/RevenueStatistics";
 import SuccessPage from "./pages/SuccessPage";
 import OrdersPage from "./pages/OrdersPage";
 import PaymentSuccess from "./pages/PaymentSuccess";

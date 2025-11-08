@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { orderService } from "../../../services/orderService";
 import { userService } from "../../../services/userService";
 import { productService } from "../../../services/productService";
+import { inventoryService } from "../../../services/inventoryService";
 import { message } from "antd";
 
 // Custom hook để animate số chạy
@@ -88,11 +89,15 @@ const StatCard = ({
   );
 };
 
-const OverviewSection: React.FC = () => {
+const OverviewSection: React.FC<{ onTabChange?: (tab: string) => void }> = ({
+  onTabChange,
+}) => {
   const navigate = useNavigate();
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [totalInventory, setTotalInventory] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
 
   useEffect(() => {
     fetchStatistics();
@@ -100,15 +105,43 @@ const OverviewSection: React.FC = () => {
 
   const fetchStatistics = async () => {
     try {
-      const [ordersData, usersData, productsData] = await Promise.all([
-        orderService.getAllOrders(),
-        userService.getAllUsers(),
-        productService.getAllProducts(1, 1),
-      ]);
+      const [ordersData, usersData, productsData, inventoryData] =
+        await Promise.all([
+          orderService.getAllOrders(),
+          userService.getAllUsers(),
+          productService.getAllProducts(1, 1),
+          inventoryService.getAllInventories(),
+        ]);
 
       setTotalOrders(ordersData.length);
       setTotalUsers(usersData.length);
       setTotalProducts(productsData.pagination.total);
+
+      // Tính tổng tồn kho từ tất cả inventory
+      const totalOnHand = inventoryData.reduce((sum: number, item: any) => {
+        return sum + (item.onHand || 0);
+      }, 0);
+      setTotalInventory(totalOnHand);
+
+      // Tính doanh thu từ các đơn hàng completed trong tháng hiện tại
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+
+      const revenue = ordersData
+        .filter((order: any) => {
+          const orderDate = new Date(order.createdAt);
+          return (
+            order.status === "completed" &&
+            orderDate.getMonth() === currentMonth &&
+            orderDate.getFullYear() === currentYear
+          );
+        })
+        .reduce((sum: number, order: any) => {
+          return sum + (order.totalAmount || 0);
+        }, 0);
+
+      setMonthlyRevenue(revenue);
     } catch (error) {
       console.error("Không thể tải thống kê:", error);
       message.error("Không thể tải thống kê");
@@ -128,6 +161,7 @@ const OverviewSection: React.FC = () => {
           icon={Users}
           color="bg-gradient-to-r from-purple-500 to-indigo-500"
           isNumber={true}
+          onClick={() => onTabChange?.("users")}
         />
         <StatCard
           title="Đơn hàng"
@@ -135,6 +169,7 @@ const OverviewSection: React.FC = () => {
           icon={Package}
           color="bg-gradient-to-r from-sky-500 to-cyan-500"
           isNumber={true}
+          onClick={() => onTabChange?.("orders")}
         />
         <StatCard
           title="Sản phẩm"
@@ -142,20 +177,22 @@ const OverviewSection: React.FC = () => {
           icon={ClipboardList}
           color="bg-gradient-to-r from-pink-500 to-rose-500"
           isNumber={true}
+          onClick={() => onTabChange?.("products")}
         />
         <StatCard
           title="Tồn kho"
-          value="6,530"
+          value={totalInventory}
           icon={Warehouse}
           color="bg-gradient-to-r from-green-500 to-emerald-500"
           isNumber={true}
+          onClick={() => onTabChange?.("inventory")}
         />
         <StatCard
           title="Doanh thu tháng"
-          value="₫ 1.85B"
+          value={`₫ ${(monthlyRevenue / 1000000).toFixed(2)}M`}
           icon={DollarSign}
           color="bg-gradient-to-r from-yellow-500 to-orange-500"
-          onClick={() => navigate("/admin/revenue")}
+          onClick={() => onTabChange?.("revenue")}
           isNumber={false}
         />
       </div>

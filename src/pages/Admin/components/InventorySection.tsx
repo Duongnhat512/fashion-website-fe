@@ -57,6 +57,13 @@ const InventorySection: React.FC = () => {
   const [inventoryCurrentPage, setInventoryCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
+  // Sorting states for inventory
+  const [inventorySortField, setInventorySortField] =
+    useState<string>("onHand");
+  const [inventorySortOrder, setInventorySortOrder] = useState<
+    "ascend" | "descend"
+  >("descend");
+
   useEffect(() => {
     fetchWarehouseData();
   }, []);
@@ -838,13 +845,27 @@ const InventorySection: React.FC = () => {
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                   <Table
                     columns={inventoryColumns}
-                    dataSource={inventoryList.slice(
-                      (inventoryCurrentPage - 1) * pageSize,
-                      inventoryCurrentPage * pageSize
-                    )}
+                    dataSource={inventoryList
+                      .sort((a: any, b: any) => {
+                        const aValue = a[inventorySortField] || 0;
+                        const bValue = b[inventorySortField] || 0;
+                        return inventorySortOrder === "ascend"
+                          ? aValue - bValue
+                          : bValue - aValue;
+                      })
+                      .slice(
+                        (inventoryCurrentPage - 1) * pageSize,
+                        inventoryCurrentPage * pageSize
+                      )}
                     loading={warehouseLoading}
                     rowKey="id"
                     pagination={false}
+                    onChange={(_pagination, _filters, sorter: any) => {
+                      if (sorter.field) {
+                        setInventorySortField(sorter.field);
+                        setInventorySortOrder(sorter.order || "descend");
+                      }
+                    }}
                   />
                 </div>
 

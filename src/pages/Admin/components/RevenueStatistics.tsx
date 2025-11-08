@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -12,29 +12,69 @@ import {
   Legend,
 } from "recharts";
 import { Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { orderService } from "../../../services/orderService";
+import { message } from "antd";
 
 const RevenueStatistics = () => {
   const [year, setYear] = useState<number>(2025);
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalProfit, setTotalProfit] = useState(0);
 
-  // 🔹 Dữ liệu mẫu doanh thu từng tháng
-  const revenueData = [
-    { month: "Th1", revenue: 420, profit: 120 },
-    { month: "Th2", revenue: 680, profit: 220 },
-    { month: "Th3", revenue: 580, profit: 160 },
-    { month: "Th4", revenue: 900, profit: 260 },
-    { month: "Th5", revenue: 750, profit: 200 },
-    { month: "Th6", revenue: 1100, profit: 350 },
-    { month: "Th7", revenue: 980, profit: 300 },
-    { month: "Th8", revenue: 1250, profit: 420 },
-    { month: "Th9", revenue: 1320, profit: 460 },
-    { month: "Th10", revenue: 1475, profit: 510 },
-    { month: "Th11", revenue: 1600, profit: 550 },
-    { month: "Th12", revenue: 1850, profit: 630 },
-  ];
+  useEffect(() => {
+    fetchRevenueData();
+  }, [year]);
 
-  // 🔹 Tính tổng doanh thu & lợi nhuận
-  const totalRevenue = revenueData.reduce((sum, r) => sum + r.revenue, 0);
-  const totalProfit = revenueData.reduce((sum, r) => sum + r.profit, 0);
+  const fetchRevenueData = async () => {
+    try {
+      setLoading(true);
+      const ordersData = await orderService.getAllOrders();
+
+      // Lọc các đơn hàng completed trong năm được chọn
+      const completedOrders = ordersData.filter((order: any) => {
+        const orderDate = new Date(order.createdAt);
+        return (
+          order.status === "completed" && orderDate.getFullYear() === year
+        );
+      });
+
+      // Tính doanh thu theo từng tháng
+      const monthlyData = Array.from({ length: 12 }, (_, i) => {
+        const monthOrders = completedOrders.filter((order: any) => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate.getMonth() === i;
+        });
+
+        const revenue = monthOrders.reduce(
+          (sum: number, order: any) => sum + (order.totalAmount || 0),
+          0
+        );
+
+        // Giả sử lợi nhuận là 30% doanh thu (có thể điều chỉnh theo logic thực tế)
+        const profit = revenue * 0.3;
+
+        return {
+          month: `Th${i + 1}`,
+          revenue: Math.round(revenue / 1000000), // Chuyển sang triệu
+          profit: Math.round(profit / 1000000),
+        };
+      });
+
+      setRevenueData(monthlyData);
+
+      // Tính tổng
+      const total = monthlyData.reduce((sum, r) => sum + r.revenue, 0);
+      const totalP = monthlyData.reduce((sum, r) => sum + r.profit, 0);
+      setTotalRevenue(total);
+      setTotalProfit(totalP);
+    } catch (error) {
+      console.error("Không thể tải dữ liệu doanh thu:", error);
+      message.error("Không thể tải dữ liệu doanh thu");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50 p-8">
@@ -68,8 +108,15 @@ const RevenueStatistics = () => {
           </div>
         </div>
 
-        {/* Tổng quan nhanh */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+          </div>
+        ) : (
+          <>
+            {/* Tổng quan nhanh */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-2xl p-6 shadow-md">
             <h3 className="text-sm uppercase tracking-wide opacity-80">
               Tổng doanh thu
@@ -88,15 +135,27 @@ const RevenueStatistics = () => {
           </div>
           <div className="bg-gradient-to-r from-sky-400 to-cyan-500 text-white rounded-2xl p-6 shadow-md">
             <h3 className="text-sm uppercase tracking-wide opacity-80">
-              Tăng trưởng trung bình
+              Tháng cao nhất
             </h3>
-            <p className="text-3xl font-bold mt-2">+12.5%</p>
+            <p className="text-3xl font-bold mt-2">
+              {revenueData.length > 0
+                ? revenueData.reduce((max, r) =>
+                    r.revenue > max.revenue ? r : max
+                  ).month
+                : "N/A"}
+            </p>
           </div>
           <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-2xl p-6 shadow-md">
             <h3 className="text-sm uppercase tracking-wide opacity-80">
-              Đơn hàng trung bình
+              Doanh thu TB/tháng
             </h3>
-            <p className="text-3xl font-bold mt-2">≈ 435</p>
+            <p className="text-3xl font-bold mt-2">
+              ₫{" "}
+              {revenueData.length > 0
+                ? Math.round(totalRevenue / 12).toLocaleString("vi-VN")
+                : 0}{" "}
+              triệu
+            </p>
           </div>
         </div>
 
@@ -153,6 +212,8 @@ const RevenueStatistics = () => {
             </BarChart>
           </ResponsiveContainer>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

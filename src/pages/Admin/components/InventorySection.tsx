@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Eye, Edit, Package, FileText, MapPin } from "lucide-react";
 import {
   Table,
   Tag,
   Button,
   Space,
   Modal,
-  message,
   Form,
   Input,
   Select,
@@ -14,6 +12,13 @@ import {
   Tabs,
   Pagination,
 } from "antd";
+import {
+  EyeOutlined,
+  EditOutlined,
+  InboxOutlined,
+  FileTextOutlined,
+  EnvironmentOutlined,
+} from "@ant-design/icons";
 import { warehouseService } from "../../../services/warehouseService";
 import { inventoryService } from "../../../services/inventoryService";
 import { productService } from "../../../services/productService";
@@ -58,6 +63,14 @@ const InventorySection: React.FC = () => {
   const [stockEntryCurrentPage, setStockEntryCurrentPage] = useState(1);
   const [inventoryCurrentPage, setInventoryCurrentPage] = useState(1);
   const [pageSize] = useState(10);
+
+  // Stock entry filter state
+  const [stockEntryStatusFilter, setStockEntryStatusFilter] =
+    useState<string>("all");
+
+  // Inventory filter state
+  const [inventoryStockFilter, setInventoryStockFilter] =
+    useState<string>("all");
 
   // Sorting states for inventory
   const [inventorySortField, setInventorySortField] =
@@ -459,6 +472,20 @@ const InventorySection: React.FC = () => {
       ),
     },
     {
+      title: "Số lượng",
+      dataIndex: "items",
+      key: "totalQuantity",
+      render: (items: any[]) => {
+        const totalQty =
+          items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+        return (
+          <Tag color="blue" className="font-semibold">
+            {totalQty} SP
+          </Tag>
+        );
+      },
+    },
+    {
       title: "Ghi chú",
       dataIndex: "note",
       key: "note",
@@ -476,7 +503,7 @@ const InventorySection: React.FC = () => {
       render: (_: any, record: StockEntry) => (
         <Space direction="vertical" size="small">
           <Button
-            icon={<Eye size={16} />}
+            icon={<EyeOutlined />}
             size="small"
             onClick={() => showStockEntryDetail(record)}
             block
@@ -488,7 +515,7 @@ const InventorySection: React.FC = () => {
               {/* <Button
                 type="default"
                 size="small"
-                icon={<Edit size={16} />}
+                icon={<EditOutlined />}
                 onClick={() => showUpdateStockEntryModal(record)}
                 block
               >
@@ -684,10 +711,11 @@ const InventorySection: React.FC = () => {
       align: "center" as const,
       render: (_: any, record: Warehouse) => (
         <Button
-          type="default"
+          type="primary"
           size="small"
-          icon={<Edit size={16} />}
+          icon={<EditOutlined />}
           onClick={() => showEditWarehouseModal(record)}
+          block
         >
           Sửa
         </Button>
@@ -717,7 +745,7 @@ const InventorySection: React.FC = () => {
             key: "warehouses",
             label: (
               <span className="flex items-center gap-2">
-                <MapPin size={18} />
+                <EnvironmentOutlined />
                 Chi nhánh
               </span>
             ),
@@ -774,30 +802,100 @@ const InventorySection: React.FC = () => {
             key: "stock-entries",
             label: (
               <span className="flex items-center gap-2">
-                <FileText size={18} />
+                <FileTextOutlined />
                 Phiếu nhập kho
               </span>
             ),
             children: (
               <div>
-                <div className="mb-4 flex justify-end gap-2">
-                  <Button
-                    type="primary"
-                    onClick={() => setCreateModalVisible(true)}
-                  >
-                    Tạo phiếu nhập kho
-                  </Button>
-                  <Button
-                    onClick={fetchWarehouseData}
-                    loading={warehouseLoading}
-                  >
-                    Làm mới
-                  </Button>
+                <div className="mb-4 flex justify-between items-center">
+                  <Space>
+                    <Button
+                      type={
+                        stockEntryStatusFilter === "all" ? "primary" : "default"
+                      }
+                      onClick={() => {
+                        setStockEntryStatusFilter("all");
+                        setStockEntryCurrentPage(1);
+                      }}
+                    >
+                      Tất cả ({stockEntries.length})
+                    </Button>
+                    <Button
+                      type={
+                        stockEntryStatusFilter === "draft"
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => {
+                        setStockEntryStatusFilter("draft");
+                        setStockEntryCurrentPage(1);
+                      }}
+                    >
+                      Nháp (
+                      {stockEntries.filter((e) => e.status === "draft").length})
+                    </Button>
+                    <Button
+                      type={
+                        stockEntryStatusFilter === "submitted"
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => {
+                        setStockEntryStatusFilter("submitted");
+                        setStockEntryCurrentPage(1);
+                      }}
+                    >
+                      Đã xác nhận (
+                      {
+                        stockEntries.filter((e) => e.status === "submitted")
+                          .length
+                      }
+                      )
+                    </Button>
+                    <Button
+                      type={
+                        stockEntryStatusFilter === "cancelled"
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => {
+                        setStockEntryStatusFilter("cancelled");
+                        setStockEntryCurrentPage(1);
+                      }}
+                    >
+                      Đã hủy (
+                      {
+                        stockEntries.filter((e) => e.status === "cancelled")
+                          .length
+                      }
+                      )
+                    </Button>
+                  </Space>
+                  <Space>
+                    <Button
+                      type="primary"
+                      onClick={() => setCreateModalVisible(true)}
+                    >
+                      Tạo phiếu nhập kho
+                    </Button>
+                    <Button
+                      onClick={fetchWarehouseData}
+                      loading={warehouseLoading}
+                    >
+                      Làm mới
+                    </Button>
+                  </Space>
                 </div>
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                   <Table
                     columns={stockEntryColumns}
-                    dataSource={stockEntries.slice(
+                    dataSource={(stockEntryStatusFilter === "all"
+                      ? stockEntries
+                      : stockEntries.filter(
+                          (entry) => entry.status === stockEntryStatusFilter
+                        )
+                    ).slice(
                       (stockEntryCurrentPage - 1) * pageSize,
                       stockEntryCurrentPage * pageSize
                     )}
@@ -811,7 +909,13 @@ const InventorySection: React.FC = () => {
                   <div className="flex justify-center mt-8">
                     <Pagination
                       current={stockEntryCurrentPage}
-                      total={stockEntries.length}
+                      total={
+                        stockEntryStatusFilter === "all"
+                          ? stockEntries.length
+                          : stockEntries.filter(
+                              (entry) => entry.status === stockEntryStatusFilter
+                            ).length
+                      }
                       pageSize={pageSize}
                       onChange={(page) => setStockEntryCurrentPage(page)}
                       showSizeChanger={false}
@@ -830,13 +934,64 @@ const InventorySection: React.FC = () => {
             key: "inventory",
             label: (
               <span className="flex items-center gap-2">
-                <Package size={18} />
+                <InboxOutlined />
                 Tồn kho hiện tại
               </span>
             ),
             children: (
               <div>
-                <div className="mb-4 flex justify-end">
+                <div className="mb-4 flex justify-between items-center">
+                  <Space>
+                    <Button
+                      type={
+                        inventoryStockFilter === "all" ? "primary" : "default"
+                      }
+                      onClick={() => {
+                        setInventoryStockFilter("all");
+                        setInventoryCurrentPage(1);
+                      }}
+                    >
+                      Tất cả ({inventoryList.length})
+                    </Button>
+                    <Button
+                      type={
+                        inventoryStockFilter === "in_stock"
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => {
+                        setInventoryStockFilter("in_stock");
+                        setInventoryCurrentPage(1);
+                      }}
+                    >
+                      Còn hàng (
+                      {
+                        inventoryList.filter(
+                          (item: any) => (item.onHand || 0) > 0
+                        ).length
+                      }
+                      )
+                    </Button>
+                    <Button
+                      type={
+                        inventoryStockFilter === "out_of_stock"
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => {
+                        setInventoryStockFilter("out_of_stock");
+                        setInventoryCurrentPage(1);
+                      }}
+                    >
+                      Hết hàng (
+                      {
+                        inventoryList.filter(
+                          (item: any) => (item.onHand || 0) === 0
+                        ).length
+                      }
+                      )
+                    </Button>
+                  </Space>
                   <Button
                     onClick={fetchInventoryList}
                     loading={warehouseLoading}
@@ -848,6 +1003,14 @@ const InventorySection: React.FC = () => {
                   <Table
                     columns={inventoryColumns}
                     dataSource={inventoryList
+                      .filter((item: any) => {
+                        if (inventoryStockFilter === "all") return true;
+                        if (inventoryStockFilter === "in_stock")
+                          return (item.onHand || 0) > 0;
+                        if (inventoryStockFilter === "out_of_stock")
+                          return (item.onHand || 0) === 0;
+                        return true;
+                      })
                       .sort((a: any, b: any) => {
                         const aValue = a[inventorySortField] || 0;
                         const bValue = b[inventorySortField] || 0;
@@ -875,7 +1038,16 @@ const InventorySection: React.FC = () => {
                   <div className="flex justify-center mt-8">
                     <Pagination
                       current={inventoryCurrentPage}
-                      total={inventoryList.length}
+                      total={
+                        inventoryList.filter((item: any) => {
+                          if (inventoryStockFilter === "all") return true;
+                          if (inventoryStockFilter === "in_stock")
+                            return (item.onHand || 0) > 0;
+                          if (inventoryStockFilter === "out_of_stock")
+                            return (item.onHand || 0) === 0;
+                          return true;
+                        }).length
+                      }
                       pageSize={pageSize}
                       onChange={(page) => setInventoryCurrentPage(page)}
                       showSizeChanger={false}

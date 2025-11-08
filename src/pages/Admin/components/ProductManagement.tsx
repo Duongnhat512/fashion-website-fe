@@ -3,8 +3,22 @@ import { categoryService } from "../../../services/categoryService";
 import { colorService } from "../../../services/colorService";
 import { authService } from "../../../services/authService";
 import { productService } from "../../../services/productService";
-import { Table, Button, Pagination, Input, Modal, Select, Upload } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import {
+  Table,
+  Button,
+  Pagination,
+  Input,
+  Modal,
+  Select,
+  Upload,
+  Space,
+  Tag,
+} from "antd";
+import {
+  UploadOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useNotification } from "../../../components/NotificationProvider";
 import type { Product } from "../../../types/product.types";
@@ -53,7 +67,6 @@ const ProductManagement: React.FC = () => {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [shortDescription, setShortDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
   const [brand, setBrand] = useState("");
   const [status] = useState("active");
   const [tags, setTags] = useState("");
@@ -120,7 +133,7 @@ const ProductManagement: React.FC = () => {
             discountPrice: v.discountPrice,
             stock: (v as any).stock || 0,
             color: v.color,
-            status: p.status,
+            status: p.status === "active" ? "Hoạt động" : "Không hoạt động",
             categoryId: (p as any).categoryId || (p as any).category?.id,
             createdAt: p.createdAt, // Thêm ngày tạo từ product
           });
@@ -154,7 +167,7 @@ const ProductManagement: React.FC = () => {
       notify.warning("Vui lòng chọn màu");
       return;
     }
-    if (!productImageFile && !imageUrl) {
+    if (!productImageFile) {
       notify.warning("Vui lòng chọn ảnh sản phẩm");
       return;
     }
@@ -170,20 +183,16 @@ const ProductManagement: React.FC = () => {
       // Tạo FormData để gửi file
       const formData = new FormData();
 
-      // Thêm product image file nếu có
-      if (productImageFile) {
-        formData.append("productImage", productImageFile);
-        // Thêm cùng file cho variant image (variant[0][image])
-        formData.append("variants[0][image]", productImageFile);
-      }
+      // Thêm product image file
+      formData.append("productImage", productImageFile);
+      // Thêm cùng file cho variant image (variant[0][image])
+      formData.append("variants[0][image]", productImageFile);
 
       // Tạo productData object
       const productData = {
         name,
         slug,
         shortDescription,
-        // Chỉ gửi imageUrl nếu KHÔNG upload file (fallback mode)
-        ...(imageUrl && !productImageFile ? { imageUrl } : {}),
         brand,
         status,
         tags,
@@ -196,8 +205,6 @@ const ProductManagement: React.FC = () => {
             discountPrice: variantPrice,
             discountPercent: 0,
             stock: variantStock,
-            // Chỉ gửi imageUrl cho variant nếu KHÔNG upload file
-            ...(imageUrl && !productImageFile ? { imageUrl } : {}),
             onSales: false,
             saleNote: "",
             color: { id: variantColorId },
@@ -213,13 +220,27 @@ const ProductManagement: React.FC = () => {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          // Không set Content-Type, để browser tự set multipart/form-data
         },
         body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi tạo sản phẩm");
+        // Kiểm tra response có phải JSON không
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Lỗi khi tạo sản phẩm");
+        } else {
+          const errorText = await response.text();
+          throw new Error(errorText || "Lỗi khi tạo sản phẩm");
+        }
+      }
+
+      // Kiểm tra response có phải JSON không trước khi parse
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server trả về response không phải JSON");
       }
 
       const result = await response.json();
@@ -233,7 +254,6 @@ const ProductManagement: React.FC = () => {
       setName("");
       setSlug("");
       setShortDescription("");
-      setImageUrl("");
       setBrand("");
       setTags("");
       setVariantPrice(0);
@@ -269,11 +289,14 @@ const ProductManagement: React.FC = () => {
       );
       setEditingProduct(productData);
 
+      // Reset file upload state
+      setProductImageFile(null);
+      setProductImageFileList([]);
+
       // Fill form với data hiện tại
       setName(productData.name || "");
       setSlug(productData.slug || "");
       setShortDescription(productData.shortDescription || "");
-      setImageUrl(productData.imageUrl || "");
       setBrand(productData.brand || "");
       setTags(productData.tags || "");
       setCategoryId(
@@ -321,22 +344,78 @@ const ProductManagement: React.FC = () => {
         name,
         slug,
         shortDescription,
-        imageUrl,
+        imageUrl: editingProduct.imageUrl, // Giữ imageUrl cũ
         brand,
         status,
         tags,
         category: { id: categoryId },
-        // Giữ nguyên variants cũ hoặc cập nhật nếu cần
-        variants: editingProduct.variants || [],
+        // Giữ nguyên variants cũ
+        variants:
+          editingProduct.variants?.map((v: any) => ({
+            id: v.id,
+            sku: v.sku,
+            size: v.size,
+            price: v.price,
+            discountPrice: v.discountPrice,
+            discountPercent: v.discountPercent,
+            imageUrl: v.imageUrl, // Giữ imageUrl cũ của variant
+            onSales: v.onSales,
+            saleNote: v.saleNote,
+            color: { id: v.color?.id },
+          })) || [],
       };
 
-      await productService.updateProduct(payload, token);
+      // Backend luôn dùng FormData (uploadProductWithVariants middleware)
+      const formData = new FormData();
+
+      // Thêm file nếu có upload mới
+      if (productImageFile) {
+        formData.append("productImage", productImageFile);
+        formData.append("variants[0][image]", productImageFile);
+      }
+
+      // Luôn luôn thêm productData vào FormData
+      formData.append("productData", JSON.stringify(payload));
+
+      const response = await fetch(`/api/v1/products`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Không set Content-Type, để browser tự set multipart/form-data với boundary
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        // Kiểm tra response có phải JSON không
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Lỗi khi cập nhật sản phẩm");
+        } else {
+          const errorText = await response.text();
+          throw new Error(errorText || "Lỗi khi cập nhật sản phẩm");
+        }
+      }
+
+      // Kiểm tra response có phải JSON không trước khi parse
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server trả về response không phải JSON");
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Lỗi khi cập nhật sản phẩm");
+      }
 
       notify.success("Cập nhật sản phẩm thành công");
 
       // Reset form và đóng modal
       setEditModalVisible(false);
       setEditingProduct(null);
+      setProductImageFile(null);
+      setProductImageFileList([]);
       await fetchProducts();
     } catch (err: any) {
       console.error("Update product error", err);
@@ -356,18 +435,17 @@ const ProductManagement: React.FC = () => {
       try {
         const token = authService.getToken();
         if (!token) {
-          alert("Vui lòng đăng nhập");
+          notify.error("Vui lòng đăng nhập");
           return;
         }
 
         await productService.deleteProduct(productId, token);
-        alert("Xóa sản phẩm thành công");
-
+        notify.success("Xóa sản phẩm thành công");
         // Reload products
         await fetchProducts();
       } catch (err: any) {
         console.error("Delete product error", err);
-        alert(err.message || "Lỗi khi xóa sản phẩm");
+        notify.error(err.message || "Lỗi khi xóa sản phẩm");
       }
     }
   };
@@ -425,7 +503,14 @@ const ProductManagement: React.FC = () => {
         );
       },
     },
-    { title: "Trạng thái", dataIndex: "status", key: "status" },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => (
+        <Tag color={status === "Hoạt động" ? "green" : "default"}>{status}</Tag>
+      ),
+    },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
@@ -451,18 +536,26 @@ const ProductManagement: React.FC = () => {
       title: "Hành động",
       key: "actions",
       render: (_: any, record: any) => (
-        <div className="flex gap-2">
-          <Button size="small" onClick={() => handleEdit(record)}>
+        <Space direction="vertical" size="small">
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => handleEdit(record)}
+            block
+          >
             Sửa
           </Button>
-          <Button
-            size="small"
+          {/* <Button
             danger
+            icon={<DeleteOutlined />}
+            size="small"
             onClick={() => handleDelete(record.productId, record.productName)}
+            block
           >
             Xoá
-          </Button>
-        </div>
+          </Button> */}
+        </Space>
       ),
     },
   ];
@@ -610,20 +703,6 @@ const ProductManagement: React.FC = () => {
               >
                 <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
               </Upload>
-              <div className="text-xs text-gray-500 mt-1">
-                Hoặc nhập URL ảnh bên dưới
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block mb-1 text-sm font-medium">
-                Ảnh URL (tùy chọn)
-              </label>
-              <Input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                disabled={!!productImageFile}
-              />
             </div>
             <div>
               <label className="block mb-1 text-sm font-medium">
@@ -761,13 +840,53 @@ const ProductManagement: React.FC = () => {
                 rows={3}
               />
             </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">Ảnh URL</label>
-              <Input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Ảnh URL"
-              />
+            <div className="md:col-span-2">
+              <label className="block mb-1 text-sm font-medium">
+                Ảnh sản phẩm
+              </label>
+              <Upload
+                listType="picture"
+                maxCount={1}
+                fileList={productImageFileList}
+                beforeUpload={(file) => {
+                  const isImage = file.type.startsWith("image/");
+                  if (!isImage) {
+                    notify.error("Chỉ được upload file ảnh!");
+                    return Upload.LIST_IGNORE;
+                  }
+                  const isLt5M = file.size / 1024 / 1024 < 5;
+                  if (!isLt5M) {
+                    notify.error("Ảnh phải nhỏ hơn 5MB!");
+                    return Upload.LIST_IGNORE;
+                  }
+                  setProductImageFile(file);
+                  setProductImageFileList([
+                    {
+                      uid: file.uid,
+                      name: file.name,
+                      status: "done",
+                      url: URL.createObjectURL(file),
+                    },
+                  ]);
+                  return false;
+                }}
+                onRemove={() => {
+                  setProductImageFile(null);
+                  setProductImageFileList([]);
+                }}
+              >
+                <Button icon={<UploadOutlined />}>Chọn ảnh mới</Button>
+              </Upload>
+              {editingProduct?.imageUrl && !productImageFile && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 mb-1">Ảnh hiện tại:</p>
+                  <img
+                    src={editingProduct.imageUrl}
+                    alt="Current"
+                    className="w-32 h-32 object-cover rounded border"
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="block mb-1 text-sm font-medium">

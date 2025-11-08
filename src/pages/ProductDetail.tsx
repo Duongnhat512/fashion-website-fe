@@ -11,7 +11,6 @@ import {
   Space,
   InputNumber,
   Select,
-  message,
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -248,9 +247,16 @@ export default function ProductDetail() {
                       <h1 className="text-4xl font-bold mb-3">
                         {product.name}
                       </h1>
-                      <Tag color="blue" className="mb-4 text-base px-4 py-1">
-                        {product.brand}
-                      </Tag>
+                      {product.brand && (
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-lg font-semibold text-gray-700 m-0">
+                            Thương hiệu:
+                          </h2>
+                          <Tag color="blue" className="text-base px-4 py-1 m-0">
+                            {product.brand}
+                          </Tag>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3">

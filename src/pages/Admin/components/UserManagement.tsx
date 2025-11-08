@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Edit } from "lucide-react";
 import {
   Table,
   Tag,
   Button,
   Modal,
-  message,
   Pagination,
   Form,
   Input,
@@ -13,17 +11,21 @@ import {
   Switch,
   DatePicker,
 } from "antd";
+import { EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { userService } from "../../../services/userService";
 import type { User } from "../../../services/userService";
+import { useNotification } from "../../../components/NotificationProvider";
 
 const UserManagement: React.FC = () => {
+  const notify = useNotification();
   const [users, setUsers] = useState<User[]>([]);
   const [userLoading, setUserLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userModalVisible, setUserModalVisible] = useState(false);
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const [userPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -40,7 +42,7 @@ const UserManagement: React.FC = () => {
       );
       setUsers(sortedData);
     } catch (error) {
-      message.error("Không thể tải danh sách người dùng");
+      notify.error("Không thể tải danh sách người dùng");
       console.error(error);
     } finally {
       setUserLoading(false);
@@ -72,11 +74,11 @@ const UserManagement: React.FC = () => {
         role: values.role,
         status: values.status,
       });
-      message.success("Cập nhật người dùng thành công!");
+      notify.success("Cập nhật người dùng thành công!");
       setUserModalVisible(false);
       fetchUsers();
     } catch (error) {
-      message.error("Không thể cập nhật người dùng");
+      notify.error("Không thể cập nhật người dùng");
       console.error(error);
     }
   };
@@ -87,12 +89,12 @@ const UserManagement: React.FC = () => {
   ) => {
     try {
       await userService.toggleUserStatus(userId, !currentStatus);
-      message.success(
+      notify.success(
         `Đã ${!currentStatus ? "kích hoạt" : "vô hiệu hóa"} người dùng!`
       );
       fetchUsers();
     } catch (error) {
-      message.error("Không thể cập nhật trạng thái");
+      notify.error("Không thể cập nhật trạng thái");
       console.error(error);
     }
   };
@@ -181,11 +183,12 @@ const UserManagement: React.FC = () => {
       render: (_: any, record: User) => (
         <Button
           type="primary"
-          icon={<Edit size={16} />}
+          icon={<EditOutlined />}
           onClick={() => showUserEditModal(record)}
           size="small"
+          block
         >
-          Cập nhật
+          Sửa
         </Button>
       ),
     },
@@ -193,15 +196,39 @@ const UserManagement: React.FC = () => {
 
   const userStartIndex = (userCurrentPage - 1) * userPageSize;
   const userEndIndex = userStartIndex + userPageSize;
-  const paginatedUsers = users.slice(userStartIndex, userEndIndex);
+
+  // Filter users by search term (email)
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredUsers = normalizedSearch
+    ? users.filter((user) =>
+        user.email.toLowerCase().includes(normalizedSearch)
+      )
+    : users;
+
+  const paginatedUsers = filteredUsers.slice(userStartIndex, userEndIndex);
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Quản lý người dùng</h2>
-        <Button type="primary" onClick={fetchUsers} loading={userLoading}>
-          Làm mới
-        </Button>
+        <div className="flex gap-3 items-center">
+          <Input.Search
+            placeholder="Tìm theo email"
+            allowClear
+            onSearch={(val) => {
+              setSearchTerm(val || "");
+              setUserCurrentPage(1);
+            }}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setUserCurrentPage(1);
+            }}
+            style={{ width: 300 }}
+          />
+          <Button type="primary" onClick={fetchUsers} loading={userLoading}>
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -214,11 +241,11 @@ const UserManagement: React.FC = () => {
         />
       </div>
 
-      {users.length > 0 && (
+      {filteredUsers.length > 0 && (
         <div className="flex justify-center mt-8">
           <Pagination
             current={userCurrentPage}
-            total={users.length}
+            total={filteredUsers.length}
             pageSize={userPageSize}
             onChange={(page) => setUserCurrentPage(page)}
             showSizeChanger={false}

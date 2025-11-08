@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Eye, CheckCircle, Truck } from "lucide-react";
-import { Table, Tag, Button, Space, Modal, message, Pagination } from "antd";
+import { Table, Tag, Button, Space, Modal, Pagination } from "antd";
+import {
+  EyeOutlined,
+  CheckCircleOutlined,
+  CarOutlined,
+} from "@ant-design/icons";
 import { orderService } from "../../../services/orderService";
 import type { OrderResponse } from "../../../services/orderService";
 import { useNotification } from "../../../components/NotificationProvider";
@@ -149,7 +153,7 @@ const OrderManagement: React.FC = () => {
         <Space direction="vertical" size="small">
           <Button
             type="primary"
-            icon={<Eye size={16} />}
+            icon={<EyeOutlined />}
             onClick={() => showOrderDetail(record)}
             size="small"
             block
@@ -160,7 +164,7 @@ const OrderManagement: React.FC = () => {
           {record.status === "pending" && (
             <Button
               type="default"
-              icon={<Truck size={16} />}
+              icon={<CarOutlined />}
               onClick={() => handleMarkAsReadyToShip(record.id)}
               size="small"
               block
@@ -173,7 +177,7 @@ const OrderManagement: React.FC = () => {
           {record.status === "ready_to_ship" && (
             <Button
               type="default"
-              icon={<Truck size={16} />}
+              icon={<CarOutlined />}
               onClick={() => handleMarkAsShipping(record.id)}
               size="small"
               block
@@ -186,7 +190,7 @@ const OrderManagement: React.FC = () => {
           {record.status === "shipping" && (
             <Button
               type="default"
-              icon={<CheckCircle size={16} />}
+              icon={<CheckCircleOutlined />}
               onClick={() => handleMarkAsDelivered(record.id)}
               size="small"
               block

@@ -3,7 +3,7 @@ import { API_CONFIG } from "../config/api.config";
 export interface CreatePaymentRequest {
   orderId: string;
   amount: number;
-  bankCode?: string;
+  // bankCode?: string;
   orderDescription?: string;
   orderType?: string;
   language?: string; // 'vn' | 'en'

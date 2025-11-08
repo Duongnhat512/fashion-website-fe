@@ -47,7 +47,7 @@ const SuccessPage = () => {
 
           <motion.button
             whileHover={{ scale: 1.05 }}
-            onClick={() => navigate("/orders/all")}
+            onClick={() => navigate("/orders")}
             className="px-6 py-3 border-2 border-purple-500 text-purple-600 font-semibold rounded-xl hover:bg-purple-50 transition"
           >
             Xem đơn hàng của tôi

@@ -79,7 +79,7 @@ const OrdersPage = () => {
         amount,
         orderDescription: `Thanh toán cho đơn hàng ${orderId}`,
         orderType: "billpayment",
-        bankCode: "NCB",
+        // bankCode: "NCB",
         language: "vn",
       });
       const paymentUrl =

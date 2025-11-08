@@ -92,7 +92,7 @@ export default function ProductDetail() {
 
         // Tính tổng số lượng tồn kho
         const total = inventories.reduce(
-          (sum, inv) => sum + (inv.onHand || 0),
+          (sum, inv) => sum + ((inv.onHand || 0) - (inv.reserved || 0)),
           0
         );
         setTotalStock(total);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { message } from "antd";
 import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
@@ -105,6 +106,31 @@ export default function UserProfilePage() {
     if (file) {
       setFormData((prev) => ({ ...prev, avt: file }));
       setPreviewImage(URL.createObjectURL(file));
+      // If user is editing, upload immediately
+      if (isEditing) {
+        (async () => {
+          try {
+            setIsLoading(true);
+            const updated = await authService.updateAvatar(file);
+            // updated contains updated user info (including avt)
+            const newUser = { ...(user || {}), ...updated } as UserProfile;
+            setUser(newUser);
+            // persist into localStorage for other parts of app
+            authService.saveUser(newUser);
+            message.success("Cập nhật ảnh đại diện thành công");
+            setPreviewImage(updated.avt || URL.createObjectURL(file));
+          } catch (err: any) {
+            console.error("Upload avatar error", err);
+            message.error(
+              err?.message || "Không thể tải ảnh lên. Vui lòng thử lại."
+            );
+            // fallback: revert preview to previous
+            setPreviewImage(user?.avt || null);
+          } finally {
+            setIsLoading(false);
+          }
+        })();
+      }
     }
   };
 

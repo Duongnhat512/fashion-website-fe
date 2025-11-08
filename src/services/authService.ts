@@ -202,6 +202,42 @@ class AuthService {
     });
   }
 
+  // Upload avatar (multipart/form-data) to UPDATE_AVATAR endpoint
+  async updateAvatar(file: File): Promise<UpdateUserResponse> {
+    const token = this.getToken();
+    if (!token) throw new Error('Chưa đăng nhập');
+
+    const form = new FormData();
+    form.append('avt', file);
+
+    console.log('Uploading avatar...', file.name);
+
+    // When sending FormData, do NOT set Content-Type header so the browser can set boundary
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USERS.UPDATE_AVATAR}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: form,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Avatar upload error:', { status: response.status, body: errorText });
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<UpdateUserResponse> = await response.json();
+      if (!data.success) throw new Error(data.message || 'Upload avatar thất bại');
+
+      return data.data;
+    } catch (error) {
+      console.error('Upload avatar failed:', error);
+      throw error;
+    }
+  }
+
   // Forgot Password Flow
   async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
     return this.makeRequest<void>(API_CONFIG.ENDPOINTS.USERS.FORGOT_PASSWORD, {

@@ -26,6 +26,7 @@ export const API_CONFIG = {
       FORGOT_PASSWORD: '/users/forgot-password',
       RESET_PASSWORD: '/users/reset-password',
       VERIFY_RESET_OTP: '/users/verify-reset-otp',
+      UPDATE_AVATAR: '/users/update-avt',
     },
 
     ORDERS: {

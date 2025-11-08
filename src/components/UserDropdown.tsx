@@ -101,16 +101,11 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           <div className="relative bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 px-6 py-4 text-white">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 opacity-90"></div>
             <div className="relative z-10 flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <span className="text-white text-lg font-bold">
-                  {user.fullname.charAt(0).toUpperCase()}
-                </span>
-              </div>
               <div>
                 <p className="font-semibold text-lg">{user.fullname}</p>
                 <p className="text-white/80 text-sm truncate">{user.email}</p>
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white mt-1">
-                  {user.role === "admin" ? "Admin" : "Khách hàng"}
+                  {user.role === "admin" ? "Quản trị viên" : "Khách hàng"}
                 </span>
               </div>
             </div>

@@ -61,9 +61,15 @@ class ProductService {
   /**
    * 🧩 Lấy chi tiết sản phẩm theo ID
    */
-  async getProductById(id: string): Promise<Product> {
-    const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_ALL}/${id}`;
-    return this.makeRequest<Product>(url);
+  async getProductById(id: string, token: string): Promise<Product> {
+    const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_BY_ID.replace(':id', id)}`;
+    return this.makeRequest<any>(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
   }
 
   /**
@@ -103,6 +109,25 @@ class ProductService {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+    });
+  }
+
+  /**
+   * ✏️ Cập nhật sản phẩm
+   */
+  async updateProduct(productData: any, token: string): Promise<Product> {
+    const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.UPDATE;
+    
+    console.log('✏️ Update Product Endpoint:', endpoint);
+    console.log('✏️ Update Data:', productData);
+    
+    return this.makeRequest<Product>(endpoint, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(productData),
     });
   }
   

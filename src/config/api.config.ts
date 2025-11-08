@@ -6,7 +6,9 @@ export const API_CONFIG = {
       GET_ALL: '/products',
       SEARCH: '/products/search',
       CREATE: '/products',
+      UPDATE: '/products',
       DELETE: '/products/delete/:id',
+      GET_BY_ID: '/products/:id',
     },
 
     CATEGORIES: {

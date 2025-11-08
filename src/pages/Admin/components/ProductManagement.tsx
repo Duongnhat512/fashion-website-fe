@@ -44,6 +44,8 @@ const ProductManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const notify = useNotification();
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -207,6 +209,98 @@ const ProductManagement: React.FC = () => {
     }
   };
 
+  const handleEdit = async (record: any) => {
+    // Load full product data
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        notify.error("Vui lòng đăng nhập");
+        return;
+      }
+
+      const productData = await productService.getProductById(
+        record.productId,
+        token
+      );
+      setEditingProduct(productData);
+
+      // Fill form với data hiện tại
+      setName(productData.name || "");
+      setSlug(productData.slug || "");
+      setShortDescription(productData.shortDescription || "");
+      setImageUrl(productData.imageUrl || "");
+      setBrand(productData.brand || "");
+      setTags(productData.tags || "");
+      setCategoryId(
+        (productData as any).category?.id ||
+          (productData as any).categoryId ||
+          null
+      );
+
+      // Nếu có variants, lấy variant đầu tiên để fill form
+      if (productData.variants && productData.variants.length > 0) {
+        const firstVariant = productData.variants[0];
+        setVariantSize(firstVariant.size || "M");
+        setVariantPrice(firstVariant.price || 0);
+        setVariantStock((firstVariant as any).stock || 0);
+        setVariantColorId(firstVariant.color?.id || null);
+      }
+
+      setEditModalVisible(true);
+    } catch (err: any) {
+      console.error("Load product error", err);
+      notify.error("Không thể tải thông tin sản phẩm");
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    if (!categoryId) {
+      notify.warning("Vui lòng chọn danh mục");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        notify.error("Vui lòng đăng nhập");
+        return;
+      }
+
+      // Payload theo UpdateProductRequestDto
+      const payload = {
+        id: editingProduct.id,
+        name,
+        slug,
+        shortDescription,
+        imageUrl,
+        brand,
+        status,
+        tags,
+        category: { id: categoryId },
+        // Giữ nguyên variants cũ hoặc cập nhật nếu cần
+        variants: editingProduct.variants || [],
+      };
+
+      await productService.updateProduct(payload, token);
+
+      notify.success("Cập nhật sản phẩm thành công");
+
+      // Reset form và đóng modal
+      setEditModalVisible(false);
+      setEditingProduct(null);
+      await fetchProducts();
+    } catch (err: any) {
+      console.error("Update product error", err);
+      notify.error(err.message || "Lỗi khi cập nhật sản phẩm");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDelete = async (productId: string, productName: string) => {
     // Sử dụng alert để xác nhận xóa sản phẩm
     const isConfirmed = window.confirm(
@@ -313,7 +407,9 @@ const ProductManagement: React.FC = () => {
       key: "actions",
       render: (_: any, record: any) => (
         <div className="flex gap-2">
-          <Button size="small">Sửa</Button>
+          <Button size="small" onClick={() => handleEdit(record)}>
+            Sửa
+          </Button>
           <Button
             size="small"
             danger
@@ -533,6 +629,106 @@ const ProductManagement: React.FC = () => {
             <Button onClick={() => setCreateModalVisible(false)}>Hủy</Button>
             <Button type="primary" htmlType="submit" loading={isLoading}>
               Tạo sản phẩm
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Sửa sản phẩm */}
+      <Modal
+        title="Sửa sản phẩm"
+        open={editModalVisible}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setEditingProduct(null);
+        }}
+        footer={null}
+        width={800}
+      >
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block mb-1 text-sm font-medium">
+                Tên sản phẩm
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => {
+                  const newName = e.target.value;
+                  setName(newName);
+                  setSlug(slugify(newName));
+                }}
+                placeholder="Nhập tên sản phẩm"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block mb-1 text-sm font-medium">
+                Mô tả ngắn
+              </label>
+              <Input.TextArea
+                value={shortDescription}
+                onChange={(e) => setShortDescription(e.target.value)}
+                placeholder="Mô tả ngắn"
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium">Ảnh URL</label>
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Ảnh URL"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium">
+                Thương hiệu
+              </label>
+              <Input
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                placeholder="Thương hiệu"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium">Danh mục</label>
+              <Select
+                style={{ width: "100%" }}
+                value={categoryId || undefined}
+                onChange={(value) => setCategoryId(value || null)}
+                placeholder="Chọn danh mục"
+                allowClear
+              >
+                {categories.map((c) => (
+                  <Select.Option key={c.id} value={c.id}>
+                    {c.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block mb-1 text-sm font-medium">
+                Tags (comma separated)
+              </label>
+              <Input
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="tags (comma separated)"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              onClick={() => {
+                setEditModalVisible(false);
+                setEditingProduct(null);
+              }}
+            >
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit" loading={isLoading}>
+              Cập nhật
             </Button>
           </div>
         </form>

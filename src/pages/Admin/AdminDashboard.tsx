@@ -1,24 +1,22 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Users,
   Package,
   ClipboardList,
   Warehouse,
   Menu,
-  LogOut,
   DollarSign,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";
 import OrderManagement from "./components/OrderManagement";
 import InventorySection from "./components/InventorySection";
 import RevenueStatistics from "./components/RevenueStatistics";
+import ProductManagement from "./components/ProductManagement";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const navigate = useNavigate();
 
   const menuItems = [
     { key: "overview", label: "Tổng quan hệ thống", icon: ClipboardList },
@@ -38,7 +36,7 @@ const AdminDashboard = () => {
       case "inventory":
         return <InventorySection />;
       case "products":
-        return <div>🛍 Trang quản lý sản phẩm (Product Management)</div>;
+        return <ProductManagement />;
       case "revenue":
         return <RevenueStatistics />;
       default:

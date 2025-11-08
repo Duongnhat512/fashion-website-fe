@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, message } from "antd";
+import { Modal } from "antd";
 import { motion } from "framer-motion";
 import {
   X,
@@ -109,10 +109,10 @@ export default function LoginDialog({
     try {
       setIsLoading(true);
       await authService.forgotPassword({ email: forgotEmail });
-      message.success("Mã OTP đã được gửi đến email của bạn");
+      notify.success("Mã OTP đã được gửi đến email của bạn");
       setForgotStep("otp");
     } catch (error: any) {
-      message.error(error.message || "Không thể gửi email");
+      notify.error(error.message || "Không thể gửi email");
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +121,7 @@ export default function LoginDialog({
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp.trim()) {
-      message.error("Vui lòng nhập mã OTP");
+      notify.error("Vui lòng nhập mã OTP");
       return;
     }
     try {
@@ -134,15 +134,15 @@ export default function LoginDialog({
       console.log("Reset Token received:", response.resetToken);
 
       if (!response.resetToken) {
-        message.error("Không nhận được resetToken từ server");
+        notify.error("Không nhận được resetToken từ server");
         return;
       }
 
       setResetToken(response.resetToken); // Lưu resetToken từ API response
-      message.success("Xác thực thành công");
+      notify.success("Xác thực thành công");
       setForgotStep("password");
     } catch (error: any) {
-      message.error(error.message || "Mã OTP không chính xác");
+      notify.error(error.message || "Mã OTP không chính xác");
     } finally {
       setIsLoading(false);
     }
@@ -151,15 +151,15 @@ export default function LoginDialog({
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || !confirmPassword) {
-      message.error("Vui lòng nhập đầy đủ thông tin");
+      notify.error("Vui lòng nhập đầy đủ thông tin");
       return;
     }
     if (newPassword.length < 6) {
-      message.error("Mật khẩu phải có ít nhất 6 ký tự");
+      notify.error("Mật khẩu phải có ít nhất 6 ký tự");
       return;
     }
     if (newPassword !== confirmPassword) {
-      message.error("Mật khẩu xác nhận không khớp");
+      notify.error("Mật khẩu xác nhận không khớp");
       return;
     }
 
@@ -170,7 +170,7 @@ export default function LoginDialog({
     });
 
     if (!resetToken) {
-      message.error("Token không hợp lệ. Vui lòng thử lại từ đầu.");
+      notify.error("Token không hợp lệ. Vui lòng thử lại từ đầu.");
       return;
     }
 
@@ -181,10 +181,10 @@ export default function LoginDialog({
         password: newPassword,
         confirmPassword: confirmPassword,
       });
-      message.success("Đặt lại mật khẩu thành công");
+      notify.success("Đặt lại mật khẩu thành công");
       setForgotStep("success");
     } catch (error: any) {
-      message.error(error.message || "Không thể đặt lại mật khẩu");
+      notify.error(error.message || "Không thể đặt lại mật khẩu");
     } finally {
       setIsLoading(false);
     }

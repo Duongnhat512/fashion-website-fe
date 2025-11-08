@@ -65,6 +65,46 @@ class ProductService {
     const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_ALL}/${id}`;
     return this.makeRequest<Product>(url);
   }
+
+  /**
+   * ➕ Tạo sản phẩm mới
+   */
+  async createProduct(productData: any, token: string): Promise<Product> {
+    const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.CREATE;
+    
+    if (!endpoint) {
+      console.error('❌ CREATE endpoint is undefined!', API_CONFIG.ENDPOINTS.PRODUCTS);
+      throw new Error('API endpoint not configured');
+    }
+    
+
+    
+    return this.makeRequest<Product>(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(productData),
+    });
+  }
+
+  /**
+   * 🗑️ Xóa sản phẩm theo ID
+   */
+  async deleteProduct(productId: string, token: string): Promise<any> {
+    const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.DELETE.replace(':id', productId);
+    
+    console.log('🗑️ Delete Product Endpoint:', endpoint);
+    
+    return this.makeRequest<any>(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  }
   
 }
 

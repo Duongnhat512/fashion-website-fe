@@ -5,6 +5,8 @@ export const API_CONFIG = {
     PRODUCTS: {
       GET_ALL: '/products',
       SEARCH: '/products/search',
+      CREATE: '/products',
+      DELETE: '/products/delete/:id',
     },
 
     CATEGORIES: {
@@ -76,6 +78,9 @@ export const API_CONFIG = {
       GET_BY_WAREHOUSE: '/inventories/warehouse/:warehouseId',
       GET_BY_VARIANT: '/inventories/variant/:variantId',
     },
+    COLOR:{
+      GET_ALL: '/colors',
+    }
   },
 
   DEFAULT_PAGINATION: {

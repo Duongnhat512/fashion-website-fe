@@ -792,9 +792,7 @@ const ProductManagement: React.FC = () => {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="block mb-1 text-sm font-medium">
-                Tags (comma separated)
-              </label>
+              <label className="block mb-1 text-sm font-medium">Tags</label>
               <Input
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
@@ -805,7 +803,7 @@ const ProductManagement: React.FC = () => {
 
           <div className="border-t pt-4 mt-4">
             <div className="flex justify-between items-center mb-3">
-              <h4 className="font-semibold">Danh sách Variants</h4>
+              <h4 className="font-semibold">Danh sách thuộc tính</h4>
               <Button
                 type="dashed"
                 onClick={() => {
@@ -900,7 +898,7 @@ const ProductManagement: React.FC = () => {
               </div>
             )}
 
-            <h4 className="font-semibold mb-3">Thêm Variant Mới</h4>
+            <h4 className="font-semibold mb-3">Thêm thuộc tính mới</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1 text-sm font-medium">Size</label>
@@ -933,7 +931,7 @@ const ProductManagement: React.FC = () => {
               {/* Upload ảnh cho variant */}
               <div className="md:col-span-2">
                 <label className="block mb-1 text-sm font-medium">
-                  Ảnh Variant (tùy chọn)
+                  Ảnh thuộc tính (tùy chọn)
                 </label>
                 <Upload
                   listType="picture"
@@ -1150,9 +1148,7 @@ const ProductManagement: React.FC = () => {
           {/* Thông tin variant - Card riêng - Đặt ở dưới */}
           {editingProduct?.selectedVariant && (
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-semibold mb-3 text-blue-800">
-                Thuộc tính Variant
-              </h4>
+              <h4 className="font-semibold mb-3 text-blue-800">Thuộc tính</h4>
               <div className="grid grid-cols-4 gap-4 items-start">
                 {/* Ảnh variant */}
                 {editingProduct.selectedVariant.imageUrl && (

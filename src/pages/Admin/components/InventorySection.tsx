@@ -473,11 +473,14 @@ const InventorySection: React.FC = () => {
     },
     {
       title: "Số lượng",
-      dataIndex: "items",
+      dataIndex: "stockEntryItems",
       key: "totalQuantity",
-      render: (items: any[]) => {
+      render: (stockEntryItems: any[]) => {
         const totalQty =
-          items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+          stockEntryItems?.reduce(
+            (sum, item) => sum + (item.quantity || 0),
+            0
+          ) || 0;
         return (
           <Tag color="blue" className="font-semibold">
             {totalQty} SP

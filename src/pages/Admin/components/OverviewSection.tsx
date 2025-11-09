@@ -7,7 +7,6 @@ import {
   DollarSign,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import { orderService } from "../../../services/orderService";
 import { userService } from "../../../services/userService";
 import { productService } from "../../../services/productService";
@@ -92,19 +91,18 @@ const StatCard = ({
 const OverviewSection: React.FC<{ onTabChange?: (tab: string) => void }> = ({
   onTabChange,
 }) => {
-  const navigate = useNavigate();
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalInventory, setTotalInventory] = useState(0);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const notify = useNotification();
 
   useEffect(() => {
     fetchStatistics();
   }, []);
 
   const fetchStatistics = async () => {
-    const notify = useNotification();
     try {
       const [ordersData, usersData, productsData, inventoryData] =
         await Promise.all([

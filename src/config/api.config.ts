@@ -82,11 +82,18 @@ export const API_CONFIG = {
     },
     COLOR:{
       GET_ALL: '/colors',
-    }
+    },
+    REVIEWS: {
+      GET_BY_PRODUCT: '/reviews/product/:productId',
+      CREATE: '/reviews',
+      UPDATE: '/reviews/:id',
+      DELETE: '/reviews/:id',
+    },
   },
 
   DEFAULT_PAGINATION: {
     PAGE: 1,
     LIMIT: 10,
   },
+
 };

@@ -11,12 +11,24 @@ import {
   Space,
   InputNumber,
   Select,
+  Input,
+  Avatar,
+  Divider,
+  Empty,
+  Pagination,
+  Popconfirm,
 } from "antd";
 import {
   ShoppingCartOutlined,
   ArrowLeftOutlined,
   PlusOutlined,
   MinusOutlined,
+  UserOutlined,
+  StarFilled,
+  EditOutlined,
+  DeleteOutlined,
+  CloseOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import type { Product, ProductVariant } from "../types/product.types";
@@ -25,6 +37,11 @@ import { inventoryService } from "../services/inventoryService";
 import { useCart } from "../contexts/CartContext";
 const { Option } = Select;
 import { useNotification } from "../components/NotificationProvider";
+import { reviewService, type Review } from "../services/reviewService";
+import { authService } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
+import LoginDialog from "../components/LoginDialog";
+const { TextArea } = Input;
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -43,6 +60,24 @@ export default function ProductDetail() {
   const [inventoryData, setInventoryData] = useState<any[]>([]);
   const [totalStock, setTotalStock] = useState<number>(0);
   const notify = useNotification();
+
+  // Review states
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+
+  // Edit review states
+  const { user } = useAuth();
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editReviewRating, setEditReviewRating] = useState(5);
+  const [editReviewComment, setEditReviewComment] = useState("");
+
   useEffect(() => {
     // Scroll to top khi vào trang
     window.scrollTo(0, 0);
@@ -153,6 +188,140 @@ export default function ProductDetail() {
       setRelatedProducts(filtered);
     } catch (error) {
       console.error("Lỗi tải sản phẩm liên quan:", error);
+    }
+  };
+
+  // Load reviews
+  const loadReviews = async (productId: string, page: number = 1) => {
+    try {
+      setReviewsLoading(true);
+      const data = await reviewService.getProductReviews(productId, page, 10);
+      setReviews(data.reviews);
+      setReviewTotal(data.pagination.total);
+      setReviewPage(page);
+    } catch (error) {
+      console.error("Lỗi tải đánh giá:", error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // Load reviews khi product thay đổi
+  useEffect(() => {
+    if (product?.id) {
+      loadReviews(product.id);
+    }
+  }, [product?.id]);
+
+  // Submit review
+  const handleSubmitReview = async () => {
+    if (!product?.id) return;
+
+    const token = authService.getToken();
+    if (!token) {
+      notify.warning("Vui lòng đăng nhập để đánh giá!");
+      setShowLoginDialog(true);
+      return;
+    }
+
+    if (!newReviewComment.trim()) {
+      notify.warning("Vui lòng nhập nội dung đánh giá!");
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+      await reviewService.createReview(
+        {
+          productId: product.id,
+          rating: newReviewRating,
+          comment: newReviewComment.trim(),
+        },
+        token
+      );
+
+      notify.success("Đánh giá của bạn đã được gửi!");
+      setNewReviewComment("");
+      setNewReviewRating(5);
+
+      // Reload reviews
+      loadReviews(product.id, 1);
+    } catch (error: any) {
+      notify.error(error.message || "Không thể gửi đánh giá!");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // Start editing review
+  const startEditReview = (review: Review) => {
+    setEditingReviewId(review.id);
+    setEditReviewRating(review.rating);
+    setEditReviewComment(review.comment);
+  };
+
+  // Cancel editing
+  const cancelEditReview = () => {
+    setEditingReviewId(null);
+    setEditReviewRating(5);
+    setEditReviewComment("");
+  };
+
+  // Update review
+  const handleUpdateReview = async (reviewId: string) => {
+    const token = authService.getToken();
+    if (!token) {
+      notify.warning("Vui lòng đăng nhập!");
+      setShowLoginDialog(true);
+      return;
+    }
+
+    if (!editReviewComment.trim()) {
+      notify.warning("Vui lòng nhập nội dung đánh giá!");
+      return;
+    }
+
+    try {
+      await reviewService.updateReview(
+        reviewId,
+        {
+          rating: editReviewRating,
+          comment: editReviewComment.trim(),
+        },
+        token
+      );
+
+      notify.success("Cập nhật đánh giá thành công!");
+      cancelEditReview();
+
+      // Reload reviews
+      if (product?.id) {
+        loadReviews(product.id, reviewPage);
+      }
+    } catch (error: any) {
+      notify.error(error.message || "Không thể cập nhật đánh giá!");
+    }
+  };
+
+  // Delete review
+  const handleDeleteReview = async (reviewId: string) => {
+    const token = authService.getToken();
+    if (!token) {
+      notify.warning("Vui lòng đăng nhập!");
+      setShowLoginDialog(true);
+      return;
+    }
+
+    try {
+      await reviewService.deleteReview(reviewId, token);
+      notify.success("Xóa đánh giá thành công!");
+
+      // Reload reviews
+      if (product?.id) {
+        loadReviews(product.id, reviewPage);
+      }
+    } catch (error: any) {
+      notify.error(error.message || "Không thể xóa đánh giá!");
     }
   };
 
@@ -414,7 +583,7 @@ export default function ProductDetail() {
 
         {/* Sản phẩm liên quan */}
         {relatedProducts.length > 0 && (
-          <div className="mt-8">
+          <div className="mt-12">
             <h2 className="text-3xl font-bold mb-6 text-left bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Sản phẩm liên quan
             </h2>
@@ -507,7 +676,238 @@ export default function ProductDetail() {
             </div>
           </div>
         )}
+
+        {/* Phần Đánh giá - Đặt dưới sản phẩm liên quan */}
+        <div className="mt-12 bg-white rounded-2xl shadow-lg p-8">
+          <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            Đánh giá sản phẩm
+          </h2>
+
+          {/* Form thêm đánh giá mới */}
+          <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">
+              Viết đánh giá của bạn
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  Đánh giá của bạn
+                </label>
+                <Rate
+                  value={newReviewRating}
+                  onChange={setNewReviewRating}
+                  style={{ fontSize: 28 }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  Nội dung đánh giá
+                </label>
+                <TextArea
+                  value={newReviewComment}
+                  onChange={(e) => setNewReviewComment(e.target.value)}
+                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                  rows={4}
+                  className="rounded-lg"
+                />
+              </div>
+              <Button
+                type="primary"
+                size="large"
+                onClick={handleSubmitReview}
+                loading={submittingReview}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 border-none"
+              >
+                Gửi đánh giá
+              </Button>
+            </div>
+          </div>
+
+          {/* Danh sách đánh giá */}
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">
+              Các đánh giá ({reviewTotal})
+            </h3>
+
+            {reviewsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-300 border-t-purple-600 mx-auto mb-4" />
+                <p className="text-gray-600">Đang tải đánh giá...</p>
+              </div>
+            ) : reviews.length === 0 ? (
+              <Empty description="Chưa có đánh giá nào" className="py-8" />
+            ) : (
+              <div className="space-y-4">
+                {/* Hiển thị 5 đánh giá đầu hoặc tất cả nếu showAllReviews = true */}
+                {(showAllReviews ? reviews : reviews.slice(0, 5)).map(
+                  (review) => (
+                    <div
+                      key={review.id}
+                      className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-start gap-4">
+                        <Avatar
+                          size={48}
+                          src={review.userAvatar}
+                          icon={<UserOutlined />}
+                          className="flex-shrink-0"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h4 className="font-semibold text-gray-900">
+                                {review.userName}
+                              </h4>
+                              <p className="text-xs text-gray-500">
+                                {new Date(review.createdAt).toLocaleDateString(
+                                  "vi-VN",
+                                  {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {editingReviewId === review.id ? (
+                                <Rate
+                                  value={editReviewRating}
+                                  onChange={setEditReviewRating}
+                                  style={{ fontSize: 16 }}
+                                />
+                              ) : (
+                                <Rate
+                                  disabled
+                                  value={review.rating}
+                                  style={{ fontSize: 16 }}
+                                />
+                              )}
+                              {/* Show edit/delete buttons if user owns this review */}
+                              {user && user.id === review.userId && (
+                                <Space size="small">
+                                  {editingReviewId === review.id ? (
+                                    <>
+                                      <Button
+                                        type="primary"
+                                        size="small"
+                                        icon={<CheckOutlined />}
+                                        onClick={() =>
+                                          handleUpdateReview(review.id)
+                                        }
+                                      >
+                                        Lưu
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        icon={<CloseOutlined />}
+                                        onClick={cancelEditReview}
+                                      >
+                                        Hủy
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        type="text"
+                                        size="small"
+                                        icon={<EditOutlined />}
+                                        onClick={() => startEditReview(review)}
+                                      />
+                                      <Popconfirm
+                                        title="Xóa đánh giá"
+                                        description="Bạn có chắc chắn muốn xóa đánh giá này?"
+                                        onConfirm={() =>
+                                          handleDeleteReview(review.id)
+                                        }
+                                        okText="Xóa"
+                                        cancelText="Hủy"
+                                        okButtonProps={{ danger: true }}
+                                      >
+                                        <Button
+                                          type="text"
+                                          danger
+                                          size="small"
+                                          icon={<DeleteOutlined />}
+                                        />
+                                      </Popconfirm>
+                                    </>
+                                  )}
+                                </Space>
+                              )}
+                            </div>
+                          </div>
+                          {editingReviewId === review.id ? (
+                            <TextArea
+                              value={editReviewComment}
+                              onChange={(e) =>
+                                setEditReviewComment(e.target.value)
+                              }
+                              placeholder="Nhập nội dung đánh giá..."
+                              rows={3}
+                              className="mb-2"
+                            />
+                          ) : (
+                            <p className="text-gray-700 whitespace-pre-wrap">
+                              {review.comment}
+                            </p>
+                          )}
+                          {review.isVerified && (
+                            <Tag color="green" className="mt-2">
+                              Đã mua hàng
+                            </Tag>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {/* Nút Xem thêm / Thu gọn */}
+                {reviews.length > 5 && (
+                  <div className="flex justify-center mt-6">
+                    <Button
+                      size="large"
+                      onClick={() => setShowAllReviews(!showAllReviews)}
+                      className="px-8"
+                    >
+                      {showAllReviews ? (
+                        <>Thu gọn ▲</>
+                      ) : (
+                        <>Xem thêm {reviews.length - 5} đánh giá ▼</>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Pagination - chỉ hiển thị khi có nhiều hơn 10 reviews */}
+                {reviewTotal > 10 && (
+                  <div className="flex justify-center mt-6">
+                    <Pagination
+                      current={reviewPage}
+                      total={reviewTotal}
+                      pageSize={10}
+                      onChange={(page) => {
+                        loadReviews(product!.id, page);
+                        setShowAllReviews(false); // Reset về 5 đánh giá khi chuyển trang
+                      }}
+                      showSizeChanger={false}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Login Dialog */}
+      <LoginDialog
+        open={showLoginDialog}
+        onClose={() => setShowLoginDialog(false)}
+      />
     </div>
   );
 }

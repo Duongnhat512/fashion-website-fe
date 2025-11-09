@@ -72,6 +72,9 @@ const ProductManagement: React.FC = () => {
   const [tags, setTags] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
 
+  // State cho giá bán khi edit
+  const [editingPrice, setEditingPrice] = useState<number>(0);
+
   // Variant list state - cho phép thêm nhiều variants
   const [variants, setVariants] = useState<any[]>([]);
   const [currentVariant, setCurrentVariant] = useState({
@@ -86,6 +89,12 @@ const ProductManagement: React.FC = () => {
   const [productImageFileList, setProductImageFileList] = useState<
     UploadFile[]
   >([]);
+
+  // File upload state cho variant hiện tại
+  const [currentVariantImageFile, setCurrentVariantImageFile] =
+    useState<File | null>(null);
+  const [currentVariantImageFileList, setCurrentVariantImageFileList] =
+    useState<UploadFile[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -194,9 +203,13 @@ const ProductManagement: React.FC = () => {
       // QUAN TRỌNG: Phải gửi đúng số lượng ảnh = số variants
       console.log(`Đang thêm ${variants.length} variant images...`);
       variants.forEach((variant, index) => {
-        formData.append(`variants[${index}][image]`, productImageFile);
+        // Sử dụng ảnh riêng của variant nếu có, không thì dùng ảnh product
+        const variantImage = variant.imageFile || productImageFile;
+        formData.append(`variants[${index}][image]`, variantImage);
         console.log(
-          `✓ Added variants[${index}][image] for size ${variant.size}`
+          `✓ Added variants[${index}][image] for size ${variant.size} (${
+            variant.imageFile ? "custom image" : "product image"
+          })`
         );
       });
 
@@ -297,6 +310,8 @@ const ProductManagement: React.FC = () => {
       setCategoryId(null);
       setProductImageFile(null);
       setProductImageFileList([]);
+      setCurrentVariantImageFile(null);
+      setCurrentVariantImageFileList([]);
 
       // Close modal and reload products
       setCreateModalVisible(false);
@@ -350,6 +365,9 @@ const ProductManagement: React.FC = () => {
           null
       );
 
+      // Set giá bán từ variant được chọn
+      setEditingPrice(selectedVariant?.price || 0);
+
       setEditModalVisible(true);
     } catch (err: any) {
       console.error("Load product error", err);
@@ -385,14 +403,21 @@ const ProductManagement: React.FC = () => {
         status,
         tags,
         category: { id: categoryId },
-        // Giữ nguyên variants cũ
+        // Cập nhật giá cho variant được chọn
         variants:
           editingProduct.variants?.map((v: any) => ({
             id: v.id,
             sku: v.sku,
             size: v.size,
-            price: v.price,
-            discountPrice: v.discountPrice,
+            // Nếu là variant đang edit thì dùng giá mới, không thì giữ nguyên
+            price:
+              v.id === editingProduct.selectedVariant?.id
+                ? editingPrice
+                : v.price,
+            discountPrice:
+              v.id === editingProduct.selectedVariant?.id
+                ? editingPrice
+                : v.discountPrice,
             discountPercent: v.discountPercent,
             imageUrl: v.imageUrl, // Giữ imageUrl cũ của variant
             onSales: v.onSales,
@@ -793,16 +818,27 @@ const ProductManagement: React.FC = () => {
                     return;
                   }
 
-                  // Thêm variant vào danh sách
-                  setVariants([...variants, { ...currentVariant }]);
+                  // Thêm variant vào danh sách (kèm theo file ảnh)
+                  setVariants([
+                    ...variants,
+                    {
+                      ...currentVariant,
+                      imageFile: currentVariantImageFile, // Lưu file ảnh
+                      imagePreview: currentVariantImageFile
+                        ? URL.createObjectURL(currentVariantImageFile)
+                        : null,
+                    },
+                  ]);
 
-                  // Reset current variant
+                  // Reset current variant và ảnh
                   setCurrentVariant({
                     size: "M",
                     price: 0,
                     stock: 0,
                     colorId: null,
                   });
+                  setCurrentVariantImageFile(null);
+                  setCurrentVariantImageFileList([]);
 
                   notify.success("Đã thêm thuộc tính");
                 }}
@@ -823,6 +859,14 @@ const ProductManagement: React.FC = () => {
                         className="flex items-center justify-between p-2 bg-white rounded border"
                       >
                         <div className="flex items-center gap-3">
+                          {/* Hiển thị ảnh preview nếu có */}
+                          {v.imagePreview && (
+                            <img
+                              src={v.imagePreview}
+                              alt={`Variant ${v.size}`}
+                              className="w-12 h-12 object-cover rounded border"
+                            />
+                          )}
                           {color && (
                             <div
                               className="w-6 h-6 rounded-full border"
@@ -840,6 +884,10 @@ const ProductManagement: React.FC = () => {
                           danger
                           size="small"
                           onClick={() => {
+                            // Revoke object URL để tránh memory leak
+                            if (v.imagePreview) {
+                              URL.revokeObjectURL(v.imagePreview);
+                            }
                             setVariants(variants.filter((_, i) => i !== index));
                           }}
                         >
@@ -880,6 +928,49 @@ const ProductManagement: React.FC = () => {
                   }
                   placeholder="Giá"
                 />
+              </div>
+
+              {/* Upload ảnh cho variant */}
+              <div className="md:col-span-2">
+                <label className="block mb-1 text-sm font-medium">
+                  Ảnh Variant (tùy chọn)
+                </label>
+                <Upload
+                  listType="picture"
+                  maxCount={1}
+                  fileList={currentVariantImageFileList}
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith("image/");
+                    if (!isImage) {
+                      notify.error("Chỉ được upload file ảnh!");
+                      return Upload.LIST_IGNORE;
+                    }
+                    const isLt5M = file.size / 1024 / 1024 < 5;
+                    if (!isLt5M) {
+                      notify.error("Ảnh phải nhỏ hơn 5MB!");
+                      return Upload.LIST_IGNORE;
+                    }
+                    setCurrentVariantImageFile(file);
+                    setCurrentVariantImageFileList([
+                      {
+                        uid: file.uid,
+                        name: file.name,
+                        status: "done",
+                        url: URL.createObjectURL(file),
+                      },
+                    ]);
+                    return false;
+                  }}
+                  onRemove={() => {
+                    setCurrentVariantImageFile(null);
+                    setCurrentVariantImageFileList([]);
+                  }}
+                >
+                  <Button icon={<UploadOutlined />}>Chọn ảnh variant</Button>
+                </Upload>
+                <p className="text-xs text-gray-500 mt-1">
+                  Nếu không chọn, sẽ dùng ảnh sản phẩm chính
+                </p>
               </div>
             </div>
 
@@ -1108,19 +1199,24 @@ const ProductManagement: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Giá bán */}
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-2 font-medium">
+                {/* Giá bán - Có thể chỉnh sửa */}
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2 font-medium text-center">
                     Giá bán
-                  </div>
-                  <div className="font-semibold text-lg text-green-600">
-                    {(
-                      editingProduct.selectedVariant.price || 0
-                    ).toLocaleString()}
-                    ₫
-                  </div>
+                  </label>
+                  <Input
+                    type="number"
+                    value={editingPrice}
+                    onChange={(e) => setEditingPrice(Number(e.target.value))}
+                    className="text-center font-semibold text-lg"
+                    suffix="₫"
+                  />
                 </div>
               </div>
+              <p className="text-xs text-gray-500 mt-3 italic text-center">
+                * Bạn có thể cập nhật giá bán. Để sửa size/màu, vui lòng xóa sản
+                phẩm và tạo lại
+              </p>
             </div>
           )}
 

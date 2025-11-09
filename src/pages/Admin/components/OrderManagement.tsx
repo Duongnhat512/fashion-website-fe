@@ -368,7 +368,7 @@ const OrderManagement: React.FC = () => {
                   className="flex items-center gap-4 mb-3 pb-3 border-b last:border-b-0"
                 >
                   <img
-                    src={item.product?.imageUrl}
+                    src={item.variant?.imageUrl}
                     alt={item.product?.name}
                     className="w-16 h-16 object-cover rounded"
                   />

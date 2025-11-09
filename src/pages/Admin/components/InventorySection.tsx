@@ -1281,6 +1281,180 @@ const InventorySection: React.FC = () => {
         </Form>
       </Modal>
 
+      {/* Modal xem chi tiết phiếu kho */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <FileTextOutlined className="text-purple-600" />
+            <span>Chi tiết phiếu kho</span>
+          </div>
+        }
+        open={stockEntryDetailVisible}
+        onCancel={() => {
+          setStockEntryDetailVisible(false);
+          setSelectedStockEntry(null);
+          setEnrichedItems([]);
+        }}
+        footer={null}
+        width={1000}
+      >
+        {selectedStockEntry && (
+          <div className="space-y-4">
+            {/* Thông tin phiếu */}
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Mã phiếu</p>
+                  <p className="font-mono font-bold text-purple-600">
+                    {selectedStockEntry.id.slice(0, 8)}...
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Loại phiếu</p>
+                  <Tag
+                    color={
+                      selectedStockEntry.type === "IMPORT" ? "green" : "orange"
+                    }
+                  >
+                    {selectedStockEntry.type === "IMPORT"
+                      ? "Nhập kho"
+                      : "Xuất kho"}
+                  </Tag>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Nhà cung cấp</p>
+                  <p className="font-semibold">
+                    {selectedStockEntry.supplierName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Trạng thái</p>
+                  <Tag
+                    color={
+                      selectedStockEntry.status === "draft"
+                        ? "default"
+                        : selectedStockEntry.status === "submitted"
+                        ? "blue"
+                        : "red"
+                    }
+                  >
+                    {selectedStockEntry.status === "draft"
+                      ? "Nháp"
+                      : selectedStockEntry.status === "submitted"
+                      ? "Đã xác nhận"
+                      : "Đã hủy"}
+                  </Tag>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Ngày tạo</p>
+                  <p className="font-semibold">
+                    {new Date(selectedStockEntry.createdAt).toLocaleString(
+                      "vi-VN"
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Tổng giá trị</p>
+                  <p className="font-bold text-xl text-purple-600">
+                    {selectedStockEntry.totalCost?.toLocaleString("vi-VN")}đ
+                  </p>
+                </div>
+              </div>
+              {selectedStockEntry.note && (
+                <div className="mt-3 pt-3 border-t border-purple-200">
+                  <p className="text-sm text-gray-600">Ghi chú</p>
+                  <p className="text-gray-800">{selectedStockEntry.note}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Danh sách sản phẩm */}
+            <div>
+              <h4 className="font-semibold text-lg mb-3">Danh sách sản phẩm</h4>
+              {loadingDetail ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-500 border-t-transparent"></div>
+                  <p className="mt-2 text-gray-600">Đang tải...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {enrichedItems.map((item, index) => {
+                    const inv = item.inventoryDetail;
+                    const variant = inv?.variant;
+                    const product = variant?.product;
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition"
+                      >
+                        {/* Hình ảnh */}
+                        <img
+                          src={variant?.imageUrl || "/placeholder-image.png"}
+                          alt={product?.name || "Product"}
+                          className="w-20 h-20 object-cover rounded-lg shadow-sm"
+                        />
+
+                        {/* Thông tin sản phẩm */}
+                        <div className="flex-1">
+                          <h5 className="font-bold text-gray-900">
+                            {product?.name || "N/A"}
+                          </h5>
+                          <p className="text-sm text-gray-600">
+                            <span className="font-semibold">Màu:</span>{" "}
+                            {variant?.color?.name || "N/A"} |{" "}
+                            <span className="font-semibold">Size:</span>{" "}
+                            {variant?.size || "N/A"}
+                          </p>
+                          <p className="text-xs text-gray-500 font-mono">
+                            SKU: {variant?.sku || "N/A"}
+                          </p>
+                        </div>
+
+                        {/* Số lượng và giá */}
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Số lượng</p>
+                          <p className="font-bold text-lg text-blue-600">
+                            {item.quantity}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Đơn giá</p>
+                          <p className="font-bold text-purple-600">
+                            {item.rate?.toLocaleString("vi-VN")}đ
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Thành tiền</p>
+                          <p className="font-bold text-xl text-green-600">
+                            {(item.quantity * item.rate)?.toLocaleString(
+                              "vi-VN"
+                            )}
+                            đ
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Tổng cộng */}
+            <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-gray-700">
+                  Tổng cộng
+                </span>
+                <span className="text-2xl font-bold text-purple-600">
+                  {selectedStockEntry.totalCost?.toLocaleString("vi-VN")}đ
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Modal thêm/sửa chi nhánh */}
       <Modal
         title={editingWarehouse ? "Cập nhật chi nhánh" : "Thêm chi nhánh mới"}

@@ -71,10 +71,15 @@ const ProductManagement: React.FC = () => {
   const [status] = useState("active");
   const [tags, setTags] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [variantSize, setVariantSize] = useState("M");
-  const [variantPrice, setVariantPrice] = useState<number>(0);
-  const [variantStock, setVariantStock] = useState<number>(0);
-  const [variantColorId, setVariantColorId] = useState<string | null>(null);
+
+  // Variant list state - cho phép thêm nhiều variants
+  const [variants, setVariants] = useState<any[]>([]);
+  const [currentVariant, setCurrentVariant] = useState({
+    size: "M",
+    price: 0,
+    stock: 0,
+    colorId: null as string | null,
+  });
 
   // File upload state
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
@@ -163,8 +168,8 @@ const ProductManagement: React.FC = () => {
       notify.warning("Vui lòng chọn danh mục");
       return;
     }
-    if (!variantColorId) {
-      notify.warning("Vui lòng chọn màu");
+    if (variants.length === 0) {
+      notify.warning("Vui lòng thêm ít nhất 1 variant!");
       return;
     }
     if (!productImageFile) {
@@ -185,10 +190,17 @@ const ProductManagement: React.FC = () => {
 
       // Thêm product image file
       formData.append("productImage", productImageFile);
-      // Thêm cùng file cho variant image (variant[0][image])
-      formData.append("variants[0][image]", productImageFile);
 
-      // Tạo productData object
+      // QUAN TRỌNG: Phải gửi đúng số lượng ảnh = số variants
+      console.log(`Đang thêm ${variants.length} variant images...`);
+      variants.forEach((variant, index) => {
+        formData.append(`variants[${index}][image]`, productImageFile);
+        console.log(
+          `✓ Added variants[${index}][image] for size ${variant.size}`
+        );
+      });
+
+      // Tạo productData object với nhiều variants
       const productData = {
         name,
         slug,
@@ -197,20 +209,21 @@ const ProductManagement: React.FC = () => {
         status,
         tags,
         category: { id: categoryId },
-        variants: [
-          {
-            sku: `${slug || "SKU"}-${variantSize}`,
-            size: variantSize,
-            price: variantPrice,
-            discountPrice: variantPrice,
-            discountPercent: 0,
-            stock: variantStock,
-            onSales: false,
-            saleNote: "",
-            color: { id: variantColorId },
-          },
-        ],
+        variants: variants.map((v) => ({
+          sku: `${slug || "SKU"}-${v.size}-${v.colorId}`,
+          size: v.size,
+          price: v.price,
+          discountPrice: v.price,
+          discountPercent: 0,
+          stock: v.stock,
+          onSales: false,
+          saleNote: "",
+          color: { id: v.colorId },
+        })),
       };
+
+      console.log("ProductData variants count:", productData.variants.length);
+      console.log("ProductData:", JSON.stringify(productData, null, 2));
 
       // Thêm productData vào FormData
       formData.append("productData", JSON.stringify(productData));
@@ -248,7 +261,25 @@ const ProductManagement: React.FC = () => {
         throw new Error(result.message || "Lỗi khi tạo sản phẩm");
       }
 
-      notify.success("Tạo sản phẩm thành công");
+      console.log("✅ Product created successfully!");
+      console.log("Created product:", result.data);
+      console.log(
+        "Number of variants created:",
+        result.data?.variants?.length || 0
+      );
+
+      // IMPORTANT: Alert to verify variant count
+      const variantCount = result.data?.variants?.length || 0;
+      console.warn(
+        `⚠️ KIỂM TRA: Đã tạo ${variantCount} variants (mong đợi ${variants.length})`
+      );
+      if (variantCount !== variants.length) {
+        notify.error(
+          `LỖI: Chỉ tạo được ${variantCount} variants, mong đợi ${variants.length}`
+        );
+      }
+
+      notify.success(`Tạo sản phẩm thành công với ${variantCount} variants`);
 
       // reset form
       setName("");
@@ -256,10 +287,14 @@ const ProductManagement: React.FC = () => {
       setShortDescription("");
       setBrand("");
       setTags("");
-      setVariantPrice(0);
-      setVariantStock(0);
+      setVariants([]);
+      setCurrentVariant({
+        size: "M",
+        price: 0,
+        stock: 0,
+        colorId: null,
+      });
       setCategoryId(null);
-      setVariantColorId(null);
       setProductImageFile(null);
       setProductImageFileList([]);
 
@@ -287,7 +322,17 @@ const ProductManagement: React.FC = () => {
         record.productId,
         token
       );
-      setEditingProduct(productData);
+
+      // Lọc chỉ variant được chọn từ row (record.id là variant id)
+      const selectedVariant = productData.variants?.find(
+        (v: any) => v.id === record.id
+      );
+
+      // Chỉ lưu variant được chọn
+      setEditingProduct({
+        ...productData,
+        selectedVariant: selectedVariant, // Thêm thông tin variant được chọn
+      });
 
       // Reset file upload state
       setProductImageFile(null);
@@ -304,15 +349,6 @@ const ProductManagement: React.FC = () => {
           (productData as any).categoryId ||
           null
       );
-
-      // Nếu có variants, lấy variant đầu tiên để fill form
-      if (productData.variants && productData.variants.length > 0) {
-        const firstVariant = productData.variants[0];
-        setVariantSize(firstVariant.size || "M");
-        setVariantPrice(firstVariant.price || 0);
-        setVariantStock((firstVariant as any).stock || 0);
-        setVariantColorId(firstVariant.color?.id || null);
-      }
 
       setEditModalVisible(true);
     } catch (err: any) {
@@ -743,13 +779,91 @@ const ProductManagement: React.FC = () => {
           </div>
 
           <div className="border-t pt-4 mt-4">
-            <h4 className="font-semibold mb-3">Thông tin variant</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="font-semibold">Danh sách Variants</h4>
+              <Button
+                type="dashed"
+                onClick={() => {
+                  if (!currentVariant.colorId) {
+                    notify.warning("Vui lòng chọn màu cho variant!");
+                    return;
+                  }
+                  if (!currentVariant.size) {
+                    notify.warning("Vui lòng nhập size!");
+                    return;
+                  }
+
+                  // Thêm variant vào danh sách
+                  setVariants([...variants, { ...currentVariant }]);
+
+                  // Reset current variant
+                  setCurrentVariant({
+                    size: "M",
+                    price: 0,
+                    stock: 0,
+                    colorId: null,
+                  });
+
+                  notify.success("Đã thêm thuộc tính");
+                }}
+              >
+                + Thêm Thuộc Tính
+              </Button>
+            </div>
+
+            {/* Hiển thị danh sách variants đã thêm */}
+            {variants.length > 0 && (
+              <div className="mb-4 p-3 bg-gray-50 rounded">
+                <div className="space-y-2">
+                  {variants.map((v, index) => {
+                    const color = colors.find((c) => c.id === v.colorId);
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 bg-white rounded border"
+                      >
+                        <div className="flex items-center gap-3">
+                          {color && (
+                            <div
+                              className="w-6 h-6 rounded-full border"
+                              style={{ backgroundColor: color.hex }}
+                            />
+                          )}
+                          <span className="font-medium">
+                            Size {v.size} - {color?.name || "N/A"}
+                          </span>
+                          <span className="text-gray-600">
+                            Giá: {v.price.toLocaleString()}₫
+                          </span>
+                        </div>
+                        <Button
+                          danger
+                          size="small"
+                          onClick={() => {
+                            setVariants(variants.filter((_, i) => i !== index));
+                          }}
+                        >
+                          Xóa
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <h4 className="font-semibold mb-3">Thêm Variant Mới</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1 text-sm font-medium">Size</label>
                 <Input
-                  value={variantSize}
-                  onChange={(e) => setVariantSize(e.target.value)}
+                  value={currentVariant.size}
+                  onChange={(e) =>
+                    setCurrentVariant({
+                      ...currentVariant,
+                      size: e.target.value,
+                    })
+                  }
                   placeholder="Size"
                 />
               </div>
@@ -757,20 +871,14 @@ const ProductManagement: React.FC = () => {
                 <label className="block mb-1 text-sm font-medium">Giá</label>
                 <Input
                   type="number"
-                  value={variantPrice}
-                  onChange={(e) => setVariantPrice(Number(e.target.value))}
+                  value={currentVariant.price}
+                  onChange={(e) =>
+                    setCurrentVariant({
+                      ...currentVariant,
+                      price: Number(e.target.value),
+                    })
+                  }
                   placeholder="Giá"
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Tồn kho
-                </label>
-                <Input
-                  type="number"
-                  value={variantStock}
-                  onChange={(e) => setVariantStock(Number(e.target.value))}
-                  placeholder="Tồn kho"
                 />
               </div>
             </div>
@@ -779,14 +887,25 @@ const ProductManagement: React.FC = () => {
               <label className="block mb-1 text-sm font-medium">Màu</label>
               <Select
                 style={{ width: "100%" }}
-                value={variantColorId || undefined}
-                onChange={(value) => setVariantColorId(value || null)}
+                value={currentVariant.colorId || undefined}
+                onChange={(value) =>
+                  setCurrentVariant({
+                    ...currentVariant,
+                    colorId: value || null,
+                  })
+                }
                 placeholder="Chọn màu"
                 allowClear
               >
                 {colors.map((c) => (
                   <Select.Option key={c.id} value={c.id}>
-                    {c.name} ({c.code})
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full border"
+                        style={{ backgroundColor: c.hex }}
+                      />
+                      {c.name} ({c.code})
+                    </div>
                   </Select.Option>
                 ))}
               </Select>
@@ -811,120 +930,199 @@ const ProductManagement: React.FC = () => {
           setEditingProduct(null);
         }}
         footer={null}
-        width={800}
+        width={900}
       >
         <form onSubmit={handleUpdate} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block mb-1 text-sm font-medium">
-                Tên sản phẩm
-              </label>
-              <Input
-                value={name}
-                onChange={(e) => {
-                  const newName = e.target.value;
-                  setName(newName);
-                  setSlug(slugify(newName));
-                }}
-                placeholder="Nhập tên sản phẩm"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block mb-1 text-sm font-medium">
-                Mô tả ngắn
-              </label>
-              <Input.TextArea
-                value={shortDescription}
-                onChange={(e) => setShortDescription(e.target.value)}
-                placeholder="Mô tả ngắn"
-                rows={3}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block mb-1 text-sm font-medium">
-                Ảnh sản phẩm
-              </label>
-              <Upload
-                listType="picture"
-                maxCount={1}
-                fileList={productImageFileList}
-                beforeUpload={(file) => {
-                  const isImage = file.type.startsWith("image/");
-                  if (!isImage) {
-                    notify.error("Chỉ được upload file ảnh!");
-                    return Upload.LIST_IGNORE;
-                  }
-                  const isLt5M = file.size / 1024 / 1024 < 5;
-                  if (!isLt5M) {
-                    notify.error("Ảnh phải nhỏ hơn 5MB!");
-                    return Upload.LIST_IGNORE;
-                  }
-                  setProductImageFile(file);
-                  setProductImageFileList([
-                    {
-                      uid: file.uid,
-                      name: file.name,
-                      status: "done",
-                      url: URL.createObjectURL(file),
-                    },
-                  ]);
-                  return false;
-                }}
-                onRemove={() => {
-                  setProductImageFile(null);
-                  setProductImageFileList([]);
-                }}
-              >
-                <Button icon={<UploadOutlined />}>Chọn ảnh mới</Button>
-              </Upload>
-              {editingProduct?.imageUrl && !productImageFile && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-500 mb-1">Ảnh hiện tại:</p>
-                  <img
-                    src={editingProduct.imageUrl}
-                    alt="Current"
-                    className="w-32 h-32 object-cover rounded border"
-                  />
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Thương hiệu
-              </label>
-              <Input
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                placeholder="Thương hiệu"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">Danh mục</label>
-              <Select
-                style={{ width: "100%" }}
-                value={categoryId || undefined}
-                onChange={(value) => setCategoryId(value || null)}
-                placeholder="Chọn danh mục"
-                allowClear
-              >
-                {categories.map((c) => (
-                  <Select.Option key={c.id} value={c.id}>
-                    {c.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block mb-1 text-sm font-medium">
-                Tags (comma separated)
-              </label>
-              <Input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="tags (comma separated)"
-              />
+          {/* Thông tin sản phẩm - Card riêng */}
+          <div className="p-4 bg-gray-50 rounded-lg border">
+            <h4 className="font-semibold mb-3 text-gray-800">
+              Thông tin sản phẩm
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block mb-1 text-sm font-medium">
+                  Tên sản phẩm
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    setName(newName);
+                    setSlug(slugify(newName));
+                  }}
+                  placeholder="Nhập tên sản phẩm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block mb-1 text-sm font-medium">
+                  Mô tả ngắn
+                </label>
+                <Input.TextArea
+                  value={shortDescription}
+                  onChange={(e) => setShortDescription(e.target.value)}
+                  placeholder="Mô tả ngắn"
+                  rows={3}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block mb-1 text-sm font-medium">
+                  Ảnh sản phẩm
+                </label>
+                <Upload
+                  listType="picture"
+                  maxCount={1}
+                  fileList={productImageFileList}
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith("image/");
+                    if (!isImage) {
+                      notify.error("Chỉ được upload file ảnh!");
+                      return Upload.LIST_IGNORE;
+                    }
+                    const isLt5M = file.size / 1024 / 1024 < 5;
+                    if (!isLt5M) {
+                      notify.error("Ảnh phải nhỏ hơn 5MB!");
+                      return Upload.LIST_IGNORE;
+                    }
+                    setProductImageFile(file);
+                    setProductImageFileList([
+                      {
+                        uid: file.uid,
+                        name: file.name,
+                        status: "done",
+                        url: URL.createObjectURL(file),
+                      },
+                    ]);
+                    return false;
+                  }}
+                  onRemove={() => {
+                    setProductImageFile(null);
+                    setProductImageFileList([]);
+                  }}
+                >
+                  <Button icon={<UploadOutlined />}>Chọn ảnh mới</Button>
+                </Upload>
+                {editingProduct?.selectedVariant?.imageUrl &&
+                  !productImageFile && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500 mb-1">
+                        Ảnh hiện tại:
+                      </p>
+                      <img
+                        src={editingProduct.selectedVariant.imageUrl}
+                        alt="Current Variant"
+                        className="w-32 h-32 object-cover rounded border"
+                      />
+                    </div>
+                  )}
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium">
+                  Thương hiệu
+                </label>
+                <Input
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="Thương hiệu"
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium">
+                  Danh mục
+                </label>
+                <Select
+                  style={{ width: "100%" }}
+                  value={categoryId || undefined}
+                  onChange={(value) => setCategoryId(value || null)}
+                  placeholder="Chọn danh mục"
+                  allowClear
+                >
+                  {categories.map((c) => (
+                    <Select.Option key={c.id} value={c.id}>
+                      {c.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block mb-1 text-sm font-medium">
+                  Tags (comma separated)
+                </label>
+                <Input
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="tags (comma separated)"
+                />
+              </div>
             </div>
           </div>
+
+          {/* Thông tin variant - Card riêng - Đặt ở dưới */}
+          {editingProduct?.selectedVariant && (
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-semibold mb-3 text-blue-800">
+                Thuộc tính Variant
+              </h4>
+              <div className="grid grid-cols-4 gap-4 items-start">
+                {/* Ảnh variant */}
+                {editingProduct.selectedVariant.imageUrl && (
+                  <div className="text-center">
+                    <div className="text-sm text-gray-600 mb-2 font-medium">
+                      Ảnh
+                    </div>
+                    <img
+                      src={editingProduct.selectedVariant.imageUrl}
+                      alt={`Variant ${editingProduct.selectedVariant.size}`}
+                      className="w-20 h-20 object-cover rounded border mx-auto"
+                    />
+                  </div>
+                )}
+
+                {/* Size */}
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-2 font-medium">
+                    Size
+                  </div>
+                  <div className="font-semibold text-lg">
+                    {editingProduct.selectedVariant.size}
+                  </div>
+                </div>
+
+                {/* Màu */}
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-2 font-medium">
+                    Màu
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    {editingProduct.selectedVariant.color?.hex && (
+                      <div
+                        className="w-5 h-5 rounded-full border"
+                        style={{
+                          backgroundColor:
+                            editingProduct.selectedVariant.color.hex,
+                        }}
+                      />
+                    )}
+                    <span className="font-medium">
+                      {editingProduct.selectedVariant.color?.name || "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Giá bán */}
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-2 font-medium">
+                    Giá bán
+                  </div>
+                  <div className="font-semibold text-lg text-green-600">
+                    {(
+                      editingProduct.selectedVariant.price || 0
+                    ).toLocaleString()}
+                    ₫
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button

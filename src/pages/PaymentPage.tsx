@@ -5,6 +5,7 @@ import { useCart } from "../contexts/CartContext";
 import { orderService } from "../services/orderService";
 import type { CreateOrderRequest } from "../services/orderService";
 import { useNotification } from "../components/NotificationProvider";
+import { authService } from "../services/authService";
 
 // Hàm định dạng tiền tệ
 const formatCurrency = (amount: number) =>
@@ -18,7 +19,7 @@ const PaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { clearCart, removeFromCart } = useCart();
+  const { removeFromCart, fetchCart } = useCart();
   const notify = useNotification();
 
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
@@ -33,6 +34,38 @@ const PaymentPage = () => {
     note: "",
     paymentMethod: "cod", // ✅ Mặc định là thanh toán khi nhận hàng
   });
+  const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // ✅ Fetch user profile từ API để lấy phone
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        try {
+          setLoadingProfile(true);
+          const profile = await authService.getUserProfile(user.id);
+          console.log("User profile từ API:", profile);
+
+          setForm((prev) => ({
+            ...prev,
+            name: profile.fullname || "",
+            phone: profile.phone || "",
+          }));
+        } catch (error) {
+          console.error("Lỗi khi lấy thông tin user:", error);
+          // Fallback về user từ context nếu API thất bại
+          setForm((prev) => ({
+            ...prev,
+            name: user.fullname || "",
+            phone: user.phone || "",
+          }));
+        } finally {
+          setLoadingProfile(false);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     if (location.state) {
@@ -125,6 +158,10 @@ const PaymentPage = () => {
           }
         }
 
+        // ✅ Cập nhật lại giỏ hàng từ server để badge hiển thị đúng
+        await fetchCart();
+
+        notify.success("Đặt hàng thành công!");
         navigate("/success");
       } else {
         notify.error("Đặt hàng thất bại!");

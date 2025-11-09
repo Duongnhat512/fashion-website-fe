@@ -9,7 +9,6 @@ import {
   type CartItem,
 } from "../store/slices/cartSlice";
 import { cartService } from "../services/cartService";
-import { u } from "framer-motion/client";
 import { useNotification } from "../components/NotificationProvider";
 
 interface CartContextType {

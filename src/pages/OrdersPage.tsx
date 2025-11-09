@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { message, Empty, Spin, Tag } from "antd";
+import { Empty, Spin, Tag } from "antd";
 import orderService from "../services/orderService";
 import paymentService from "../services/paymentService";
-import { u } from "framer-motion/client";
 import { useNotification } from "../components/NotificationProvider";
 
 export const OrderStatus = {

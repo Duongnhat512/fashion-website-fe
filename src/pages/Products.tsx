@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Rate, Pagination, Select } from "antd";
+import { Rate, Pagination, Select, Slider } from "antd";
 import { motion } from "framer-motion";
 import CategorySidebar from "../components/CategorySidebar";
 import { productService } from "../services/productService";
@@ -13,7 +13,6 @@ const Products = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // 🧠 STATE
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -23,14 +22,13 @@ const Products = () => {
   const [selectedCategoryName, setSelectedCategoryName] = useState<
     string | null
   >(null);
-  const [priceRange, setPriceRange] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   const [sortBy, setSortBy] = useState<string>("default");
 
   // 🔍 Lấy search query từ URL
   useEffect(() => {
     const query = searchParams.get("search") || "";
     setSearchQuery(query);
-    // Nếu có search query thì clear category đã chọn
     if (query) {
       setSelectedCategoryId(null);
       setSelectedCategoryName(null);
@@ -47,52 +45,24 @@ const Products = () => {
 
   const isSearching = searchQuery.trim() !== "";
 
-  // 💰 Các khoảng giá
-  const priceRanges = [
-    { label: "Tất cả", value: null, min: 0, max: Infinity },
-    { label: "Dưới 100,000₫", value: "0-100000", min: 0, max: 100000 },
-    {
-      label: "100,000₫ - 500,000₫",
-      value: "100000-500000",
-      min: 100000,
-      max: 500000,
-    },
-    {
-      label: "500,000₫ - 2,000,000₫",
-      value: "500000-2000000",
-      min: 500000,
-      max: 2000000,
-    },
-    {
-      label: "Trên 2,000,000₫",
-      value: "2000000-999999999",
-      min: 2000000,
-      max: Infinity,
-    },
-  ];
-
-  // 🔗 Hàm chuyển đến trang chi tiết
   const handleToDetail = (p: Product) => {
     navigate(`/products/${p.slug}`, { state: { product: p } });
   };
 
-  // 🧩 Hàm tải danh sách sản phẩm
   const fetchProducts = async (categoryId?: string, search?: string) => {
     try {
       setLoading(true);
-
       let res: PaginatedProductsResponse;
       if (search || categoryId) {
         res = await productService.searchProducts({
           page: 1,
-          limit: 1000, // Tải tất cả sản phẩm để lọc ở client
+          limit: 1000,
           categoryId,
           search,
         });
       } else {
         res = await productService.getAllProducts(1, 1000);
       }
-
       setProducts(res.products);
       setPagination((prev) => ({
         ...prev,
@@ -106,19 +76,12 @@ const Products = () => {
     }
   };
 
-  // 💰 Lọc sản phẩm theo giá và tìm kiếm
+  // 💰 Lọc sản phẩm
   const filteredProducts = products
     .filter((p) => {
-      // Lọc theo giá
-      if (priceRange) {
-        const price = p.variants?.[0]?.price || 0;
-        const range = priceRanges.find((r) => r.value === priceRange);
-        if (range && (price < range.min || price > range.max)) {
-          return false;
-        }
-      }
+      const price = p.variants?.[0]?.price || 0;
+      if (price < priceRange[0] || price > priceRange[1]) return false;
 
-      // Lọc theo search query
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const name = p.name?.toLowerCase() || "";
@@ -134,7 +97,6 @@ const Products = () => {
       return true;
     })
     .sort((a, b) => {
-      // Sắp xếp theo sortBy
       switch (sortBy) {
         case "price-asc":
           return (a.variants?.[0]?.price || 0) - (b.variants?.[0]?.price || 0);
@@ -149,31 +111,21 @@ const Products = () => {
       }
     });
 
-  // 📄 Phân trang client-side cho filteredProducts
+  // 📄 Phân trang client-side
   const itemsPerPage = 16;
   const startIndex = (pagination.page - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
   const totalFiltered = filteredProducts.length;
 
-  // 🧠 Khi đổi category hoặc search → reset về trang 1 và tải dữ liệu
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
     fetchProducts(selectedCategoryId || undefined, searchQuery || undefined);
   }, [selectedCategoryId, searchQuery]);
 
-  // 🧠 Khi đổi bộ lọc giá → reset về trang 1
-  useEffect(() => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [priceRange]);
-
-  // 🟣 Khi chọn danh mục
   const handleSelectCategory = async (categoryId: string, name: string) => {
-    // Xóa search params khỏi URL
     navigate("/products", { replace: true });
-
     if (selectedCategoryId === categoryId) {
-      // 🔁 Bỏ chọn → load lại tất cả
       setSelectedCategoryId(null);
       setSelectedCategoryName(null);
       setSearchQuery("");
@@ -181,145 +133,134 @@ const Products = () => {
     } else {
       setSelectedCategoryId(categoryId);
       setSelectedCategoryName(name);
-      setSearchQuery(""); // Clear search query
+      setSearchQuery("");
     }
   };
 
-  // 🟢 Khi đổi trang
   const handlePageChange = (page: number) => {
     setPagination((prev) => ({ ...prev, page }));
   };
 
-  // ⏳ Loading
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-300 border-t-purple-600" />
-        <p className="ml-4 text-purple-600 font-semibold text-lg">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-300 border-t-gray-700" />
+        <p className="ml-4 text-gray-700 font-semibold text-lg">
           Đang tải sản phẩm...
         </p>
       </div>
     );
 
-  // 🖼 Render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-6 py-12">
-        {/* 🖼 Carousel - ẩn khi đang search */}
-
-        {/* 🧱 Bố cục chính */}
         <div className="flex gap-8">
           {/* ⬅️ SIDEBAR */}
-          <div className="hidden lg:block w-64">
-            {/* Bộ sắp xếp */}
-            <div className="mb-6 bg-white rounded-2xl p-6 shadow-lg">
-              <h3 className="text-lg font-bold mb-4 text-gray-800">Sắp xếp</h3>
+          <div className="hidden lg:block w-72">
+            <div className="bg-white rounded-2xl p-6 shadow-md space-y-8 border border-gray-100">
+              {/* --- Sắp xếp --- */}
+              <div>
+                <h3 className="text-lg font-bold mb-4 text-gray-800">
+                  Sắp xếp
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Theo giá:
+                    </label>
+                    <Select
+                      value={sortBy.startsWith("price") ? sortBy : "default"}
+                      onChange={(value) => setSortBy(value)}
+                      style={{ width: "100%" }}
+                      size="large"
+                    >
+                      <Select.Option value="default">Mặc định</Select.Option>
+                      <Select.Option value="price-asc">
+                        Giá tăng dần
+                      </Select.Option>
+                      <Select.Option value="price-desc">
+                        Giá giảm dần
+                      </Select.Option>
+                    </Select>
+                  </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Theo giá:
-                  </label>
-                  <Select
-                    value={sortBy.startsWith("price") ? sortBy : "default"}
-                    onChange={(value) => setSortBy(value)}
-                    style={{ width: "100%" }}
-                    size="large"
-                  >
-                    <Select.Option value="default">Mặc định</Select.Option>
-                    <Select.Option value="price-asc">
-                      Giá tăng dần
-                    </Select.Option>
-                    <Select.Option value="price-desc">
-                      Giá giảm dần
-                    </Select.Option>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Theo tên:
-                  </label>
-                  <Select
-                    value={sortBy.startsWith("name") ? sortBy : "default"}
-                    onChange={(value) => setSortBy(value)}
-                    style={{ width: "100%" }}
-                    size="large"
-                  >
-                    <Select.Option value="default">Mặc định</Select.Option>
-                    <Select.Option value="name-asc">Tên A-Z</Select.Option>
-                    <Select.Option value="name-desc">Tên Z-A</Select.Option>
-                  </Select>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Theo tên:
+                    </label>
+                    <Select
+                      value={sortBy.startsWith("name") ? sortBy : "default"}
+                      onChange={(value) => setSortBy(value)}
+                      style={{ width: "100%" }}
+                      size="large"
+                    >
+                      <Select.Option value="default">Mặc định</Select.Option>
+                      <Select.Option value="name-asc">Tên A-Z</Select.Option>
+                      <Select.Option value="name-desc">Tên Z-A</Select.Option>
+                    </Select>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <CategorySidebar
-              onSelectCategory={handleSelectCategory}
-              selectedCategoryId={selectedCategoryId}
-            />
+              {/* --- Lọc theo giá --- */}
+              <div>
+                <h3 className="text-lg font-bold mb-4 text-gray-800">
+                  Lọc theo giá
+                </h3>
+                <Slider
+                  range
+                  min={0}
+                  max={10000000}
+                  step={50000}
+                  value={priceRange}
+                  onChange={(val) => setPriceRange(val as [number, number])}
+                  tooltip={{
+                    formatter: (val) => `${val?.toLocaleString("vi-VN")}₫`,
+                  }}
+                />
+                <div className="flex justify-between text-sm text-gray-700 mt-2">
+                  <span>{priceRange[0].toLocaleString("vi-VN")}₫</span>
+                  <span>{priceRange[1].toLocaleString("vi-VN")}₫</span>
+                </div>
+              </div>
+
+              {/* --- Danh mục --- */}
+              <CategorySidebar
+                onSelectCategory={handleSelectCategory}
+                selectedCategoryId={selectedCategoryId}
+              />
+            </div>
           </div>
 
           {/* ➡️ NỘI DUNG */}
           <div className="flex-1">
-            <h2 className="text-4xl font-bold mb-12 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent text-center">
-              {isSearching
-                ? `Kết quả: "${searchQuery}"`
-                : selectedCategoryName
-                ? selectedCategoryName
-                : "Sản phẩm nổi bật"}
-            </h2>
-
-            {/* 💰 Bộ lọc theo giá */}
-            <div className="mb-10 flex flex-wrap gap-3 justify-center">
-              {priceRanges.map((range) => (
-                <button
-                  key={range.value || "all"}
-                  onClick={() => setPriceRange(range.value)}
-                  className={`px-6 py-2.5 rounded-full font-semibold transition-all duration-300 ${
-                    priceRange === range.value
-                      ? "bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white shadow-lg scale-105"
-                      : "bg-white text-gray-700 hover:bg-gray-100 shadow-md hover:shadow-lg"
-                  }`}
-                >
-                  {range.label}
-                </button>
-              ))}
-            </div>
-
-            {/*  Danh sách sản phẩm */}
+            {/* Danh sách sản phẩm */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-12">
               {paginatedProducts.length > 0 ? (
                 paginatedProducts.map((p) => {
                   const v = p.variants?.[0];
-
                   return (
                     <div
                       key={p.id}
                       onClick={() => handleToDetail(p)}
-                      className="relative rounded-2xl overflow-hidden cursor-pointer
-    border border-transparent
-    bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
-    transition-all duration-300 shadow-md hover:shadow-2xl group"
+                      className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl hover:border-gray-400 transition-all duration-300 group"
                     >
-                      {/* 🖼 Ảnh sản phẩm */}
                       <motion.div
                         className="relative overflow-hidden"
                         initial="hidden"
                         whileHover="visible"
-                        variants={{ hidden: {}, visible: {} }}
                       >
                         <img
                           src={v?.imageUrl || p.imageUrl}
                           alt={p.name}
-                          className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                          className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                         />
 
-                        {/* Thanh overlay chi tiết */}
+                        {/* Hiệu ứng Xem chi tiết */}
                         <motion.div
                           className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent
-        opacity-0 group-hover:opacity-100 transition-opacity duration-500
-        flex items-center justify-center"
+                            opacity-0 group-hover:opacity-100 transition-opacity duration-500
+                            flex items-center justify-center"
                           variants={{
                             hidden: { y: "150%", opacity: 0 },
                             visible: { y: "0%", opacity: 1 },
@@ -328,12 +269,11 @@ const Products = () => {
                         >
                           <div
                             className="w-[90%] text-center py-3
-          bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500
-          text-white font-bold uppercase tracking-wider text-base
-          shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
-          border border-white/10 cursor-pointer"
+                              bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
+rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
+border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-300
+"
                             onClick={(e) => {
-                              console.log("Product clicked:", p);
                               e.stopPropagation();
                               handleToDetail(p);
                             }}
@@ -343,7 +283,6 @@ const Products = () => {
                         </motion.div>
                       </motion.div>
 
-                      {/* Thông tin sản phẩm */}
                       <div className="p-4 flex flex-col justify-between h-[140px] text-gray-900">
                         <h3 className="font-semibold text-base line-clamp-2 min-h-[48px]">
                           {p.name}
@@ -374,22 +313,6 @@ const Products = () => {
                 })
               ) : (
                 <div className="col-span-4 flex flex-col items-center justify-center py-20">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
-                    <svg
-                      className="w-32 h-32 text-gray-300 relative z-10"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                      />
-                    </svg>
-                  </div>
                   <h3 className="mt-8 text-2xl font-bold text-gray-700">
                     Không tìm thấy sản phẩm nào
                   </h3>
@@ -399,11 +322,11 @@ const Products = () => {
                   </p>
                   <button
                     onClick={() => {
-                      setPriceRange(null);
+                      setPriceRange([0, 10000000]);
                       setSelectedCategoryId(null);
                       setSelectedCategoryName(null);
                     }}
-                    className="mt-6 px-8 py-3 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white font-semibold rounded-full hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    className="mt-6 px-8 py-3 bg-black text-white font-semibold rounded-full hover:bg-gray-800 transition-all duration-300"
                   >
                     Xóa bộ lọc
                   </button>

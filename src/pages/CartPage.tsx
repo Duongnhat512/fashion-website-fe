@@ -139,7 +139,7 @@ export default function CartPage() {
                 <img
                   src={item.image}
                   alt={item.name}
-                  className="w-32 h-32 object-cover rounded-lg shadow"
+                  className="w-36 h-50 object-cover rounded-xl shadow-md border"
                 />
 
                 {/* Thông tin sản phẩm */}
@@ -201,7 +201,9 @@ export default function CartPage() {
 
         {/* Phần tóm tắt */}
         <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 h-fit">
-          <h2 className="text-xl font-bold text-gray-900">Tóm tắt đơn hàng</h2>
+          <h2 className="text-xl font-bold text-gray-900 text-center mb-4">
+            Tóm tắt đơn hàng
+          </h2>
 
           <div className="flex justify-between">
             <span>Tạm tính</span>

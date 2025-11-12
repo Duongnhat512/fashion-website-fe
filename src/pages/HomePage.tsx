@@ -149,9 +149,8 @@ const HomePage = () => {
         key={p.id}
         onClick={() => handleToDetail(p)}
         className="relative rounded-2xl overflow-hidden cursor-pointer
-          border border-transparent
-          bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
-          transition-all duration-300 shadow-md hover:shadow-2xl group"
+    bg-white border border-gray-200
+    transition-all duration-300 shadow-sm hover:shadow-xl group"
       >
         {/* 🔥 Badge HOT */}
         <div className="absolute top-3 right-3 z-10">
@@ -225,10 +224,9 @@ const HomePage = () => {
           >
             <div
               className="w-[90%] text-center py-3
-                bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500
-                text-white font-bold uppercase tracking-wider text-base
-                shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
-                border border-white/10 cursor-pointer"
+                bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
+rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
+border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-300"
               onClick={(e) => {
                 e.stopPropagation();
                 handleToDetail(p);
@@ -291,9 +289,8 @@ const HomePage = () => {
         key={p.id}
         onClick={() => handleToDetail(p)}
         className="relative rounded-2xl overflow-hidden cursor-pointer
-          border border-transparent
-          bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
-          transition-all duration-300 shadow-md hover:shadow-2xl group"
+    bg-white border border-gray-200
+    transition-all duration-300 shadow-sm hover:shadow-xl group"
       >
         {/* ⚡ Badge SIÊU HOT */}
         <div className="absolute top-3 right-3 z-10">
@@ -358,10 +355,10 @@ const HomePage = () => {
           >
             <div
               className="w-[90%] text-center py-3
-                bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500
-                text-white font-bold uppercase tracking-wider text-base
-                shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
-                border border-white/10 cursor-pointer"
+                bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
+rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
+border cursor-pointer hover:bg-black/80 transition-all duration-300
+"
               onClick={(e) => {
                 e.stopPropagation();
                 handleToDetail(p);
@@ -423,9 +420,8 @@ const HomePage = () => {
         key={p.id}
         onClick={() => handleToDetail(p)}
         className="relative rounded-2xl overflow-hidden cursor-pointer
-          border border-transparent
-          bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
-          transition-all duration-300 shadow-md hover:shadow-2xl group"
+    bg-white border border-gray-200
+    transition-all duration-300 shadow-sm hover:shadow-xl group"
       >
         {/* ✨ Badge NEW */}
         <div className="absolute top-3 right-3 z-10">
@@ -498,10 +494,10 @@ const HomePage = () => {
           >
             <div
               className="w-[90%] text-center py-3
-                bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500
-                text-white font-bold uppercase tracking-wider text-base
-                shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
-                border border-white/10 cursor-pointer"
+                bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
+rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
+border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-300
+"
               onClick={(e) => {
                 e.stopPropagation();
                 handleToDetail(p);

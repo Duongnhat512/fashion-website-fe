@@ -7,7 +7,6 @@ import type { CreateOrderRequest } from "../services/orderService";
 import { useNotification } from "../components/NotificationProvider";
 import { authService } from "../services/authService";
 
-// Hàm định dạng tiền tệ
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("vi-VN", {
     style: "currency",
@@ -32,19 +31,17 @@ const PaymentPage = () => {
     district: "",
     ward: "",
     note: "",
-    paymentMethod: "cod", // ✅ Mặc định là thanh toán khi nhận hàng
+    paymentMethod: "cod",
   });
   const [loadingProfile, setLoadingProfile] = useState(false);
 
-  // ✅ Fetch user profile từ API để lấy phone
+  // ✅ Lấy thông tin người dùng từ API
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.id) {
         try {
           setLoadingProfile(true);
           const profile = await authService.getUserProfile(user.id);
-          console.log("User profile từ API:", profile);
-
           setForm((prev) => ({
             ...prev,
             name: profile.fullname || "",
@@ -52,7 +49,6 @@ const PaymentPage = () => {
           }));
         } catch (error) {
           console.error("Lỗi khi lấy thông tin user:", error);
-          // Fallback về user từ context nếu API thất bại
           setForm((prev) => ({
             ...prev,
             name: user.fullname || "",
@@ -63,10 +59,10 @@ const PaymentPage = () => {
         }
       }
     };
-
     fetchUserProfile();
   }, [user]);
 
+  // ✅ Nhận dữ liệu từ CartPage
   useEffect(() => {
     if (location.state) {
       if (location.state.selectedItem) {
@@ -147,20 +143,14 @@ const PaymentPage = () => {
     try {
       const response = await orderService.createOrder(orderData);
       if (response.id) {
-        // ✅ Xóa các sản phẩm đã được đặt hàng khỏi giỏ hàng
         if (selectedItem) {
-          // Nếu chỉ đặt 1 sản phẩm
           await removeFromCart(selectedItem.cartKey);
         } else if (selectedItems.length > 0) {
-          // Nếu đặt nhiều sản phẩm
           for (const item of selectedItems) {
             await removeFromCart(item.cartKey);
           }
         }
-
-        // ✅ Cập nhật lại giỏ hàng từ server để badge hiển thị đúng
         await fetchCart();
-
         notify.success("Đặt hàng thành công!");
         navigate("/success");
       } else {
@@ -174,7 +164,7 @@ const PaymentPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="w-full px-2 lg:px-4 grid grid-cols-1 xl:grid-cols-3 gap-6 pt-8 pb-24">
         {/* --- Danh sách sản phẩm --- */}
         <div className="xl:col-span-2 space-y-6">
           {selectedItem && (
@@ -284,20 +274,13 @@ const PaymentPage = () => {
               placeholder="Số điện thoại"
               className="w-full p-3 border rounded-md mb-4"
             />
-            <input
-              type="text"
-              name="address"
-              value={form.address}
-              onChange={handleFormChange}
-              placeholder="Địa chỉ"
-              className="w-full p-3 border rounded-md mb-4"
-            />
+
             <input
               type="text"
               name="city"
               value={form.city}
               onChange={handleFormChange}
-              placeholder="Thành phố"
+              placeholder="Tỉnh/Thành phố"
               className="w-full p-3 border rounded-md mb-4"
             />
             <input
@@ -316,6 +299,14 @@ const PaymentPage = () => {
               placeholder="Phường/Xã"
               className="w-full p-3 border rounded-md mb-4"
             />
+            <input
+              type="text"
+              name="address"
+              value={form.address}
+              onChange={handleFormChange}
+              placeholder="Địa chỉ"
+              className="w-full p-3 border rounded-md mb-4"
+            />
             <textarea
               name="note"
               value={form.note}
@@ -324,8 +315,6 @@ const PaymentPage = () => {
               className="w-full p-3 border rounded-md mb-4"
             />
 
-            {/* --- Thêm phương thức thanh toán --- */}
-            {/* --- Phương thức thanh toán (chỉ COD) --- */}
             <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
               <input
                 type="checkbox"

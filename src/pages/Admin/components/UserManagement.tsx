@@ -177,21 +177,21 @@ const UserManagement: React.FC = () => {
       key: "createdAt",
       render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
     },
-    {
-      title: "Hành động",
-      key: "actions",
-      render: (_: any, record: User) => (
-        <Button
-          type="primary"
-          icon={<EditOutlined />}
-          onClick={() => showUserEditModal(record)}
-          size="small"
-          block
-        >
-          Sửa
-        </Button>
-      ),
-    },
+    // {
+    //   title: "Hành động",
+    //   key: "actions",
+    //   render: (_: any, record: User) => (
+    //     <Button
+    //       type="primary"
+    //       icon={<EditOutlined />}
+    //       onClick={() => showUserEditModal(record)}
+    //       size="small"
+    //       block
+    //     >
+    //       Sửa
+    //     </Button>
+    //   ),
+    // },
   ];
 
   const userStartIndex = (userCurrentPage - 1) * userPageSize;

@@ -96,6 +96,9 @@ export const API_CONFIG = {
       ORDERS_STATISTICS: '/statistics/orders',
       REVENUE: '/statistics/revenue',
     },
+    CHAT_BOT: {
+      SEND_MESSAGE: '/chatbot/chat',
+    },
   },
 
   DEFAULT_PAGINATION: {

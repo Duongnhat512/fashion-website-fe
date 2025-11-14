@@ -121,22 +121,6 @@ const Products = () => {
     fetchProducts(1);
   }, [selectedCategoryId, searchQuery, sortBy]);
 
-  const handleSelectCategory = async (categoryId: string, name: string) => {
-    navigate("/products", { replace: true });
-    if (selectedCategoryId === categoryId) {
-      setSelectedCategoryId(null);
-      setSelectedCategoryName(null);
-      setSearchQuery(""); // Reset search query
-      setPagination((prev) => ({ ...prev, page: 1 }));
-      fetchProducts(1);
-    } else {
-      setSelectedCategoryId(categoryId);
-      setSelectedCategoryName(name);
-      setSearchQuery(""); // Reset search query
-      setPagination((prev) => ({ ...prev, page: 1 }));
-    }
-  };
-
   const handlePageChange = (page: number) => {
     setPagination((prev) => ({ ...prev, page }));
   };

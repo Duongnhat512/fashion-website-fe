@@ -2,12 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Rate, Pagination, Select, Slider } from "antd";
 import { motion } from "framer-motion";
-import CategorySidebar from "../components/CategorySidebar";
+
 import { productService } from "../services/productService";
-import type {
-  Product,
-  PaginatedProductsResponse,
-} from "../types/product.types";
+import type { Product } from "../types/product.types";
 
 const Products = () => {
   const navigate = useNavigate();
@@ -25,11 +22,20 @@ const Products = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   const [sortBy, setSortBy] = useState<string>("default");
 
-  // 🔍 Lấy search query từ URL
+  // 🔍 Lấy search query và category từ URL
   useEffect(() => {
     const query = searchParams.get("search") || "";
+    const category = searchParams.get("category") || "";
+
     setSearchQuery(query);
     if (query) {
+      setSelectedCategoryId(null);
+      setSelectedCategoryName(null);
+    } else if (category) {
+      setSelectedCategoryId(category);
+      // Có thể cần load category name từ API hoặc local
+      setSelectedCategoryName(null);
+    } else {
       setSelectedCategoryId(null);
       setSelectedCategoryName(null);
     }
@@ -38,7 +44,7 @@ const Products = () => {
   // 📄 Phân trang
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 16,
+    limit: 16, // Giới hạn số sản phẩm hiển thị mỗi trang (16)
     total: 0,
     totalPages: 1,
   });
@@ -49,26 +55,45 @@ const Products = () => {
     navigate(`/products/${p.slug}`, { state: { product: p } });
   };
 
-  const fetchProducts = async (categoryId?: string, search?: string) => {
+  const fetchProducts = async (page: number = 1) => {
     try {
       setLoading(true);
-      let res: PaginatedProductsResponse;
-      if (search || categoryId) {
-        res = await productService.searchProducts({
-          page: 1,
-          limit: 1000,
-          categoryId,
-          search,
-        });
-      } else {
-        res = await productService.getAllProducts(1, 1000);
+      const params: any = {
+        page,
+        limit: 1000, // Lấy tối đa 1000 sản phẩm từ API
+      };
+
+      // Truyền search query từ URL vào API nếu có
+      if (searchQuery) params.search = searchQuery;
+
+      // Truyền categoryId vào API nếu có
+      if (selectedCategoryId) params.categoryId = selectedCategoryId;
+
+      // Gửi sort lên server nếu có
+      if (sortBy !== "default") {
+        if (sortBy === "price-asc") {
+          params.sortBy = "price";
+          params.sort = "asc";
+        } else if (sortBy === "price-desc") {
+          params.sortBy = "price";
+          params.sort = "desc";
+        } else if (sortBy === "name-asc") {
+          params.sortBy = "name";
+          params.sort = "asc";
+        } else if (sortBy === "name-desc") {
+          params.sortBy = "name";
+          params.sort = "desc";
+        }
       }
+
+      const res = await productService.searchProducts(params);
       setProducts(res.products);
-      setPagination((prev) => ({
-        ...prev,
+      setPagination({
+        page: res.pagination.page,
+        limit: pagination.limit,
         total: res.pagination.total,
-        totalPages: res.pagination.totalPages,
-      }));
+        totalPages: Math.ceil(res.pagination.total / pagination.limit), // Tính lại số trang
+      });
     } catch (error) {
       console.error("❌ Lỗi tải sản phẩm:", error);
     } finally {
@@ -76,64 +101,39 @@ const Products = () => {
     }
   };
 
-  // 💰 Lọc sản phẩm
-  const filteredProducts = products
-    .filter((p) => {
-      const price = p.variants?.[0]?.price || 0;
-      if (price < priceRange[0] || price > priceRange[1]) return false;
+  // 💰 Lọc sản phẩm theo giá (client-side)
+  const filteredProducts = products.filter((p) => {
+    const price = p.variants?.[0]?.price || 0;
+    return price >= priceRange[0] && price <= priceRange[1];
+  });
 
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const name = p.name?.toLowerCase() || "";
-        const shortDesc = p.shortDescription?.toLowerCase() || "";
-        const brand = p.brand?.toLowerCase() || "";
-        return (
-          name.includes(query) ||
-          shortDesc.includes(query) ||
-          brand.includes(query)
-        );
-      }
+  // 📄 Phân trang client-side: Hiển thị 16 sản phẩm mỗi trang
+  const paginatedProducts = filteredProducts.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit
+  );
 
-      return true;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "price-asc":
-          return (a.variants?.[0]?.price || 0) - (b.variants?.[0]?.price || 0);
-        case "price-desc":
-          return (b.variants?.[0]?.price || 0) - (a.variants?.[0]?.price || 0);
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        default:
-          return 0;
-      }
-    });
-
-  // 📄 Phân trang client-side
-  const itemsPerPage = 16;
-  const startIndex = (pagination.page - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+  // Cập nhật số lượng sản phẩm sau khi lọc
   const totalFiltered = filteredProducts.length;
+  const itemsPerPage = pagination.limit;
 
   useEffect(() => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchProducts(selectedCategoryId || undefined, searchQuery || undefined);
-  }, [selectedCategoryId, searchQuery]);
+    fetchProducts(1);
+  }, [selectedCategoryId, searchQuery, sortBy]);
 
   const handleSelectCategory = async (categoryId: string, name: string) => {
     navigate("/products", { replace: true });
     if (selectedCategoryId === categoryId) {
       setSelectedCategoryId(null);
       setSelectedCategoryName(null);
-      setSearchQuery("");
-      fetchProducts();
+      setSearchQuery(""); // Reset search query
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      fetchProducts(1);
     } else {
       setSelectedCategoryId(categoryId);
       setSelectedCategoryName(name);
-      setSearchQuery("");
+      setSearchQuery(""); // Reset search query
+      setPagination((prev) => ({ ...prev, page: 1 }));
     }
   };
 
@@ -150,6 +150,10 @@ const Products = () => {
         </p>
       </div>
     );
+
+  // Kiểm tra nếu không có kết quả lọc theo giá, thì không hiển thị phân trang
+  const shouldShowPagination =
+    totalFiltered > itemsPerPage && totalFiltered > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -225,10 +229,6 @@ const Products = () => {
               </div>
 
               {/* --- Danh mục --- */}
-              <CategorySidebar
-                onSelectCategory={handleSelectCategory}
-                selectedCategoryId={selectedCategoryId}
-              />
             </div>
           </div>
 
@@ -270,7 +270,7 @@ const Products = () => {
                           <div
                             className="w-[90%] text-center py-3
                               bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
-rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
+rounded-md shadow-[0,4px,20px,rgba(0,0,0,0.35)]
 border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-300
 "
                             onClick={(e) => {
@@ -322,9 +322,14 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
                   </p>
                   <button
                     onClick={() => {
+                      navigate("/products", { replace: true }); // Clear search từ URL
                       setPriceRange([0, 10000000]);
+                      setSortBy("default");
                       setSelectedCategoryId(null);
                       setSelectedCategoryName(null);
+                      setSearchQuery("");
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                      fetchProducts(1);
                     }}
                     className="mt-6 px-8 py-3 bg-black text-white font-semibold rounded-full hover:bg-gray-800 transition-all duration-300"
                   >
@@ -334,8 +339,8 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
               )}
             </div>
 
-            {/* 📄 PHÂN TRANG */}
-            {totalFiltered > itemsPerPage && (
+            {/* 📄 PHÂN TRANG - chỉ hiển thị khi có sản phẩm và khi có nhiều hơn một trang */}
+            {shouldShowPagination && (
               <div className="flex justify-center">
                 <Pagination
                   current={pagination.page}

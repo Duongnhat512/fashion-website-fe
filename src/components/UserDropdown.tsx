@@ -143,6 +143,27 @@ export default function UserDropdown({ user }: UserDropdownProps) {
               Thông tin cá nhân
             </Link>
 
+            <Link
+              to="/orders"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-600 rounded-xl transition-all duration-300"
+            >
+              <svg
+                className="w-4 h-4 text-blue-600 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"
+                />
+              </svg>
+              Đơn hàng của tôi
+            </Link>
+
             {user.role === "admin" && (
               <Link
                 to="/admin"

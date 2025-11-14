@@ -39,7 +39,7 @@ export const API_CONFIG = {
       GET_ALL: '/orders',
       UPDATE: '/orders',
       DELETE: '/orders/delete/:id',
-      CANCEL: '/orders/cancel',
+      CANCEL: '/orders/cancel/:id',
       MARK_AS_DELIVERED: '/orders/mark-as-delivered/:id',
       MARK_AS_READY_TO_SHIP: '/orders/mark-as-ready-to-ship/:id',
       CONFIRM_AS_COMPLETED: '/orders/confirm-as-completed/:id',

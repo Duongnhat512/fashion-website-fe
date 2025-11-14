@@ -16,6 +16,7 @@ export interface ProductVariant {
   price: number;
   discountPrice: number;
   discountPercent?: number;
+  stock: number;
   imageUrl: string;
   onSales?: boolean;
   saleNote?: string;

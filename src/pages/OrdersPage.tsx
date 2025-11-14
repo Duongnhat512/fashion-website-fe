@@ -110,7 +110,9 @@ const OrdersPage = () => {
   const handleCancel = async (orderId: string) => {
     if (!window.confirm("Bạn có chắc muốn hủy đơn hàng này không?")) return;
     try {
+      console.log("Đã hủy đơn hàng", orderId);
       await orderService.cancelOrder(orderId);
+
       notify.success("Đã hủy đơn hàng!");
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch {

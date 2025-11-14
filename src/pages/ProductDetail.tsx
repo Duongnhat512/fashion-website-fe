@@ -33,7 +33,6 @@ import {
 import { motion } from "framer-motion";
 import type { Product, ProductVariant } from "../types/product.types";
 import { productService } from "../services/productService";
-import { inventoryService } from "../services/inventoryService";
 import { useCart } from "../contexts/CartContext";
 const { Option } = Select;
 import { useNotification } from "../components/NotificationProvider";
@@ -57,8 +56,6 @@ export default function ProductDetail() {
   const [mainImage, setMainImage] = useState("");
   const { addToCart } = useCart();
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [inventoryData, setInventoryData] = useState<any[]>([]);
-  const [totalStock, setTotalStock] = useState<number>(0);
   const notify = useNotification();
 
   // Review states
@@ -114,32 +111,7 @@ export default function ProductDetail() {
     loadProduct();
   }, [slug, navigate, location.state]);
 
-  // Load inventory khi chọn variant
-  useEffect(() => {
-    const loadInventory = async () => {
-      if (!selectedVariant?.id) return;
-
-      try {
-        const inventories = await inventoryService.getInventoryByVariant(
-          selectedVariant.id
-        );
-        setInventoryData(inventories);
-
-        // Tính tổng số lượng tồn kho
-        const total = inventories.reduce(
-          (sum, inv) => sum + ((inv.onHand || 0) - (inv.reserved || 0)),
-          0
-        );
-        setTotalStock(total);
-      } catch (error) {
-        console.error("Lỗi khi tải thông tin tồn kho:", error);
-        setInventoryData([]);
-        setTotalStock(0);
-      }
-    };
-
-    loadInventory();
-  }, [selectedVariant]);
+  // Load inventory khi chọn variant - REMOVED: lấy stock trực tiếp từ variant
 
   // Hàm tải sản phẩm liên quan
   const loadRelatedProducts = async (
@@ -328,9 +300,9 @@ export default function ProductDetail() {
   // Hiển thị loading
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-300 border-t-purple-600" />
-        <p className="ml-4 text-purple-600 font-semibold text-lg">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-300 border-t-gray-700" />
+        <p className="ml-4 text-gray-700 font-semibold text-lg">
           Đang tải sản phẩm...
         </p>
       </div>
@@ -358,20 +330,29 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = () => {
+    // Kiểm tra đăng nhập trước
+    if (!user) {
+      notify.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      setShowLoginDialog(true);
+      return;
+    }
+
     if (!selectedVariant) {
       notify.warning("Vui lòng chọn phiên bản sản phẩm!");
       return;
     }
 
     // Kiểm tra tồn kho
-    if (totalStock === 0) {
+    if ((selectedVariant?.stock || 0) === 0) {
       notify.error("Sản phẩm này hiện đã hết hàng!");
       return;
     }
 
     // Kiểm tra số lượng đặt có vượt quá tồn kho không
-    if (quantity > totalStock) {
-      notify.warning(`Số lượng tồn kho chỉ còn ${totalStock} sản phẩm!`);
+    if (quantity > (selectedVariant?.stock || 0)) {
+      notify.warning(
+        `Số lượng tồn kho chỉ còn ${selectedVariant?.stock || 0} sản phẩm!`
+      );
       return;
     }
 
@@ -385,7 +366,7 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-8 py-10">
         <Breadcrumb
           className="mb-6"
@@ -396,11 +377,11 @@ export default function ProductDetail() {
           ]}
         />
 
-        <div className="relative p-[3px] rounded-2xl bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 shadow-2xl">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden">
           <div className="bg-white rounded-2xl overflow-hidden">
             <Row gutter={[0, 0]}>
               <Col xs={24} lg={10}>
-                <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 p-8 min-h-full flex items-center justify-center">
+                <div className="bg-gray-50 p-8 min-h-full flex items-center justify-center">
                   <img
                     src={mainImage}
                     alt={product.name}
@@ -483,19 +464,21 @@ export default function ProductDetail() {
                     )}
 
                     {/* Hiển thị tồn kho */}
-                    {selectedVariant && totalStock !== null && (
-                      <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
+                    {selectedVariant && (
+                      <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-lg text-gray-700">
                             Tồn kho:
                           </span>
                           <span
                             className={`text-xl font-bold ${
-                              totalStock > 0 ? "text-green-600" : "text-red-600"
+                              (selectedVariant.stock || 0) > 0
+                                ? "text-green-600"
+                                : "text-red-600"
                             }`}
                           >
-                            {totalStock > 0
-                              ? `${totalStock} sản phẩm`
+                            {(selectedVariant.stock || 0) > 0
+                              ? `${selectedVariant.stock || 0} sản phẩm`
                               : "Hết hàng"}
                           </span>
                         </div>
@@ -518,7 +501,7 @@ export default function ProductDetail() {
                       )}
                     </div>
 
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200 shadow-sm">
                       <p className="text-gray-700 text-base leading-relaxed">
                         {product.shortDescription}
                       </p>
@@ -529,24 +512,31 @@ export default function ProductDetail() {
                         size="large"
                         icon={<MinusOutlined />}
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={totalStock === 0}
+                        disabled={(selectedVariant?.stock || 0) === 0}
                       />
                       <InputNumber
                         min={1}
-                        max={totalStock > 0 ? totalStock : 0}
+                        max={
+                          (selectedVariant?.stock || 0) > 0
+                            ? selectedVariant?.stock || 0
+                            : 0
+                        }
                         value={quantity}
                         onChange={(v) => setQuantity(v || 1)}
                         style={{ width: 100 }}
                         controls={false}
                         size="large"
                         className="text-lg"
-                        disabled={totalStock === 0}
+                        disabled={(selectedVariant?.stock || 0) === 0}
                       />
                       <Button
                         size="large"
                         icon={<PlusOutlined />}
                         onClick={() => setQuantity(quantity + 1)}
-                        disabled={totalStock === 0 || quantity >= totalStock}
+                        disabled={
+                          (selectedVariant?.stock || 0) === 0 ||
+                          quantity >= (selectedVariant?.stock || 0)
+                        }
                       />
                     </Space>
 
@@ -556,14 +546,16 @@ export default function ProductDetail() {
                         size="large"
                         icon={<ShoppingCartOutlined />}
                         onClick={handleAddToCart}
-                        disabled={totalStock === 0}
+                        disabled={(selectedVariant?.stock || 0) === 0}
                         className={`text-base font-medium px-8 ${
-                          totalStock === 0
+                          (selectedVariant?.stock || 0) === 0
                             ? "bg-gray-400 border-gray-400 cursor-not-allowed"
                             : "bg-black hover:bg-gray-800 border-black"
                         }`}
                       >
-                        {totalStock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
+                        {(selectedVariant?.stock || 0) === 0
+                          ? "Hết hàng"
+                          : "Thêm vào giỏ hàng"}
                       </Button>
                       <Button
                         size="large"
@@ -584,7 +576,7 @@ export default function ProductDetail() {
         {/* Sản phẩm liên quan */}
         {relatedProducts.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-3xl font-bold mb-6 text-left bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold mb-6 text-left text-gray-800">
               Sản phẩm liên quan
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -598,9 +590,9 @@ export default function ProductDetail() {
                       navigate(`/products/${p.slug}`, { state: { product: p } })
                     }
                     className="relative rounded-2xl overflow-hidden cursor-pointer
-                    border border-transparent
-                    bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300
-                    transition-all duration-300 shadow-md hover:shadow-2xl group"
+                    border border-gray-200
+                    bg-white
+                    transition-all duration-300 shadow-sm hover:shadow-xl group"
                   >
                     {/* 🖼 Ảnh sản phẩm */}
                     <motion.div
@@ -628,10 +620,10 @@ export default function ProductDetail() {
                       >
                         <div
                           className="w-[90%] text-center py-3
-                          bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500
-                          text-white font-bold uppercase tracking-wider text-base
-                          shadow-[0_4px_20px_rgba(0,0,0,0.35)] rounded-md
-                          border border-white/10 cursor-pointer"
+                            bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
+rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
+border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-300
+"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/products/${p.slug}`, {
@@ -679,7 +671,7 @@ export default function ProductDetail() {
 
         {/* Phần Đánh giá - Đặt dưới sản phẩm liên quan */}
         <div className="mt-12 bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold mb-6 text-gray-800">
             Đánh giá sản phẩm
           </h2>
 
@@ -705,7 +697,7 @@ export default function ProductDetail() {
 
             {reviewsLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-300 border-t-purple-600 mx-auto mb-4" />
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-700 mx-auto mb-4" />
                 <p className="text-gray-600">Đang tải đánh giá...</p>
               </div>
             ) : reviews.length === 0 ? (

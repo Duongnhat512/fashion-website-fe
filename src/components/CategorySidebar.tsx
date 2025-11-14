@@ -106,25 +106,67 @@ function CategorySidebar({ onSelectCategory, selectedCategoryId }: Props) {
   );
 
   return (
-    <aside className="w-64 bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="p-2.5 rounded-md bg-gray-800">
-          <FolderTree size={16} className="text-white" />
+    <aside className="w-64 bg-white rounded-2xl shadow-sm border border-gray-200">
+      {/* Header - Sản phẩm */}
+      <div className="border-b border-gray-200 px-5 py-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2.5 rounded-md bg-purple-600">
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Sản phẩm</h3>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900">
-          Danh mục sản phẩm
-        </h3>
       </div>
 
-      <div>
-        {loading ? (
-          <p className="text-sm text-gray-400 italic">Đang tải danh mục...</p>
-        ) : categories.length > 0 ? (
-          renderTree(categories)
-        ) : (
-          <p className="text-sm text-gray-400 italic">Không có danh mục</p>
-        )}
+      {/* Tìm kiếm Section */}
+      <div className="border-b border-gray-200 px-5 py-4">
+        <div className="flex items-center gap-2 mb-2">
+          <svg
+            className="w-4 h-4 text-gray-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <h4 className="text-sm font-medium text-gray-700">Tìm kiếm</h4>
+        </div>
+      </div>
+
+      {/* Danh mục sản phẩm */}
+      <div className="p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 rounded-md bg-gray-800">
+            <FolderTree size={14} className="text-white" />
+          </div>
+          <h4 className="text-sm font-semibold text-gray-900">Danh mục</h4>
+        </div>
+
+        <div>
+          {loading ? (
+            <p className="text-sm text-gray-400 italic">Đang tải danh mục...</p>
+          ) : categories.length > 0 ? (
+            renderTree(categories)
+          ) : (
+            <p className="text-sm text-gray-400 italic">Không có danh mục</p>
+          )}
+        </div>
       </div>
     </aside>
   );

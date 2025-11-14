@@ -10,6 +10,7 @@ import {
 } from "../store/slices/cartSlice";
 import { cartService } from "../services/cartService";
 import { useNotification } from "../components/NotificationProvider";
+import { useAuth } from "./AuthContext";
 
 interface CartContextType {
   cart: CartItem[];
@@ -41,12 +42,22 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const cart = useAppSelector((state) => state.cart.items);
   const [loading, setLoading] = useState<boolean>(true);
   const notify = useNotification();
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchCart();
-  }, []);
+    if (user) {
+      fetchCart();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchCart = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await cartService.getCart();
@@ -86,6 +97,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   // 🧩 Cập nhật số lượng sản phẩm
   const handleUpdateQuantity = async (cartKey: string, qty: number) => {
+    if (!user) return;
+
     const item = cart.find((i) => i.cartKey === cartKey);
     if (!item) return;
 
@@ -107,6 +120,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   // 🗑️ Xóa sản phẩm khỏi giỏ hàng
   const handleRemoveFromCart = async (cartKey: string) => {
+    if (!user) return;
+
     const item = cart.find((i) => i.cartKey === cartKey);
     if (!item) return;
 
@@ -128,6 +143,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   // 🧹 Xóa toàn bộ giỏ hàng
   const handleClearCart = async () => {
+    if (!user) return;
+
     try {
       // Xóa từng item trong giỏ hàng
       for (const item of cart) {
@@ -145,6 +162,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   // 🛒 Thêm sản phẩm vào giỏ hàng
   const addToCart = async (product: any, qty: number = 1) => {
+    if (!user) {
+      notify.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      return;
+    }
+
     const variant = product.variants?.[0] ?? null;
     const cartKey = variant ? `${product.id}-${variant.id}` : product.id;
     const price = variant ? variant.price : product.price || 0;

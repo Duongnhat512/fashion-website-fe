@@ -14,6 +14,14 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const [userKey, setUserKey] = useState(0); // Force re-mount UserDropdown
+
+  // Debug: Log user khi thay đổi
+  useEffect(() => {
+    if (user) {
+      setUserKey((prev) => prev + 1); // Force re-mount UserDropdown
+    }
+  }, [user]);
 
   // Clear search text khi URL không có search params
   useEffect(() => {
@@ -224,7 +232,7 @@ export default function Header() {
           {/* 👤 Auth */}
           {isAuthenticated && user ? (
             <div className="relative flex items-center gap-3">
-              <UserDropdown user={user} />
+              <UserDropdown key={userKey} user={user} />
             </div>
           ) : (
             <AccountDropdown onLoginClick={() => setShowLogin(true)} />

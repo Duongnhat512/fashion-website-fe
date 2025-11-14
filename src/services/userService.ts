@@ -1,8 +1,6 @@
 import { API_CONFIG } from "../config/api.config";
 import { authService } from "./authService";
 
-const API_BASE_URL = API_CONFIG.BASE_URL;
-
 export interface User {
   id: string;
   fullname: string;
@@ -33,52 +31,65 @@ export interface UpdateUserRequest {
   status?: boolean;
 }
 
-export const userService = {
-  // Lấy danh sách tất cả người dùng
-  getAllUsers: async (): Promise<User[]> => {
-    const token = localStorage.getItem("access_token");
-    const response = await fetch(`${API_BASE_URL}/users`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+class UserService {
+  private getAuthHeaders() {
+    const token = localStorage.getItem('authToken');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+  }
 
-    if (!response.ok) {
-      throw new Error("Không thể lấy danh sách người dùng");
+  private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
+        ...options,
+        headers: {
+          ...this.getAuthHeaders(),
+          ...(options?.headers || {}),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: UserResponse = await response.json() as any;
+      
+      if (!result.success) {
+        throw new Error(result.message || 'API request failed');
+      }
+
+      return result.data as T;
+    } catch (error) {
+      console.error('User API request failed:', error);
+      throw error;
     }
+  }
 
-    const result: UserResponse = await response.json();
-    return result.data;
-  },
+  // Lấy danh sách tất cả người dùng
+  async getAllUsers(): Promise<User[]> {
+    return this.makeRequest<User[]>('/users', {
+      method: 'GET',
+    });
+  }
 
   // Cập nhật thông tin người dùng (sử dụng authService)
-  updateUser: async (
-    userId: string,
-    data: UpdateUserRequest
-  ): Promise<void> => {
+  async updateUser(userId: string, data: UpdateUserRequest): Promise<void> {
     // Sử dụng hàm updateUser từ authService
     await authService.updateUser({
       id: userId,
       ...data,
     });
-  },
+  }
 
   // Vô hiệu hóa/kích hoạt người dùng
-  toggleUserStatus: async (userId: string, status: boolean): Promise<void> => {
-    const token = localStorage.getItem("access_token");
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+  async toggleUserStatus(userId: string, status: boolean): Promise<void> {
+    await this.makeRequest<void>(`/users/${userId}`, {
+      method: 'PUT',
       body: JSON.stringify({ status }),
     });
+  }
+}
 
-    if (!response.ok) {
-      throw new Error("Không thể cập nhật trạng thái người dùng");
-    }
-  },
-};
+export const userService = new UserService();

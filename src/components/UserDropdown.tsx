@@ -18,8 +18,17 @@ export default function UserDropdown({ user }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [forceUpdate, setForceUpdate] = useState(0);
 
-  console.log("UserDropdown user:", user.role);
+  // Force re-render khi user object thay đổi (bao gồm avatar)
+  useEffect(() => {
+    setForceUpdate((prev) => prev + 1);
+  }, [user]); // Theo dõi toàn bộ user object thay vì chỉ user.avt
+
+  // Tạo avatar URL với cache busting
+  const avatarUrl = user.avt
+    ? `${user.avt.split("?")[0]}?t=${Date.now()}&force=${forceUpdate}`
+    : null;
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -51,9 +60,9 @@ export default function UserDropdown({ user }: UserDropdownProps) {
              transition-all duration-300 border border-white/20"
       >
         {/* Avatar */}
-        {user.avt ? (
+        {avatarUrl ? (
           <img
-            src={user.avt}
+            src={avatarUrl}
             alt={user.fullname}
             className="w-8 h-8 rounded-full object-cover ring-2 ring-white/50"
           />

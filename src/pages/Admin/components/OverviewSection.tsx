@@ -446,7 +446,7 @@ const OverviewSection = () => {
                         cx="50%"
                         cy="50%"
                         outerRadius={100}
-                        label={(entry) => {
+                        label={(entry: any) => {
                           const statusInfo = statusMap[entry.status] || {
                             text: entry.status,
                           };

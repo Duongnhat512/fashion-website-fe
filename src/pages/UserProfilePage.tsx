@@ -102,31 +102,63 @@ export default function UserProfilePage() {
   };
 
   // Handle avatar change
+  // Trong handleImageChange, sau khi avatar được update thành công từ API, cần gọi updateUser
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({ ...prev, avt: file }));
-      setPreviewImage(URL.createObjectURL(file));
-      // If user is editing, upload immediately
+      const blobUrl = URL.createObjectURL(file);
+      setPreviewImage(blobUrl);
+      // Nếu đang chỉnh sửa, upload ảnh ngay lập tức
       if (isEditing) {
         (async () => {
           try {
             setIsLoading(true);
             const updated = await authService.updateAvatar(file);
-            // updated contains updated user info (including avt)
+
+            let avatarUrl = updated.avt;
+
+            // Nếu API không trả về avatar URL, gọi getUserProfile để lấy
+            if (!avatarUrl && user?.id) {
+              try {
+                const freshUserProfile = await authService.getUserProfile(
+                  user.id
+                );
+                avatarUrl = freshUserProfile.avt;
+              } catch (profileError) {
+                console.error(
+                  "❌ Không thể lấy avatar từ getUserProfile:",
+                  profileError
+                );
+              }
+            }
+
+            // Cập nhật thông tin người dùng tại local state và AuthContext
             const newUser = { ...(user || {}), ...updated } as UserProfile;
-            setUser(newUser);
-            // persist into localStorage for other parts of app
-            authService.saveUser(newUser);
+            setUser(newUser); // Cập nhật local state
+
+            // CẬP NHẬT AuthContext NGAY LẬP TỨC - KHÔNG CHỜ ASYNC
+            if (avatarUrl) {
+              updateUser({ avt: avatarUrl }).catch((err) => {
+                console.error("AuthContext update failed:", err);
+              });
+            } else {
+              console.warn("⚠️ Không có avatar URL để cập nhật AuthContext");
+            }
+
+            // Đặt preview thành URL thật từ server
+            setPreviewImage(avatarUrl || blobUrl);
+            // Giải phóng URL blob để không chiếm dụng bộ nhớ
+            URL.revokeObjectURL(blobUrl);
             notify.success("Cập nhật ảnh đại diện thành công");
-            setPreviewImage(updated.avt || URL.createObjectURL(file));
           } catch (err: any) {
             console.error("Upload avatar error", err);
             notify.error(
               err?.message || "Không thể tải ảnh lên. Vui lòng thử lại."
             );
-            // fallback: revert preview to previous
+            // Fallback: revert preview to previous
             setPreviewImage(user?.avt || null);
+            URL.revokeObjectURL(blobUrl);
           } finally {
             setIsLoading(false);
           }
@@ -170,27 +202,15 @@ export default function UserProfilePage() {
     setErrors({});
 
     try {
-      // Tạo payload object JS (nếu API không cần FormData)
+      // Tạo payload - KHÔNG gửi avatar vì đã upload riêng
       const payload: Partial<UserProfile> = {
         id: user.id,
         fullname: formData.fullname,
         phone: formData.phone || undefined,
         dob: formData.dob || undefined,
         gender: formData.gender || undefined,
-        avt: previewImage || user.avt, // avatar URL hoặc cũ
+        // Không gửi avt - avatar được update riêng qua updateAvatar
       };
-
-      console.log("📤 Payload gửi đi:", payload);
-
-      // Nếu API cần FormData, uncomment đoạn dưới và sửa updateUser
-      // const formDataToSend = new FormData();
-      // formDataToSend.append("id", user.id);
-      // formDataToSend.append("fullname", formData.fullname);
-      // formDataToSend.append("phone", formData.phone || "");
-      // formDataToSend.append("dob", formData.dob || "");
-      // formDataToSend.append("gender", formData.gender || "");
-      // if (formData.avt) formDataToSend.append("avt", formData.avt);
-      // await updateUser(formDataToSend as any);
 
       await updateUser(payload);
 

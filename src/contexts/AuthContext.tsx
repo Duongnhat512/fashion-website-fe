@@ -51,8 +51,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (userData: User, token: string) => {
-    console.log("AuthContext login - saving token:", token);
-    console.log("AuthContext login - saving user:", userData);
     authService.saveToken(token);
     authService.saveUser(userData);
     setUser(userData);
@@ -71,7 +69,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      // Prepare update request with required id
+      // Nếu chỉ cập nhật avatar (không có các field khác), update local state thôi
+      const isOnlyAvatar =
+        Object.keys(userData).length === 1 && "avt" in userData;
+
+      if (isOnlyAvatar) {
+        // Chỉ cập nhật local state và localStorage, không gọi API
+        const updatedUser: User = {
+          id: user.id,
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          dob: user.dob,
+          gender: user.gender,
+          avt: userData.avt, // Gán avatar URL từ response
+        };
+        authService.saveUser(updatedUser);
+        setUser(updatedUser); // React sẽ detect object mới và re-render
+        return;
+      }
+
+      // Các trường khác: gọi API cập nhật
       const updateRequest: UpdateUserRequest = {
         id: user.id,
         ...userData,
@@ -80,12 +99,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Call API to update user
       const updatedUserData = await authService.updateUser(updateRequest);
 
-      // Update local state and storage
-      const updatedUser = { ...user, ...updatedUserData };
+      // QUAN TRỌNG: Tạo object hoàn toàn mới với TẤT CẢ các field rõ ràng
+      const updatedUser: User = {
+        id: updatedUserData.id,
+        fullname: updatedUserData.fullname,
+        email: updatedUserData.email,
+        role: updatedUserData.role,
+        phone: updatedUserData.phone,
+        dob: updatedUserData.dob,
+        gender: updatedUserData.gender,
+        avt: updatedUserData.avt || user.avt, // Giữ avatar cũ nếu API không trả về
+      };
+
       authService.saveUser(updatedUser);
-      setUser(updatedUser);
+      setUser(updatedUser); // React sẽ detect object mới và re-render
     } catch (error) {
-      console.error("Cập nhật thông tin người dùng thất bại:", error);
+      console.error("❌ AuthContext: Update failed:", error);
       throw error;
     }
   };

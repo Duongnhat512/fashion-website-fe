@@ -89,6 +89,13 @@ export const API_CONFIG = {
       UPDATE: '/reviews/:id',
       DELETE: '/reviews/:id',
     },
+    STATISTICS: {
+      DASHBOARD: '/statistics/dashboard',
+      TOP_SELLING_PRODUCTS: '/statistics/products/top-selling',
+      PRODUCTS_STATISTICS: '/statistics/products/statistics',
+      ORDERS_STATISTICS: '/statistics/orders',
+      REVENUE: '/statistics/revenue',
+    },
   },
 
   DEFAULT_PAGINATION: {

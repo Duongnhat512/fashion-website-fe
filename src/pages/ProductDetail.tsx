@@ -683,47 +683,21 @@ export default function ProductDetail() {
             Đánh giá sản phẩm
           </h2>
 
-          {/* Form thêm đánh giá mới */}
-          <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200">
-            <h3 className="text-xl font-semibold mb-4 text-gray-800">
-              Viết đánh giá của bạn
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  Đánh giá của bạn
-                </label>
-                <Rate
-                  value={newReviewRating}
-                  onChange={setNewReviewRating}
-                  style={{ fontSize: 28 }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  Nội dung đánh giá
-                </label>
-                <TextArea
-                  value={newReviewComment}
-                  onChange={(e) => setNewReviewComment(e.target.value)}
-                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
-                  rows={4}
-                  className="rounded-lg"
-                />
-              </div>
-              <Button
-                type="primary"
-                size="large"
-                onClick={handleSubmitReview}
-                loading={submittingReview}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 border-none"
+          {/* Thông báo: Chỉ đánh giá qua đơn hàng đã hoàn thành */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              💡 <strong>Lưu ý:</strong> Bạn chỉ có thể đánh giá sản phẩm sau
+              khi đơn hàng được hoàn thành. Vui lòng truy cập{" "}
+              <Link
+                to="/orders"
+                className="text-blue-600 font-semibold underline"
               >
-                Gửi đánh giá
-              </Button>
-            </div>
+                Quản lý đơn hàng
+              </Link>{" "}
+              để đánh giá sản phẩm đã mua.
+            </p>
           </div>
 
-          {/* Danh sách đánh giá */}
           <div>
             <h3 className="text-xl font-semibold mb-4 text-gray-800">
               Các đánh giá ({reviewTotal})

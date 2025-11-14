@@ -6,6 +6,8 @@ import {
   Warehouse,
   Menu,
   DollarSign,
+  Percent,
+  Star,
 } from "lucide-react";
 import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";
@@ -19,12 +21,14 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const menuItems = [
-    { key: "overview", label: "Tổng quan hệ thống", icon: ClipboardList },
+    { key: "overview", label: "Thống kê tổng quan", icon: ClipboardList },
     { key: "users", label: "Quản lý người dùng", icon: Users },
     { key: "orders", label: "Quản lý đơn hàng", icon: Package },
     { key: "inventory", label: "Quản lý kho", icon: Warehouse },
     { key: "products", label: "Quản lý sản phẩm", icon: Package },
-    { key: "revenue", label: "Thống kê doanh thu", icon: DollarSign },
+    // { key: "revenue", label: "Thống kê doanh thu", icon: DollarSign },
+    { key: "promotions", label: "Quản lý khuyến mãi", icon: Percent },
+    { key: "reviews", label: "Quản lý đánh giá", icon: Star },
   ];
 
   const renderContent = () => {

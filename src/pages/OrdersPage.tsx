@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Empty, Spin, Tag } from "antd";
+import { Empty, Spin, Tag, Modal, Rate, Input, Button } from "antd";
 import orderService from "../services/orderService";
 import paymentService from "../services/paymentService";
 import { useNotification } from "../components/NotificationProvider";
+import { reviewService } from "../services/reviewService";
+import { authService } from "../services/authService";
+
+const { TextArea } = Input;
 
 export const OrderStatus = {
   UNPAID: "unpaid",
@@ -54,6 +58,14 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // Review modal states
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewingProduct, setReviewingProduct] = useState<any>(null);
+  console.log("reviewingProduct", reviewingProduct);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -119,6 +131,83 @@ const OrdersPage = () => {
       );
     } catch {
       notify.error("Xác nhận thất bại, vui lòng thử lại!");
+    }
+  };
+
+  // Open review modal - fetch order details first
+  const openReviewModal = async (orderId: string, product: any) => {
+    try {
+      // Gọi API để lấy chi tiết đơn hàng
+      const orderDetail = await orderService.getOrderById(orderId);
+
+      // Tìm sản phẩm trong đơn hàng để có đầy đủ thông tin
+      const productInOrder = orderDetail.items.find(
+        (item: any) => item.product?.id === product.id
+      );
+
+      if (productInOrder) {
+        setReviewingProduct({
+          ...product,
+          orderId: orderId,
+          orderItem: productInOrder,
+          variant: productInOrder.variant,
+        });
+      } else {
+        setReviewingProduct({
+          ...product,
+          orderId: orderId,
+        });
+      }
+
+      setReviewRating(5);
+      setReviewComment("");
+      setReviewModalOpen(true);
+    } catch (error) {
+      console.error("Lỗi khi tải thông tin đơn hàng:", error);
+      notify.error("Không thể tải thông tin đơn hàng!");
+    }
+  };
+
+  // Close review modal
+  const closeReviewModal = () => {
+    setReviewModalOpen(false);
+    setReviewingProduct(null);
+    setReviewRating(5);
+    setReviewComment("");
+  };
+
+  // Submit review
+  const handleSubmitReview = async () => {
+    if (!reviewingProduct) return;
+
+    const token = authService.getToken();
+    if (!token) {
+      notify.warning("Vui lòng đăng nhập để đánh giá!");
+      return;
+    }
+
+    if (!reviewComment.trim()) {
+      notify.warning("Vui lòng nhập nội dung đánh giá!");
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+      await reviewService.createReview(
+        {
+          productId: reviewingProduct.id,
+          rating: reviewRating,
+          comment: reviewComment.trim(),
+        },
+        token
+      );
+
+      notify.success("Đánh giá của bạn đã được gửi!");
+      closeReviewModal();
+    } catch (error: any) {
+      notify.error(error.message || "Không thể gửi đánh giá!");
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -224,9 +313,24 @@ const OrdersPage = () => {
                           </p>
                         </div>
                       </div>
-                      <p className="font-semibold text-purple-600">
-                        {formatCurrency(item.amount)}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <p className="font-semibold text-purple-600">
+                          {formatCurrency(item.amount)}
+                        </p>
+                        {/* Nút đánh giá cho sản phẩm trong đơn hàng đã hoàn thành */}
+                        {order.status === OrderStatus.COMPLETED && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() =>
+                              openReviewModal(order.id, item.product)
+                            }
+                            className="px-4 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-sm font-semibold rounded-lg shadow hover:opacity-90 transition-all"
+                          >
+                            ⭐ Đánh giá
+                          </motion.button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -294,6 +398,86 @@ const OrdersPage = () => {
           </div>
         )}
       </div>
+
+      {/* Review Modal */}
+      <Modal
+        title={
+          <div className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Đánh giá sản phẩm
+          </div>
+        }
+        open={reviewModalOpen}
+        onCancel={closeReviewModal}
+        footer={null}
+        width={600}
+      >
+        {reviewingProduct && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+              <img
+                src={
+                  reviewingProduct.variant?.imageUrl ||
+                  reviewingProduct.orderItem?.variant?.imageUrl ||
+                  reviewingProduct.imageUrl ||
+                  "https://via.placeholder.com/80"
+                }
+                alt={reviewingProduct.name}
+                className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+              />
+              <div>
+                <p className="font-semibold text-gray-800">
+                  {reviewingProduct.name}
+                </p>
+                {reviewingProduct.orderItem?.variant && (
+                  <p className="text-sm text-gray-500">
+                    {reviewingProduct.orderItem.variant.color?.name || ""} -
+                    Size {reviewingProduct.orderItem.variant.size}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Đánh giá của bạn
+              </label>
+              <Rate
+                value={reviewRating}
+                onChange={setReviewRating}
+                style={{ fontSize: 32 }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Nội dung đánh giá
+              </label>
+              <TextArea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                rows={5}
+                className="rounded-lg"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button size="large" onClick={closeReviewModal}>
+                Hủy
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                onClick={handleSubmitReview}
+                loading={submittingReview}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 border-none"
+              >
+                Gửi đánh giá
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

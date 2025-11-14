@@ -357,7 +357,7 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
               className="w-[90%] text-center py-3
                 bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
 rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
-border cursor-pointer hover:bg-black/80 transition-all duration-300
+ cursor-pointer hover:bg-black/80 transition-all duration-300
 "
               onClick={(e) => {
                 e.stopPropagation();

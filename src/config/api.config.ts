@@ -99,6 +99,15 @@ export const API_CONFIG = {
     CHAT_BOT: {
       SEND_MESSAGE: '/chatbot/chat',
     },
+    PROMOTIONS: {
+      GET_ALL: '/promotions',
+      CREATE: '/promotions',
+      UPDATE: '/promotions/:id',
+      DELETE: '/promotions/:id',
+      SUBMIT: '/promotions/:id/submit',
+      ACTIVATE: '/promotions/:id/activate',
+      DEACTIVATE: '/promotions/:id/deactivate',
+    },
   },
 
   DEFAULT_PAGINATION: {

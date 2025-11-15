@@ -15,6 +15,7 @@ import OrderManagement from "./components/OrderManagement";
 import InventorySection from "./components/InventorySection";
 import RevenueStatistics from "./components/RevenueStatistics";
 import ProductManagement from "./components/ProductManagement";
+import PromotionManagement from "./components/PromotionManagement";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -43,6 +44,8 @@ const AdminDashboard = () => {
         return <ProductManagement />;
       case "revenue":
         return <RevenueStatistics />;
+      case "promotions":
+        return <PromotionManagement />;
       default:
         return <OverviewSection />;
     }

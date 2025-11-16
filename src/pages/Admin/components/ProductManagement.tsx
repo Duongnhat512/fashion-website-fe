@@ -413,34 +413,44 @@ const ProductManagement: React.FC = () => {
         category: { id: categoryId },
         // Cập nhật giá cho variant được chọn
         variants:
-          editingProduct.variants?.map((v: any) => ({
-            id: v.id,
-            sku: v.sku,
-            size: v.size,
-            // Nếu là variant đang edit thì dùng giá mới, không thì giữ nguyên
-            price:
-              v.id === editingProduct.selectedVariant?.id
-                ? editingPrice
-                : v.price,
-            discountPrice:
-              v.id === editingProduct.selectedVariant?.id
-                ? editingPrice
-                : v.discountPrice,
-            discountPercent: v.discountPercent,
-            imageUrl: v.imageUrl, // Giữ imageUrl cũ của variant
-            onSales: v.onSales,
-            saleNote: v.saleNote,
-            color: { id: v.color?.id },
-          })) || [],
+          editingProduct.variants?.map((v: any) => {
+            const isSelectedVariant =
+              String(v.id) === String(editingProduct.selectedVariant?.id);
+            return {
+              id: v.id,
+              sku: v.sku,
+              size: v.size,
+              // Chỉ cập nhật price của variant được chọn
+              price: isSelectedVariant ? editingPrice : v.price,
+              // Giữ nguyên discountPrice
+              discountPrice: v.discountPrice,
+              discountPercent: v.discountPercent,
+              imageUrl: v.imageUrl, // Giữ imageUrl cũ của variant
+              onSales: v.onSales,
+              saleNote: v.saleNote,
+              color: { id: v.color?.id },
+            };
+          }) || [],
       };
 
       // Backend luôn dùng FormData (uploadProductWithVariants middleware)
       const formData = new FormData();
 
+      // Tìm index của variant được chọn
+      const selectedVariantIndex =
+        editingProduct.variants?.findIndex(
+          (v: any) =>
+            String(v.id) === String(editingProduct.selectedVariant?.id)
+        ) ?? 0;
+
       // Thêm file nếu có upload mới
       if (productImageFile) {
         formData.append("productImage", productImageFile);
-        formData.append("variants[0][image]", productImageFile);
+        // Append vào đúng variant được chọn
+        formData.append(
+          `variants[${selectedVariantIndex}][image]`,
+          productImageFile
+        );
       }
 
       // Luôn luôn thêm productData vào FormData

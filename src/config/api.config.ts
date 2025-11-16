@@ -45,6 +45,8 @@ export const API_CONFIG = {
       CONFIRM_AS_COMPLETED: '/orders/confirm-as-completed/:id',
       MARK_AS_SHIPPING: '/orders/mark-as-shipping/:id',
       GET_USER_ORDERS: '/orders/user/:userId',
+      INVOICES_BATCH: '/orders/invoices/batch',
+      INVOICES_BATCH_DOWNLOAD: '/orders/invoices/batch/download',
     },
 
     CART: {

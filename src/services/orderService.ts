@@ -207,6 +207,100 @@ async cancelOrder(orderId: string): Promise<void> {
       body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
     });
   }
+
+  // 🟢 Lấy thông tin hóa đơn hàng loạt (JSON)
+async getInvoicesData(orderIds: string[]): Promise<Blob> {
+  const token = localStorage.getItem('authToken');
+
+  const response = await fetch(
+    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ORDERS.INVOICES_BATCH}`,
+    {
+      method: "POST",
+      headers: {
+              "Content-Type": "application/json",  
+
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderIds }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("API failed");
+  }
+
+  return await response.blob(); // ❗ Trả về BLOB chứ không parse JSON
+}
+
+
+  // 🟢 Lấy thông tin hóa đơn cho một đơn hàng
+  async getInvoice(orderId: string): Promise<any> {
+    const token = localStorage.getItem('authToken');
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ORDERS.INVOICES_BATCH}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderIds: [orderId] }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Single invoice API response:', data);
+
+    if (data && data.success === false) {
+      throw new Error(data.message || 'API request failed');
+    }
+
+    const result = data.data || data;
+    return Array.isArray(result) ? result[0] : result;
+  }
+
+  // 🟢 Tải xuống hóa đơn hàng loạt
+  async downloadInvoicesBatch(orderIds: string[]): Promise<Blob> {
+    const token = localStorage.getItem('authToken');
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ORDERS.INVOICES_BATCH_DOWNLOAD}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderIds }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  // 🟢 Tải xuống hóa đơn cho một đơn hàng
+  async downloadInvoice(orderId: string): Promise<Blob> {
+    const token = localStorage.getItem('authToken');
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ORDERS.INVOICES_BATCH_DOWNLOAD}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderIds: [orderId] }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+  }
 }
 
 export const orderService = new OrderService();

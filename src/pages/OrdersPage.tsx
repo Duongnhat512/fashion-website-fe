@@ -68,6 +68,11 @@ const OrdersPage = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewImages, setReviewImages] = useState<any[]>([]);
 
+  // Invoice modal states
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -232,6 +237,53 @@ const OrdersPage = () => {
     } finally {
       setSubmittingReview(false);
     }
+  };
+
+  const handleViewInvoice = async (orderId: string) => {
+    try {
+      setLoadingInvoice(true);
+
+      const blob = await orderService.getInvoicesData([orderId]);
+
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err) {
+      notify.error("Không thể xem hóa đơn");
+    } finally {
+      setLoadingInvoice(false);
+    }
+  };
+
+  // Download invoice
+  const handleDownloadInvoice = async (orderId: string) => {
+    try {
+      setLoadingInvoice(true);
+      const blob = await orderService.downloadInvoice(orderId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice_${orderId.slice(0, 8)}_${
+        new Date().toISOString().split("T")[0]
+      }.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      notify.success("Đã tải xuống hóa đơn thành công");
+    } catch (error) {
+      notify.error("Không thể tải xuống hóa đơn");
+      console.error("Download invoice error:", error);
+    } finally {
+      setLoadingInvoice(false);
+    }
+  };
+
+  // Close invoice modal
+  const closeInvoiceModal = () => {
+    setInvoiceModalOpen(false);
+    setInvoiceData(null);
   };
 
   return (
@@ -414,6 +466,31 @@ const OrdersPage = () => {
                         ✅ Đã nhận hàng
                       </motion.button>
                     )}
+
+                    {/* Invoice buttons for completed orders */}
+                    {order.status === OrderStatus.COMPLETED && (
+                      <div className="flex gap-2">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleViewInvoice(order.id)}
+                          disabled={loadingInvoice}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all disabled:opacity-50"
+                        >
+                          📄 Xem hóa đơn
+                        </motion.button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleDownloadInvoice(order.id)}
+                          disabled={loadingInvoice}
+                          className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all disabled:opacity-50"
+                        >
+                          🖨️ In hóa đơn
+                        </motion.button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -514,6 +591,159 @@ const OrdersPage = () => {
                 Gửi đánh giá
               </Button>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Invoice Modal */}
+      <Modal
+        title={
+          <div className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Hóa đơn đơn hàng
+          </div>
+        }
+        open={invoiceModalOpen}
+        onCancel={closeInvoiceModal}
+        footer={null}
+        width={1000}
+      >
+        {invoiceData ? (
+          <div className="space-y-6">
+            <div className="border rounded-lg p-6 bg-gray-50">
+              <div className="mb-4">
+                <h3 className="text-xl font-bold text-center mb-2">HÓA ĐƠN</h3>
+                <p className="text-center text-sm text-gray-600">
+                  Mã đơn hàng: {invoiceData.orderId?.slice(0, 8)}...
+                </p>
+                <p className="text-center text-sm text-gray-600">
+                  Ngày:{" "}
+                  {new Date(
+                    invoiceData.createdAt || new Date()
+                  ).toLocaleDateString("vi-VN")}
+                </p>
+              </div>
+
+              {/* Thông tin khách hàng */}
+              <div className="mb-4">
+                <h4 className="font-semibold mb-2">Thông tin khách hàng:</h4>
+                <p>
+                  <strong>Họ tên:</strong> {invoiceData.customerName}
+                </p>
+                <p>
+                  <strong>Email:</strong> {invoiceData.customerEmail}
+                </p>
+                <p>
+                  <strong>SĐT:</strong> {invoiceData.customerPhone}
+                </p>
+              </div>
+
+              {/* Địa chỉ giao hàng */}
+              <div className="mb-4">
+                <h4 className="font-semibold mb-2">Địa chỉ giao hàng:</h4>
+                <p>{invoiceData.shippingAddress}</p>
+              </div>
+
+              {/* Chi tiết sản phẩm */}
+              <div className="mb-4">
+                <h4 className="font-semibold mb-2">Chi tiết sản phẩm:</h4>
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-left">
+                        Sản phẩm
+                      </th>
+                      <th className="border border-gray-300 p-2 text-center">
+                        SL
+                      </th>
+                      <th className="border border-gray-300 p-2 text-right">
+                        Đơn giá
+                      </th>
+                      <th className="border border-gray-300 p-2 text-right">
+                        Thành tiền
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoiceData.items?.map((item: any, idx: number) => (
+                      <tr key={idx}>
+                        <td className="border border-gray-300 p-2">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={item.imageUrl}
+                              alt={item.productName}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                            <div>
+                              <p className="font-medium">{item.productName}</p>
+                              <p className="text-sm text-gray-600">
+                                Màu: {item.color} | Size: {item.size}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          {item.quantity}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-right">
+                          {item.price?.toLocaleString("vi-VN")}đ
+                        </td>
+                        <td className="border border-gray-300 p-2 text-right">
+                          {item.total?.toLocaleString("vi-VN")}đ
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Tổng tiền */}
+              <div className="border-t pt-4">
+                <div className="flex justify-end">
+                  <div className="w-64 space-y-2">
+                    <div className="flex justify-between">
+                      <span>Tạm tính:</span>
+                      <span>
+                        {invoiceData.subTotal?.toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Giảm giá:</span>
+                      <span className="text-red-500">
+                        -{invoiceData.discount?.toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Phí ship:</span>
+                      <span>
+                        {invoiceData.shippingFee?.toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg border-t pt-2">
+                      <span>Tổng cộng:</span>
+                      <span className="text-purple-600">
+                        {invoiceData.totalAmount?.toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Phương thức thanh toán */}
+              <div className="mt-4 text-center text-sm text-gray-600">
+                <p>
+                  <strong>Phương thức thanh toán:</strong>{" "}
+                  {invoiceData.paymentMethod}
+                </p>
+                <p>
+                  <strong>Trạng thái:</strong> {invoiceData.status}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Spin size="large" />
+            <p className="mt-4 text-gray-500">Đang tải hóa đơn...</p>
           </div>
         )}
       </Modal>

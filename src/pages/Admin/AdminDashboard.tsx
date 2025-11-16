@@ -7,6 +7,8 @@ import {
   Menu,
   Percent,
   Star,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";
@@ -20,6 +22,7 @@ import ReviewManagement from "./components/ReviewManagement";
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const menuItems = [
     { key: "overview", label: "Thống kê tổng quan", icon: ClipboardList },
@@ -59,10 +62,24 @@ const AdminDashboard = () => {
       <div
         className={`fixed lg:static z-20 inset-y-0 left-0 transform ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 w-64 bg-white shadow-xl transition-transform duration-300`}
+        } lg:translate-x-0 bg-white shadow-xl transition-all duration-300 ${
+          sidebarCollapsed ? "w-16" : "w-64"
+        }`}
       >
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-purple-600">Admin Panel</h1>
+        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+          {!sidebarCollapsed && (
+            <h1 className="text-xl font-bold text-purple-600">Admin Panel</h1>
+          )}
+          <button
+            className="hidden lg:block text-gray-500 hover:text-gray-700 transition-colors"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          >
+            {sidebarCollapsed ? (
+              <ChevronRight size={20} />
+            ) : (
+              <ChevronLeft size={20} />
+            )}
+          </button>
           <button
             className="lg:hidden text-gray-500"
             onClick={() => setSidebarOpen(false)}
@@ -80,10 +97,14 @@ const AdminDashboard = () => {
                 activeTab === item.key
                   ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
                   : "hover:bg-gray-100 text-gray-700"
-              }`}
+              } ${sidebarCollapsed ? "justify-center px-2" : ""}`}
+              title={sidebarCollapsed ? item.label : ""}
             >
-              <item.icon className="mr-3" size={20} />
-              {item.label}
+              <item.icon
+                className={`${sidebarCollapsed ? "mx-0" : "mr-3"}`}
+                size={20}
+              />
+              {!sidebarCollapsed && <span>{item.label}</span>}
             </button>
           ))}
 
@@ -92,9 +113,13 @@ const AdminDashboard = () => {
       </div>
 
       {/* Nội dung chính */}
-      <div className="flex-1 flex flex-col">
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-16" : "lg:ml-0"
+        }`}
+      >
         {/* Topbar */}
-        <div className="relative bg-white shadow-lg px-6 py-10 flex items-center min-h-[80px]">
+        <div>
           {/* Nút menu bên trái */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -102,11 +127,6 @@ const AdminDashboard = () => {
           >
             <Menu size={24} />
           </button>
-
-          {/* Tiêu đề ở giữa */}
-          <h1 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-extrabold text-4xl bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent text-center whitespace-nowrap">
-            Quản lý hệ thống
-          </h1>
         </div>
 
         {/* Main Content */}

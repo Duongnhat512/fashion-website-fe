@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Button, Space, Modal, Pagination } from "antd";
+import {
+  Table,
+  Tag,
+  Button,
+  Space,
+  Modal,
+  Pagination,
+  Checkbox,
+  message,
+} from "antd";
 import {
   EyeOutlined,
   CheckCircleOutlined,
   CarOutlined,
+  FileTextOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
 import { orderService } from "../../../services/orderService";
 import type { OrderResponse } from "../../../services/orderService";
@@ -19,10 +30,19 @@ const OrderManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const notify = useNotification();
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+    // Reset selected orders khi filter thay đổi
+    setSelectedOrders([]);
+  }, [statusFilter]);
 
   const fetchOrders = async () => {
     try {
@@ -96,7 +116,103 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  const handleSelectOrder = (orderId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedOrders((prev) => [...prev, orderId]);
+    } else {
+      setSelectedOrders((prev) => prev.filter((id) => id !== orderId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const completedOrderIds = paginatedOrders
+        .filter((order) => order.status === "completed")
+        .map((order) => order.id);
+      setSelectedOrders(completedOrderIds);
+    } else {
+      setSelectedOrders([]);
+    }
+  };
+
+  const handleViewInvoices = async () => {
+    try {
+      setInvoiceLoading(true);
+
+      const blob = await orderService.getInvoicesData(selectedOrders);
+      console.log(blob);
+      const url = URL.createObjectURL(blob);
+
+      window.open(url, "_blank"); // mở tab mới xem PDF
+    } catch (err) {
+      notify.error("Không thể xem hóa đơn");
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  const handlePrintInvoices = async () => {
+    if (selectedOrders.length === 0) {
+      notify.warning("Vui lòng chọn ít nhất một đơn hàng đã hoàn thành");
+      return;
+    }
+
+    try {
+      setInvoiceLoading(true);
+      const blob = await orderService.downloadInvoicesBatch(selectedOrders);
+
+      // Tạo URL cho blob và tải xuống
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoices_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      notify.success("Đã tải xuống hóa đơn thành công");
+    } catch (error) {
+      notify.error("Không thể tải xuống hóa đơn");
+      console.error(error);
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
   const orderColumns = [
+    {
+      title: () => {
+        const completedOrders = paginatedOrders.filter(
+          (order) => order.status === "completed"
+        );
+        const allSelected =
+          completedOrders.length > 0 &&
+          completedOrders.every((order) => selectedOrders.includes(order.id));
+        const indeterminate =
+          completedOrders.some((order) => selectedOrders.includes(order.id)) &&
+          !allSelected;
+
+        return (
+          <Checkbox
+            checked={allSelected}
+            indeterminate={indeterminate}
+            onChange={(e) => handleSelectAll(e.target.checked)}
+            disabled={completedOrders.length === 0}
+          />
+        );
+      },
+      dataIndex: "select",
+      key: "select",
+      width: 50,
+      render: (_: any, record: OrderResponse) =>
+        record.status === "completed" ? (
+          <Checkbox
+            checked={selectedOrders.includes(record.id)}
+            onChange={(e) => handleSelectOrder(record.id, e.target.checked)}
+          />
+        ) : null,
+    },
     {
       title: "Mã đơn hàng",
       dataIndex: "id",
@@ -271,6 +387,30 @@ const OrderManagement: React.FC = () => {
         </Button>
       </div>
 
+      {/* Nút hóa đơn cho đơn hàng đã hoàn thành */}
+      {selectedOrders.length > 0 && (
+        <div className="mb-6 flex gap-3">
+          <Button
+            type="primary"
+            icon={<FileTextOutlined />}
+            onClick={handleViewInvoices}
+            loading={invoiceLoading}
+            className="bg-blue-500 hover:bg-blue-600"
+          >
+            Xem hóa đơn ({selectedOrders.length})
+          </Button>
+          <Button
+            type="primary"
+            icon={<PrinterOutlined />}
+            onClick={handlePrintInvoices}
+            loading={invoiceLoading}
+            className="bg-green-500 hover:bg-green-600"
+          >
+            In hóa đơn ({selectedOrders.length})
+          </Button>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <Table
           columns={orderColumns}
@@ -424,6 +564,160 @@ const OrderManagement: React.FC = () => {
                 </Tag>
               </div>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal hiển thị hóa đơn */}
+      <Modal
+        title={
+          <div className="text-lg font-bold">
+            Hóa đơn đơn hàng ({selectedOrders.length} đơn)
+          </div>
+        }
+        open={invoiceModalVisible}
+        onCancel={() => setInvoiceModalVisible(false)}
+        footer={null}
+        width={1000}
+      >
+        {invoiceData && (
+          <div className="space-y-6">
+            {invoiceData.map((invoice: any, index: number) => (
+              <div key={index} className="border rounded-lg p-6 bg-gray-50">
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-center mb-2">
+                    HÓA ĐƠN
+                  </h3>
+                  <p className="text-center text-sm text-gray-600">
+                    Mã đơn hàng: {invoice.orderId?.slice(0, 8)}...
+                  </p>
+                  <p className="text-center text-sm text-gray-600">
+                    Ngày:{" "}
+                    {new Date(
+                      invoice.createdAt || new Date()
+                    ).toLocaleDateString("vi-VN")}
+                  </p>
+                </div>
+
+                {/* Thông tin khách hàng */}
+                <div className="mb-4">
+                  <h4 className="font-semibold mb-2">Thông tin khách hàng:</h4>
+                  <p>
+                    <strong>Họ tên:</strong> {invoice.customerName}
+                  </p>
+                  <p>
+                    <strong>Email:</strong> {invoice.customerEmail}
+                  </p>
+                  <p>
+                    <strong>SĐT:</strong> {invoice.customerPhone}
+                  </p>
+                </div>
+
+                {/* Địa chỉ giao hàng */}
+                <div className="mb-4">
+                  <h4 className="font-semibold mb-2">Địa chỉ giao hàng:</h4>
+                  <p>{invoice.shippingAddress}</p>
+                </div>
+
+                {/* Chi tiết sản phẩm */}
+                <div className="mb-4">
+                  <h4 className="font-semibold mb-2">Chi tiết sản phẩm:</h4>
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-300 p-2 text-left">
+                          Sản phẩm
+                        </th>
+                        <th className="border border-gray-300 p-2 text-center">
+                          SL
+                        </th>
+                        <th className="border border-gray-300 p-2 text-right">
+                          Đơn giá
+                        </th>
+                        <th className="border border-gray-300 p-2 text-right">
+                          Thành tiền
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoice.items?.map((item: any, idx: number) => (
+                        <tr key={idx}>
+                          <td className="border border-gray-300 p-2">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={item.imageUrl}
+                                alt={item.productName}
+                                className="w-12 h-12 object-cover rounded"
+                              />
+                              <div>
+                                <p className="font-medium">
+                                  {item.productName}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Màu: {item.color} | Size: {item.size}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="border border-gray-300 p-2 text-center">
+                            {item.quantity}
+                          </td>
+                          <td className="border border-gray-300 p-2 text-right">
+                            {item.price?.toLocaleString("vi-VN")}đ
+                          </td>
+                          <td className="border border-gray-300 p-2 text-right">
+                            {item.total?.toLocaleString("vi-VN")}đ
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Tổng tiền */}
+                <div className="border-t pt-4">
+                  <div className="flex justify-end">
+                    <div className="w-64 space-y-2">
+                      <div className="flex justify-between">
+                        <span>Tạm tính:</span>
+                        <span>
+                          {invoice.subTotal?.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Giảm giá:</span>
+                        <span className="text-red-500">
+                          -{invoice.discount?.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Phí ship:</span>
+                        <span>
+                          {invoice.shippingFee?.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-bold text-lg border-t pt-2">
+                        <span>Tổng cộng:</span>
+                        <span className="text-purple-600">
+                          {invoice.totalAmount?.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phương thức thanh toán */}
+                <div className="mt-4 text-center text-sm text-gray-600">
+                  <p>
+                    <strong>Phương thức thanh toán:</strong>{" "}
+                    {invoice.paymentMethod}
+                  </p>
+                  <p>
+                    <strong>Trạng thái:</strong> {invoice.status}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Modal>

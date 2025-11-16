@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Empty, Spin, Tag, Modal, Rate, Input, Button } from "antd";
+import { Empty, Spin, Tag, Modal, Rate, Input, Button, Upload } from "antd";
 import orderService from "../services/orderService";
 import paymentService from "../services/paymentService";
 import { useNotification } from "../components/NotificationProvider";
-import { reviewService } from "../services/reviewService";
 import { authService } from "../services/authService";
+import { API_CONFIG } from "../config/api.config";
 
 const { TextArea } = Input;
 
@@ -66,6 +66,7 @@ const OrdersPage = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewImages, setReviewImages] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -176,6 +177,7 @@ const OrdersPage = () => {
     setReviewingProduct(null);
     setReviewRating(5);
     setReviewComment("");
+    setReviewImages([]);
   };
 
   // Submit review
@@ -195,17 +197,36 @@ const OrdersPage = () => {
 
     try {
       setSubmittingReview(true);
-      await reviewService.createReview(
-        {
-          productId: reviewingProduct.id,
-          rating: reviewRating,
-          comment: reviewComment.trim(),
-        },
-        token
-      );
+      const formData = new FormData();
+      formData.append("productId", reviewingProduct.id);
+      formData.append("rating", reviewRating.toString());
+      formData.append("comment", reviewComment.trim());
+      reviewImages.forEach((file) => {
+        if (file.originFileObj) {
+          formData.append("images", file.originFileObj);
+        }
+      });
 
-      notify.success("Đánh giá của bạn đã được gửi!");
-      closeReviewModal();
+      const response = await fetch(`${API_CONFIG.BASE_URL}/reviews`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Không thể gửi đánh giá");
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        notify.success("Đánh giá của bạn đã được gửi!");
+        closeReviewModal();
+      } else {
+        throw new Error(data.message || "Không thể gửi đánh giá");
+      }
     } catch (error: any) {
       notify.error(error.message || "Không thể gửi đánh giá!");
     } finally {
@@ -461,6 +482,22 @@ const OrdersPage = () => {
                 rows={5}
                 className="rounded-lg"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Ảnh (tùy chọn, tối đa 5 ảnh)
+              </label>
+              <Upload
+                listType="picture-card"
+                fileList={reviewImages}
+                onChange={({ fileList }) => setReviewImages(fileList)}
+                beforeUpload={() => false}
+                multiple
+                maxCount={5}
+              >
+                {reviewImages.length < 5 && "+ Upload"}
+              </Upload>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">

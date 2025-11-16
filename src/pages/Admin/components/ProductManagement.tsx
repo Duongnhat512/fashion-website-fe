@@ -636,7 +636,6 @@ const ProductManagement: React.FC = () => {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Quản lý sản phẩm</h2>
         <div className="flex gap-3 items-center">
           <Input.Search
             placeholder="Tìm theo tên sản phẩm"

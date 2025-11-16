@@ -5,7 +5,6 @@ import {
   ClipboardList,
   Warehouse,
   Menu,
-  DollarSign,
   Percent,
   Star,
 } from "lucide-react";
@@ -16,6 +15,7 @@ import InventorySection from "./components/InventorySection";
 import RevenueStatistics from "./components/RevenueStatistics";
 import ProductManagement from "./components/ProductManagement";
 import PromotionManagement from "./components/PromotionManagement";
+import ReviewManagement from "./components/ReviewManagement";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -36,6 +36,8 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case "users":
         return <UserManagement />;
+      case "overview":
+        return <OverviewSection />;
       case "orders":
         return <OrderManagement />;
       case "inventory":
@@ -46,8 +48,8 @@ const AdminDashboard = () => {
         return <RevenueStatistics />;
       case "promotions":
         return <PromotionManagement />;
-      default:
-        return <OverviewSection />;
+      case "reviews":
+        return <ReviewManagement />;
     }
   };
 

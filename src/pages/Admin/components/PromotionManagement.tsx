@@ -60,6 +60,11 @@ export default function PromotionManagement() {
   );
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
+  // Filters
+  const [dateRange, setDateRange] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+
   useEffect(() => {
     loadPromotions();
   }, [page]);
@@ -67,6 +72,11 @@ export default function PromotionManagement() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [dateRange, statusFilter, activeFilter]);
 
   const loadPromotions = async () => {
     try {
@@ -88,6 +98,44 @@ export default function PromotionManagement() {
     } catch {
       message.error("Lỗi khi tải danh sách sản phẩm");
     }
+  };
+
+  // Filter logic
+  const getFilteredPromotions = () => {
+    let filtered = [...promotions];
+
+    // Filter by date range
+    if (dateRange && dateRange.length === 2) {
+      const [start, end] = dateRange;
+      filtered = filtered.filter((promo) => {
+        const promoStart = dayjs(promo.startDate);
+        const promoEnd = dayjs(promo.endDate);
+        return promoStart.isBefore(end) && promoEnd.isAfter(start);
+      });
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((promo) => promo.status === statusFilter);
+    }
+
+    // Filter by active status
+    if (activeFilter !== "all") {
+      if (activeFilter === "active") {
+        filtered = filtered.filter((promo) => promo.active);
+      } else if (activeFilter === "inactive") {
+        filtered = filtered.filter((promo) => !promo.active);
+      }
+    }
+
+    return filtered;
+  };
+
+  const handleResetFilters = () => {
+    setDateRange(null);
+    setStatusFilter("all");
+    setActiveFilter("all");
+    setPage(1); // Reset to first page
   };
 
   // --------------------------
@@ -213,8 +261,7 @@ export default function PromotionManagement() {
       dataIndex: "status",
       render: (status) => {
         if (status === "draft") return <Tag>Bản nháp</Tag>;
-        if (status === "submitted") return <Tag color="blue">Đã gửi duyệt</Tag>;
-        return <Tag color="green">Đã duyệt</Tag>;
+        if (status === "submitted") return <Tag color="blue">Đã duyệt</Tag>;
       },
     },
     {
@@ -297,27 +344,76 @@ export default function PromotionManagement() {
     },
   ];
 
+  const filteredPromotions = getFilteredPromotions();
+
+  // Pagination for filtered data
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedPromotions = filteredPromotions.slice(startIndex, endIndex);
+
   return (
     <div>
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Quản lý khuyến mãi</h2>
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-          className="bg-blue-600"
-        >
-          Tạo khuyến mãi mới
-        </Button>
+      {/* FILTERS */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <div className="flex items-center gap-4 flex-wrap">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            className="bg-blue-600"
+          >
+            Tạo khuyến mãi
+          </Button>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-700">Thời gian:</span>
+            <RangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              format="DD/MM/YYYY"
+              placeholder={["Từ ngày", "Đến ngày"]}
+              className="w-64"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-700">Trạng thái duyệt:</span>
+            <Select
+              value={statusFilter}
+              onChange={setStatusFilter}
+              className="w-40"
+            >
+              <Select.Option value="all">Tất cả</Select.Option>
+              <Select.Option value="draft">Bản nháp</Select.Option>
+              <Select.Option value="submitted">Đã duyệt</Select.Option>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-700">Hoạt động:</span>
+            <Select
+              value={activeFilter}
+              onChange={setActiveFilter}
+              className="w-32"
+            >
+              <Select.Option value="all">Tất cả</Select.Option>
+              <Select.Option value="active">Đang bật</Select.Option>
+              <Select.Option value="inactive">Đang tắt</Select.Option>
+            </Select>
+          </div>
+
+          <Button onClick={handleResetFilters} type="primary">
+            Xem tất cả
+          </Button>
+        </div>
       </div>
 
       {/* TABLE */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <Table
           columns={columns}
-          dataSource={promotions}
+          dataSource={paginatedPromotions}
           loading={loading}
           rowKey="id"
           pagination={false}
@@ -328,7 +424,7 @@ export default function PromotionManagement() {
       <div className="flex justify-center mt-8">
         <Pagination
           current={page}
-          total={total}
+          total={filteredPromotions.length}
           pageSize={limit}
           onChange={(p) => setPage(p)}
           showSizeChanger={false}

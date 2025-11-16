@@ -29,6 +29,14 @@ import type {
   TopSellingProduct,
   ProductStats,
   OrderStats,
+  RevenueByStatus,
+  RevenueTimeSeries,
+  SalesDetail,
+  TopProductByRevenue,
+  TopProductByViews,
+  HourlyRevenue,
+  RevenueComparison,
+  ProfitTimeSeries,
 } from "../../../services/statisticsService";
 import { useNotification } from "../../../components/NotificationProvider";
 
@@ -58,6 +66,19 @@ const OverviewSection = () => {
   const [topProducts, setTopProducts] = useState<TopSellingProduct[]>([]);
   const [productStats, setProductStats] = useState<ProductStats | null>(null);
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
+  const [revenueByStatus, setRevenueByStatus] = useState<RevenueByStatus[]>([]);
+  const [revenueTimeSeries, setRevenueTimeSeries] = useState<
+    RevenueTimeSeries[]
+  >([]);
+  const [salesDetail, setSalesDetail] = useState<SalesDetail | null>(null);
+  const [topByRevenue, setTopByRevenue] = useState<TopProductByRevenue[]>([]);
+  const [topByViews, setTopByViews] = useState<TopProductByViews[]>([]);
+  const [hourlyRevenue, setHourlyRevenue] = useState<HourlyRevenue[]>([]);
+  const [revenueComparison, setRevenueComparison] =
+    useState<RevenueComparison | null>(null);
+  const [profitTimeSeries, setProfitTimeSeries] = useState<ProfitTimeSeries[]>(
+    []
+  );
 
   useEffect(() => {
     fetchStatistics();
@@ -69,20 +90,76 @@ const OverviewSection = () => {
       const [startDate, endDate] = dateRange;
 
       // Fetch all statistics in parallel
-      const [dashboard, topSelling, products, orders] = await Promise.all([
+      const [
+        dashboard,
+        revByStatus,
+        revTimeSeries,
+        topSelling,
+        products,
+        salesDet,
+        topRevenue,
+        topViews,
+        hourly,
+        comparison,
+        profit,
+      ] = await Promise.all([
         statisticsService.getDashboard(
+          startDate.format("YYYY-MM-DD"),
+          endDate.format("YYYY-MM-DD")
+        ),
+        statisticsService.getRevenueByStatus(),
+        statisticsService.getRevenueTimeSeries(
           startDate.format("YYYY-MM-DD"),
           endDate.format("YYYY-MM-DD")
         ),
         statisticsService.getTopSellingProducts(),
         statisticsService.getProductsStatistics(),
-        statisticsService.getOrdersStatistics(),
+        statisticsService.getSalesDetail(),
+        statisticsService.getTopProductsByRevenue(10),
+        statisticsService.getTopProductsByViews(10),
+        statisticsService.getRevenueHourly(),
+        statisticsService.getRevenueComparison(),
+        statisticsService.getProfitTimeSeries(
+          startDate.format("YYYY-MM-DD"),
+          endDate.format("YYYY-MM-DD")
+        ),
       ]);
 
       setDashboardStats(dashboard);
+      setRevenueByStatus(revByStatus);
+      setRevenueTimeSeries(revTimeSeries);
       setTopProducts(topSelling);
       setProductStats(products);
-      setOrderStats(orders);
+      setSalesDetail(salesDet);
+      setTopByRevenue(topRevenue);
+      setTopByViews(topViews);
+      setHourlyRevenue(hourly);
+      setRevenueComparison(comparison);
+      setProfitTimeSeries(profit);
+
+      // Calculate order stats
+      const ordersByStatus = revByStatus.map((item) => ({
+        status: item.status,
+        count: parseInt(item.count),
+      }));
+
+      const totalOrders = revByStatus.reduce(
+        (sum, item) => sum + parseInt(item.count),
+        0
+      );
+
+      const cancelledOrders = revByStatus.find((r) => r.status === "cancelled");
+      const cancelledRate =
+        cancelledOrders && totalOrders > 0
+          ? (parseInt(cancelledOrders.count) / totalOrders) * 100
+          : 0;
+
+      setOrderStats({
+        totalOrders,
+        ordersByStatus,
+        cancelledRate: parseFloat(cancelledRate.toFixed(1)),
+        averageOrderValue: products.averageOrderValue,
+      });
     } catch (error: any) {
       console.error("Error fetching statistics:", error);
       notify.error(error.message || "Không thể tải dữ liệu thống kê!");
@@ -195,9 +272,6 @@ const OverviewSection = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex justify-between items-center"
       >
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-          Tổng quan thống kê
-        </h2>
         <RangePicker
           value={dateRange}
           onChange={handleDateChange}
@@ -286,9 +360,8 @@ const OverviewSection = () => {
           </Row>
 
           {/* Product & Order Stats Summary */}
-          {/* Product & Order Stats Summary */}
           <Row gutter={[16, 16]} align="stretch">
-            <Col xs={24} lg={12}>
+            <Col xs={24} lg={8}>
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -333,41 +406,403 @@ const OverviewSection = () => {
               </motion.div>
             </Col>
 
-            <Col xs={24} lg={12}>
+            <Col xs={24} lg={8}>
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="h-full"
+              >
+                <Card
+                  title={
+                    <span className="text-lg font-semibold text-green-600">
+                      📈 Chi tiết bán hàng
+                    </span>
+                  }
+                  className="shadow-lg h-full"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                      <span className="text-gray-700">SP hoạt động:</span>
+                      <span className="font-bold text-xl text-green-600">
+                        {salesDetail?.activeProducts || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-gray-700">SP còn hàng:</span>
+                      <span className="font-bold text-xl text-blue-600">
+                        {salesDetail?.inStockProducts || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                      <span className="text-gray-700">SP đã bán:</span>
+                      <span className="font-bold text-xl text-purple-600">
+                        {salesDetail?.productsSold || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                      <span className="text-gray-700">Tỷ lệ tồn kho:</span>
+                      <span className="font-bold text-lg text-orange-600">
+                        {salesDetail?.stockRate || 0}%
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            </Col>
+
+            <Col xs={24} lg={8}>
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.7 }}
                 className="h-full"
               >
                 <Card
                   title={
                     <span className="text-lg font-semibold text-purple-600">
-                      📦 Thống kê đơn hàng
+                      💰 So sánh doanh thu
                     </span>
                   }
                   className="shadow-lg h-full"
                 >
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                      <span className="text-gray-700">Tổng đơn hàng:</span>
-                      <span className="font-bold text-xl text-blue-600">
-                        {orderStats?.totalOrders || 0}
+                      <span className="text-gray-700">Hiện tại:</span>
+                      <span className="font-bold text-lg text-blue-600">
+                        {formatCurrency(
+                          revenueComparison?.current.revenue || 0
+                        )}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                      <span className="text-gray-700">Tỷ lệ hủy:</span>
-                      <span className="font-bold text-xl text-red-600">
-                        {orderStats?.cancelledRate || 0}%
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-700">Trung bình:</span>
+                      <span className="font-bold text-lg text-gray-600">
+                        {formatCurrency(
+                          revenueComparison?.average.revenue || 0
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                      <span className="text-gray-700">Giá trị TB:</span>
-                      <span className="font-bold text-lg text-green-600">
-                        {formatCurrency(orderStats?.averageOrderValue || 0)}
+                      <span className="text-gray-700">So với hôm qua:</span>
+                      <span
+                        className={`font-bold text-lg ${
+                          revenueComparison?.comparison.vsYesterday.trend ===
+                          "up"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {revenueComparison?.comparison.vsYesterday.trend ===
+                        "up"
+                          ? "↑"
+                          : "↓"}{" "}
+                        {revenueComparison?.comparison.vsYesterday.percentage ||
+                          0}
+                        %
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                      <span className="text-gray-700">Lợi nhuận:</span>
+                      <span className="font-bold text-lg text-orange-600">
+                        {formatCurrency(revenueComparison?.current.profit || 0)}
                       </span>
                     </div>
                   </div>
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+
+          {/* Charts Section */}
+          <Row gutter={[16, 16]}>
+            {/* Revenue Time Series Chart */}
+            <Col xs={24} lg={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Card
+                  title={
+                    <span className="text-lg font-semibold text-green-600">
+                      📊 Doanh thu theo thời gian
+                    </span>
+                  }
+                  className="shadow-lg h-full"
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={revenueTimeSeries}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis
+                        tickFormatter={(value) =>
+                          `${(value / 1000000).toFixed(1)}M`
+                        }
+                      />
+                      <Tooltip
+                        formatter={(value: any) => [
+                          formatCurrency(Number(value)),
+                          "Doanh thu",
+                        ]}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        name="Doanh thu"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            </Col>
+
+            {/* Profit Time Series Chart */}
+            <Col xs={24} lg={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <Card
+                  title={
+                    <span className="text-lg font-semibold text-purple-600">
+                      💎 Lợi nhuận theo thời gian
+                    </span>
+                  }
+                  className="shadow-lg h-full"
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={profitTimeSeries}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis
+                        tickFormatter={(value) =>
+                          `${(value / 1000000).toFixed(1)}M`
+                        }
+                      />
+                      <Tooltip
+                        formatter={(value: any) => [
+                          formatCurrency(Number(value)),
+                          "Lợi nhuận",
+                        ]}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="profit"
+                        stroke="#a855f7"
+                        strokeWidth={3}
+                        name="Lợi nhuận"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        name="Doanh thu"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+
+          {/* Revenue by Status & Hourly Revenue */}
+          <Row gutter={[16, 16]}>
+            {/* Bar Chart - Revenue by Status */}
+            <Col xs={24} lg={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <Card
+                  title={
+                    <span className="text-lg font-semibold text-blue-600">
+                      📈 Doanh thu theo trạng thái
+                    </span>
+                  }
+                  className="shadow-lg h-full"
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={revenueByStatus}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="status" />
+                      <YAxis
+                        tickFormatter={(value) =>
+                          `${(value / 1000000).toFixed(1)}M`
+                        }
+                      />
+                      <Tooltip
+                        formatter={(value: any) => [
+                          formatCurrency(Number(value)),
+                          "Doanh thu",
+                        ]}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="revenue"
+                        fill="#3b82f6"
+                        name="Doanh thu"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            </Col>
+
+            {/* Line Chart - Hourly Revenue */}
+            <Col xs={24} lg={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1 }}
+              >
+                <Card
+                  title={
+                    <span className="text-lg font-semibold text-orange-600">
+                      ⏰ Doanh thu theo giờ
+                    </span>
+                  }
+                  className="shadow-lg h-full"
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={hourlyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="hour"
+                        label={{
+                          value: "Giờ",
+                          position: "insideBottom",
+                          offset: -5,
+                        }}
+                      />
+                      <YAxis
+                        tickFormatter={(value) =>
+                          `${(value / 1000000).toFixed(1)}M`
+                        }
+                      />
+                      <Tooltip
+                        formatter={(value: any) => [
+                          formatCurrency(Number(value)),
+                          "Doanh thu",
+                        ]}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        name="Doanh thu"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="profit"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        name="Lợi nhuận"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+
+          {/* Top Products by Revenue & Views */}
+          <Row gutter={[16, 16]}>
+            {/* Bar Chart - Top Products by Revenue */}
+            <Col xs={24} lg={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 }}
+              >
+                <Card
+                  title={
+                    <span className="text-lg font-semibold text-green-600">
+                      💰 Top sản phẩm theo doanh thu
+                    </span>
+                  }
+                  className="shadow-lg h-full"
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={topByRevenue.slice(0, 5)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="productName"
+                        tick={{ fontSize: 11 }}
+                        angle={-20}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis
+                        tickFormatter={(value) =>
+                          `${(value / 1000000).toFixed(1)}M`
+                        }
+                      />
+                      <Tooltip
+                        formatter={(value: any) => [
+                          formatCurrency(Number(value)),
+                          "Doanh thu",
+                        ]}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="revenue"
+                        fill="#10b981"
+                        name="Doanh thu"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            </Col>
+
+            {/* Bar Chart - Top Products by Views */}
+            <Col xs={24} lg={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.3 }}
+              >
+                <Card
+                  title={
+                    <span className="text-lg font-semibold text-cyan-600">
+                      👁️ Top sản phẩm theo lượt xem
+                    </span>
+                  }
+                  className="shadow-lg h-full"
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={topByViews.slice(0, 5)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="productName"
+                        tick={{ fontSize: 11 }}
+                        angle={-20}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="views"
+                        fill="#06b6d4"
+                        name="Lượt xem"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </Card>
               </motion.div>
             </Col>
@@ -454,7 +889,7 @@ const OverviewSection = () => {
                         }}
                       >
                         {(orderStats?.ordersByStatus || []).map(
-                          (entry, index) => (
+                          (_entry, index) => (
                             <Cell
                               key={`cell-${index}`}
                               fill={COLORS[index % COLORS.length]}

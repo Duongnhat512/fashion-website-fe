@@ -24,7 +24,6 @@ import {
   PlusOutlined,
   MinusOutlined,
   UserOutlined,
-  StarFilled,
   EditOutlined,
   DeleteOutlined,
   CloseOutlined,
@@ -63,9 +62,6 @@ export default function ProductDetail() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewPage, setReviewPage] = useState(1);
   const [reviewTotal, setReviewTotal] = useState(0);
-  const [newReviewRating, setNewReviewRating] = useState(5);
-  const [newReviewComment, setNewReviewComment] = useState("");
-  const [submittingReview, setSubmittingReview] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
@@ -185,46 +181,6 @@ export default function ProductDetail() {
     }
   }, [product?.id]);
 
-  // Submit review
-  const handleSubmitReview = async () => {
-    if (!product?.id) return;
-
-    const token = authService.getToken();
-    if (!token) {
-      notify.warning("Vui lòng đăng nhập để đánh giá!");
-      setShowLoginDialog(true);
-      return;
-    }
-
-    if (!newReviewComment.trim()) {
-      notify.warning("Vui lòng nhập nội dung đánh giá!");
-      return;
-    }
-
-    try {
-      setSubmittingReview(true);
-      await reviewService.createReview(
-        {
-          productId: product.id,
-          rating: newReviewRating,
-          comment: newReviewComment.trim(),
-        },
-        token
-      );
-
-      notify.success("Đánh giá của bạn đã được gửi!");
-      setNewReviewComment("");
-      setNewReviewRating(5);
-
-      // Reload reviews
-      loadReviews(product.id, 1);
-    } catch (error: any) {
-      notify.error(error.message || "Không thể gửi đánh giá!");
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
   // Start editing review
   const startEditReview = (review: Review) => {
     setEditingReviewId(review.id);
@@ -342,20 +298,6 @@ export default function ProductDetail() {
       return;
     }
 
-    // Kiểm tra tồn kho
-    if ((selectedVariant?.stock || 0) === 0) {
-      notify.error("Sản phẩm này hiện đã hết hàng!");
-      return;
-    }
-
-    // Kiểm tra số lượng đặt có vượt quá tồn kho không
-    if (quantity > (selectedVariant?.stock || 0)) {
-      notify.warning(
-        `Số lượng tồn kho chỉ còn ${selectedVariant?.stock || 0} sản phẩm!`
-      );
-      return;
-    }
-
     addToCart(
       {
         ...product,
@@ -463,40 +405,27 @@ export default function ProductDetail() {
                       </div>
                     )}
 
-                    {/* Hiển thị tồn kho */}
-                    {selectedVariant && (
-                      <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-lg text-gray-700">
-                            Tồn kho:
-                          </span>
-                          <span
-                            className={`text-xl font-bold ${
-                              (selectedVariant.stock || 0) > 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {(selectedVariant.stock || 0) > 0
-                              ? `${selectedVariant.stock || 0} sản phẩm`
-                              : "Hết hàng"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     <div className="flex items-center gap-4">
-                      {selectedVariant?.price && (
-                        <div className="text-2xl text-gray-400 line-through font-medium">
-                          {selectedVariant.price.toLocaleString("vi-VN")}₫
-                        </div>
-                      )}
-                      {selectedVariant?.discountPrice && (
-                        <div className="text-4xl font-bold text-red-600">
-                          {selectedVariant.discountPrice.toLocaleString(
-                            "vi-VN"
-                          )}
-                          ₫
+                      {/* Nếu có giảm giá */}
+                      {selectedVariant &&
+                      selectedVariant.discountPrice > 0 &&
+                      selectedVariant.discountPrice < selectedVariant.price ? (
+                        <>
+                          <div className="text-2xl text-gray-400 line-through font-medium">
+                            {selectedVariant.price.toLocaleString("vi-VN")}₫
+                          </div>
+
+                          <div className="text-4xl font-bold text-red-600">
+                            {selectedVariant.discountPrice.toLocaleString(
+                              "vi-VN"
+                            )}
+                            ₫
+                          </div>
+                        </>
+                      ) : (
+                        // Nếu không giảm giá → chỉ hiển thị price
+                        <div className="text-4xl font-bold text-gray-900">
+                          {selectedVariant?.price.toLocaleString("vi-VN")}₫
                         </div>
                       )}
                     </div>
@@ -516,18 +445,12 @@ export default function ProductDetail() {
                       />
                       <InputNumber
                         min={1}
-                        max={
-                          (selectedVariant?.stock || 0) > 0
-                            ? selectedVariant?.stock || 0
-                            : 0
-                        }
                         value={quantity}
                         onChange={(v) => setQuantity(v || 1)}
                         style={{ width: 100 }}
                         controls={false}
                         size="large"
                         className="text-lg"
-                        disabled={(selectedVariant?.stock || 0) === 0}
                       />
                       <Button
                         size="large"
@@ -546,16 +469,9 @@ export default function ProductDetail() {
                         size="large"
                         icon={<ShoppingCartOutlined />}
                         onClick={handleAddToCart}
-                        disabled={(selectedVariant?.stock || 0) === 0}
-                        className={`text-base font-medium px-8 ${
-                          (selectedVariant?.stock || 0) === 0
-                            ? "bg-gray-400 border-gray-400 cursor-not-allowed"
-                            : "bg-black hover:bg-gray-800 border-black"
-                        }`}
+                        className="text-base font-medium px-8 bg-black hover:bg-gray-800 border-black"
                       >
-                        {(selectedVariant?.stock || 0) === 0
-                          ? "Hết hàng"
-                          : "Thêm vào giỏ hàng"}
+                        Thêm vào giỏ hàng
                       </Button>
                       <Button
                         size="large"
@@ -819,6 +735,19 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
                             <p className="text-gray-700 whitespace-pre-wrap">
                               {review.comment}
                             </p>
+                          )}
+                          {review.images && review.images.length > 0 && (
+                            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                              {review.images.map((image, index) => (
+                                <img
+                                  key={index}
+                                  src={image}
+                                  alt={`Ảnh đánh giá ${index + 1}`}
+                                  className="w-full aspect-square object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => window.open(image, "_blank")}
+                                />
+                              ))}
+                            </div>
                           )}
                           {review.isVerified && (
                             <Tag color="green" className="mt-2">

@@ -1,4 +1,5 @@
 import { API_CONFIG } from '../config/api.config';
+import type { Product } from '../types/product.types';
 
 export interface CreateReviewDto {
   productId: string;
@@ -14,9 +15,11 @@ export interface Review {
   userAvatar: string;
   rating: number;
   comment: string;
+  images?: string[];
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  product?: Product;
 }
 
 export interface ReviewsResponse {
@@ -33,8 +36,29 @@ export interface ReviewsResponse {
 
 class ReviewService {
   /**
-   * Lấy danh sách reviews của một sản phẩm
+   * Lấy tất cả reviews (cho admin)
    */
+  async getAllReviews(page: number = 1, limit: number = 10): Promise<ReviewsResponse> {
+    try {
+      const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.GET_ALL}?page=${page}&limit=${limit}`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể tải danh sách đánh giá');
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('Get all reviews error:', error);
+      throw error;
+    }
+  }
   async getProductReviews(
     productId: string,
     page: number = 1,

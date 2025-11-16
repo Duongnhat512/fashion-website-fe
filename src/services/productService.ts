@@ -61,16 +61,20 @@ class ProductService {
   /**
    * 🧩 Lấy chi tiết sản phẩm theo ID
    */
-  async getProductById(id: string, token: string): Promise<Product> {
-    const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_BY_ID.replace(':id', id)}`;
-    return this.makeRequest<any>(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-  }
+ async getProductById(id: string, token: string): Promise<Product> {
+  const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_BY_ID.replace(':id', id)}`;
+  const res = await this.makeRequest<any>(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  // 🔥 FIX: API trả về data: [product]
+  return res[0]; 
+}
+
 
   /**
    * ➕ Tạo sản phẩm mới

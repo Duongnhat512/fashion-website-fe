@@ -8,7 +8,7 @@ export const API_CONFIG = {
       CREATE: '/products',
       UPDATE: '/products',
       DELETE: '/products/delete/:id',
-      GET_BY_ID: '/products/:id',
+      GET_BY_ID: '/products/search/:id',
     },
 
     CATEGORIES: {
@@ -85,16 +85,25 @@ export const API_CONFIG = {
     },
     REVIEWS: {
       GET_BY_PRODUCT: '/reviews/product/:productId',
+      GET_ALL: '/reviews',
       CREATE: '/reviews',
       UPDATE: '/reviews/:id',
       DELETE: '/reviews/:id',
     },
     STATISTICS: {
       DASHBOARD: '/statistics/dashboard',
+      REVENUE: '/statistics/revenue',
+      REVENUE_BY_STATUS: '/statistics/revenue/by-status',
+      REVENUE_TIME_SERIES: '/statistics/revenue/time-series',
       TOP_SELLING_PRODUCTS: '/statistics/products/top-selling',
       PRODUCTS_STATISTICS: '/statistics/products/statistics',
+      SALES_DETAIL: '/statistics/products/sales-detail',
+      TOP_BY_REVENUE: '/statistics/products/top-by-revenue',
+      TOP_BY_VIEWS: '/statistics/products/top-by-views',
+      REVENUE_HOURLY: '/statistics/revenue/hourly',
+      REVENUE_COMPARISON: '/statistics/revenue/comparison',
+      PROFIT_TIME_SERIES: '/statistics/profit/time-series',
       ORDERS_STATISTICS: '/statistics/orders',
-      REVENUE: '/statistics/revenue',
     },
     CHAT_BOT: {
       SEND_MESSAGE: '/chatbot/chat',

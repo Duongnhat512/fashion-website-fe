@@ -215,15 +215,11 @@ const OrderManagement: React.FC = () => {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Quản lý đơn hàng</h2>
+      {/* Bộ lọc trạng thái */}
+      <div className="mb-6 flex gap-3 flex-wrap">
         <Button type="primary" onClick={fetchOrders} loading={loading}>
           Làm mới
         </Button>
-      </div>
-
-      {/* Bộ lọc trạng thái */}
-      <div className="mb-6 flex gap-3 flex-wrap">
         <Button
           type={statusFilter === "all" ? "primary" : "default"}
           onClick={() => setStatusFilter("all")}

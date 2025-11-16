@@ -552,9 +552,9 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
   // ⏳ Loading
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-300 border-t-purple-600" />
-        <p className="ml-4 text-purple-600 font-semibold text-lg">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-300 border-t-gray-600" />
+        <p className="ml-4 text-gray-600 font-semibold text-lg">
           Đang tải sản phẩm...
         </p>
       </div>
@@ -562,7 +562,7 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
 
   // 🖼 Render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
+    <div className="min-h-screen bg-gray-300">
       <div className="max-w-[1600px] mx-auto px-6 py-12">
         {/* 🖼 Carousel Banner */}
         <div className="mb-12 relative p-[4px] rounded-[28px] bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500">

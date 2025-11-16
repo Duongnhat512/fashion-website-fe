@@ -17,6 +17,7 @@ import {
   Empty,
   Pagination,
   Popconfirm,
+  Upload,
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -70,6 +71,7 @@ export default function ProductDetail() {
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [editReviewRating, setEditReviewRating] = useState(5);
   const [editReviewComment, setEditReviewComment] = useState("");
+  const [editReviewImages, setEditReviewImages] = useState<any[]>([]);
 
   useEffect(() => {
     // Scroll to top khi vào trang
@@ -78,34 +80,59 @@ export default function ProductDetail() {
     const loadProduct = async () => {
       if (!slug) return;
 
-      // Kiểm tra xem có product được truyền qua state không
-      const stateProduct = location.state?.product as Product | undefined;
+      setLoading(true);
 
-      if (stateProduct && stateProduct.slug === slug) {
-        // Sử dụng product từ state
-        console.log("✅ Sử dụng product từ state:", stateProduct);
-        setProduct(stateProduct);
-        if (stateProduct.variants?.length > 0) {
-          setSelectedVariant(stateProduct.variants[0]);
+      try {
+        // Kiểm tra xem có product được truyền qua state không
+        const stateProduct = location.state?.product as Product | undefined;
+
+        // Hiển thị product từ state trước (nếu có) để tăng tốc độ
+        if (stateProduct && stateProduct.slug === slug) {
+          console.log("✅ Hiển thị tạm product từ state:", stateProduct);
+          setProduct(stateProduct);
+          if (stateProduct.variants?.length > 0) {
+            setSelectedVariant(stateProduct.variants[0]);
+            setMainImage(
+              stateProduct.variants[0].imageUrl || stateProduct.imageUrl
+            );
+          } else {
+            setMainImage(stateProduct.imageUrl);
+          }
+        }
+
+        // Luôn load lại product đầy đủ từ API để có đầy đủ thông tin
+        const response = await productService.searchProducts({
+          slug,
+          limit: 1,
+        });
+        if (!response.products || response.products.length === 0) {
+          throw new Error("Product not found");
+        }
+
+        const fullProduct = response.products[0];
+        console.log("✅ Load product đầy đủ từ API:", fullProduct);
+
+        setProduct(fullProduct);
+        if (fullProduct.variants?.length > 0) {
+          setSelectedVariant(fullProduct.variants[0]);
           setMainImage(
-            stateProduct.variants[0].imageUrl || stateProduct.imageUrl
+            fullProduct.variants[0].imageUrl || fullProduct.imageUrl
           );
         } else {
-          setMainImage(stateProduct.imageUrl);
+          setMainImage(fullProduct.imageUrl);
         }
-        loadRelatedProducts(stateProduct.name, stateProduct.id);
-        setLoading(false);
-      } else {
-        // Không có product trong state
-        console.error("❌ Không tìm thấy sản phẩm!");
+        loadRelatedProducts(fullProduct.name, fullProduct.id);
+      } catch (error) {
+        console.error("❌ Lỗi khi tải sản phẩm:", error);
         notify.error("Không tìm thấy sản phẩm!");
         navigate("/");
+      } finally {
         setLoading(false);
       }
     };
 
     loadProduct();
-  }, [slug, navigate, location.state]);
+  }, [slug, navigate]);
 
   // Load inventory khi chọn variant - REMOVED: lấy stock trực tiếp từ variant
 
@@ -163,7 +190,17 @@ export default function ProductDetail() {
   const loadReviews = async (productId: string, page: number = 1) => {
     try {
       setReviewsLoading(true);
+      console.log("🔍 Loading reviews for product:", productId, "page:", page);
       const data = await reviewService.getProductReviews(productId, page, 10);
+      console.log("✅ Loaded reviews:", data.reviews.length, "reviews");
+      console.log(
+        "Reviews data:",
+        data.reviews.map((r) => ({
+          id: r.id,
+          productId: r.productId,
+          userName: r.userName,
+        }))
+      );
       setReviews(data.reviews);
       setReviewTotal(data.pagination.total);
       setReviewPage(page);
@@ -186,6 +223,14 @@ export default function ProductDetail() {
     setEditingReviewId(review.id);
     setEditReviewRating(review.rating);
     setEditReviewComment(review.comment);
+    setEditReviewImages(
+      review.images?.map((img, index) => ({
+        uid: `-${index}`,
+        name: `image-${index}`,
+        status: "done",
+        url: img,
+      })) || []
+    );
   };
 
   // Cancel editing
@@ -193,6 +238,7 @@ export default function ProductDetail() {
     setEditingReviewId(null);
     setEditReviewRating(5);
     setEditReviewComment("");
+    setEditReviewImages([]);
   };
 
   // Update review
@@ -210,11 +256,16 @@ export default function ProductDetail() {
     }
 
     try {
+      const imageFiles = editReviewImages
+        .filter((file) => file.originFileObj)
+        .map((file) => file.originFileObj);
+
       await reviewService.updateReview(
         reviewId,
         {
           rating: editReviewRating,
           comment: editReviewComment.trim(),
+          images: imageFiles.length > 0 ? imageFiles : undefined,
         },
         token
       );
@@ -308,7 +359,7 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-300">
       <div className="max-w-[1600px] mx-auto px-8 py-10">
         <Breadcrumb
           className="mb-6"
@@ -586,19 +637,22 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
         )}
 
         {/* Phần Đánh giá - Đặt dưới sản phẩm liên quan */}
+        {/* ===========================
+      ĐÁNH GIÁ SẢN PHẨM
+=========================== */}
         <div className="mt-12 bg-white rounded-2xl shadow-lg p-8">
           <h2 className="text-3xl font-bold mb-6 text-gray-800">
             Đánh giá sản phẩm
           </h2>
 
-          {/* Thông báo: Chỉ đánh giá qua đơn hàng đã hoàn thành */}
+          {/* Thông báo giới hạn đánh giá */}
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
               💡 <strong>Lưu ý:</strong> Bạn chỉ có thể đánh giá sản phẩm sau
-              khi đơn hàng được hoàn thành. Vui lòng truy cập{" "}
+              khi đơn hàng đã hoàn thành. Hãy truy cập{" "}
               <Link
                 to="/orders"
-                className="text-blue-600 font-semibold underline"
+                className="text-blue-600 underline font-semibold"
               >
                 Quản lý đơn hàng
               </Link>{" "}
@@ -606,122 +660,128 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
             </p>
           </div>
 
-          <div>
-            <h3 className="text-xl font-semibold mb-4 text-gray-800">
-              Các đánh giá ({reviewTotal})
-            </h3>
+          <h3 className="text-xl font-semibold mb-4 text-gray-800">
+            Các đánh giá ({reviewTotal})
+          </h3>
 
-            {reviewsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-700 mx-auto mb-4" />
-                <p className="text-gray-600">Đang tải đánh giá...</p>
-              </div>
-            ) : reviews.length === 0 ? (
-              <Empty description="Chưa có đánh giá nào" className="py-8" />
-            ) : (
-              <div className="space-y-4">
-                {/* Hiển thị 5 đánh giá đầu hoặc tất cả nếu showAllReviews = true */}
-                {(showAllReviews ? reviews : reviews.slice(0, 5)).map(
-                  (review) => (
-                    <div
-                      key={review.id}
-                      className="p-4 bg-gray-50 rounded-lg border border-gray-200"
-                    >
-                      <div className="flex items-start gap-4">
-                        <Avatar
-                          size={48}
-                          src={review.userAvatar}
-                          icon={<UserOutlined />}
-                          className="flex-shrink-0"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h4 className="font-semibold text-gray-900">
-                                {review.userName}
-                              </h4>
-                              <p className="text-xs text-gray-500">
-                                {new Date(review.createdAt).toLocaleDateString(
-                                  "vi-VN",
-                                  {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  }
-                                )}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {editingReviewId === review.id ? (
-                                <Rate
-                                  value={editReviewRating}
-                                  onChange={setEditReviewRating}
-                                  style={{ fontSize: 16 }}
-                                />
-                              ) : (
-                                <Rate
-                                  disabled
-                                  value={review.rating}
-                                  style={{ fontSize: 16 }}
-                                />
+          {reviewsLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-700 mx-auto mb-4" />
+              <p className="text-gray-600">Đang tải đánh giá...</p>
+            </div>
+          ) : reviews.length === 0 ? (
+            <Empty description="Chưa có đánh giá nào" className="py-8" />
+          ) : (
+            <div className="space-y-6">
+              {(showAllReviews ? reviews : reviews.slice(0, 5)).map(
+                (review) => (
+                  <div
+                    key={review.id}
+                    className="p-5 bg-gray-50 rounded-lg border border-gray-200 shadow-sm"
+                  >
+                    {/* === REVIEW ITEM === */}
+                    <div className="flex items-start gap-4">
+                      <Avatar
+                        size={48}
+                        src={review.userAvatar}
+                        icon={<UserOutlined />}
+                        className="flex-shrink-0"
+                      />
+
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">
+                              {review.userName}
+                            </h4>
+                            <p className="text-xs text-gray-500">
+                              {new Date(review.createdAt).toLocaleDateString(
+                                "vi-VN",
+                                {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
                               )}
-                              {/* Show edit/delete buttons if user owns this review */}
-                              {user && user.id === review.userId && (
-                                <Space size="small">
-                                  {editingReviewId === review.id ? (
-                                    <>
-                                      <Button
-                                        type="primary"
-                                        size="small"
-                                        icon={<CheckOutlined />}
-                                        onClick={() =>
-                                          handleUpdateReview(review.id)
-                                        }
-                                      >
-                                        Lưu
-                                      </Button>
-                                      <Button
-                                        size="small"
-                                        icon={<CloseOutlined />}
-                                        onClick={cancelEditReview}
-                                      >
-                                        Hủy
-                                      </Button>
-                                    </>
-                                  ) : (
-                                    <>
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            {/* Rating */}
+                            {editingReviewId === review.id ? (
+                              <Rate
+                                value={editReviewRating}
+                                onChange={setEditReviewRating}
+                                style={{ fontSize: 16 }}
+                              />
+                            ) : (
+                              <Rate
+                                disabled
+                                value={review.rating}
+                                style={{ fontSize: 16 }}
+                              />
+                            )}
+
+                            {/* Update/Delete nếu là review của chính user */}
+                            {user && user.id === review.userId && (
+                              <Space size="small">
+                                {editingReviewId === review.id ? (
+                                  <>
+                                    <Button
+                                      type="primary"
+                                      size="small"
+                                      icon={<CheckOutlined />}
+                                      onClick={() =>
+                                        handleUpdateReview(review.id)
+                                      }
+                                    >
+                                      Lưu
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      icon={<CloseOutlined />}
+                                      onClick={cancelEditReview}
+                                    >
+                                      Hủy
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      icon={<EditOutlined />}
+                                      onClick={() => startEditReview(review)}
+                                    />
+                                    <Popconfirm
+                                      title="Xóa đánh giá"
+                                      description="Bạn có chắc muốn xóa đánh giá này?"
+                                      onConfirm={() =>
+                                        handleDeleteReview(review.id)
+                                      }
+                                      okText="Xóa"
+                                      cancelText="Hủy"
+                                      okButtonProps={{ danger: true }}
+                                    >
                                       <Button
                                         type="text"
+                                        danger
                                         size="small"
-                                        icon={<EditOutlined />}
-                                        onClick={() => startEditReview(review)}
+                                        icon={<DeleteOutlined />}
                                       />
-                                      <Popconfirm
-                                        title="Xóa đánh giá"
-                                        description="Bạn có chắc chắn muốn xóa đánh giá này?"
-                                        onConfirm={() =>
-                                          handleDeleteReview(review.id)
-                                        }
-                                        okText="Xóa"
-                                        cancelText="Hủy"
-                                        okButtonProps={{ danger: true }}
-                                      >
-                                        <Button
-                                          type="text"
-                                          danger
-                                          size="small"
-                                          icon={<DeleteOutlined />}
-                                        />
-                                      </Popconfirm>
-                                    </>
-                                  )}
-                                </Space>
-                              )}
-                            </div>
+                                    </Popconfirm>
+                                  </>
+                                )}
+                              </Space>
+                            )}
                           </div>
-                          {editingReviewId === review.id ? (
+                        </div>
+
+                        {/* Nội dung đánh giá */}
+                        {editingReviewId === review.id ? (
+                          <div className="mt-2 space-y-3">
                             <TextArea
                               value={editReviewComment}
                               onChange={(e) =>
@@ -729,72 +789,147 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
                               }
                               placeholder="Nhập nội dung đánh giá..."
                               rows={3}
-                              className="mb-2"
                             />
-                          ) : (
-                            <p className="text-gray-700 whitespace-pre-wrap">
-                              {review.comment}
-                            </p>
-                          )}
-                          {review.images && review.images.length > 0 && (
-                            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                              {review.images.map((image, index) => (
-                                <img
-                                  key={index}
-                                  src={image}
-                                  alt={`Ảnh đánh giá ${index + 1}`}
-                                  className="w-full aspect-square object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
-                                  onClick={() => window.open(image, "_blank")}
-                                />
-                              ))}
+
+                            {/* Upload ảnh khi edit */}
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-700">
+                                Ảnh (tùy chọn, tối đa 5 ảnh)
+                              </label>
+                              <Upload
+                                listType="picture-card"
+                                fileList={editReviewImages}
+                                onChange={({ fileList }: any) =>
+                                  setEditReviewImages(fileList)
+                                }
+                                beforeUpload={() => false}
+                                multiple
+                                maxCount={5}
+                              >
+                                {editReviewImages.length < 5 && "+ Upload"}
+                              </Upload>
                             </div>
-                          )}
-                          {review.isVerified && (
-                            <Tag color="green" className="mt-2">
-                              Đã mua hàng
-                            </Tag>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-gray-700 whitespace-pre-wrap">
+                            {review.comment}
+                          </p>
+                        )}
+
+                        {/* Hình ảnh */}
+                        {(review.images ?? []).length > 0 && (
+                          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                            {(review.images ?? []).map((image, i) => (
+                              <img
+                                key={i}
+                                src={image}
+                                className="w-full aspect-square rounded-md object-cover border cursor-pointer hover:opacity-80 transition"
+                                onClick={() => window.open(image, "_blank")}
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        {review.isVerified && (
+                          <Tag color="green" className="mt-2">
+                            ✔ Đã mua hàng
+                          </Tag>
+                        )}
                       </div>
                     </div>
-                  )
-                )}
 
-                {/* Nút Xem thêm / Thu gọn */}
-                {reviews.length > 5 && (
-                  <div className="flex justify-center mt-6">
-                    <Button
-                      size="large"
-                      onClick={() => setShowAllReviews(!showAllReviews)}
-                      className="px-8"
-                    >
-                      {showAllReviews ? (
-                        <>Thu gọn ▲</>
-                      ) : (
-                        <>Xem thêm {reviews.length - 5} đánh giá ▼</>
-                      )}
-                    </Button>
-                  </div>
-                )}
+                    {/* === REPLIES === */}
+                    {review.replies && review.replies.length > 0 && (
+                      <div className="mt-4 ml-12 space-y-3 border-l-2 pl-4 border-gray-300">
+                        {review.replies.map((reply) => (
+                          <div
+                            key={reply.id}
+                            className="p-3 bg-white rounded-lg border border-gray-200"
+                          >
+                            <div className="flex items-start gap-3">
+                              <Avatar
+                                size={40}
+                                src={reply.userAvatar}
+                                icon={<UserOutlined />}
+                              />
 
-                {/* Pagination - chỉ hiển thị khi có nhiều hơn 10 reviews */}
-                {reviewTotal > 10 && (
-                  <div className="flex justify-center mt-6">
-                    <Pagination
-                      current={reviewPage}
-                      total={reviewTotal}
-                      pageSize={10}
-                      onChange={(page) => {
-                        loadReviews(product!.id, page);
-                        setShowAllReviews(false); // Reset về 5 đánh giá khi chuyển trang
-                      }}
-                      showSizeChanger={false}
-                    />
+                              <div className="flex-1">
+                                <h5 className="font-medium text-gray-900">
+                                  {reply.userName}
+                                </h5>
+                                <p className="text-xs text-gray-500 mb-2">
+                                  {new Date(reply.createdAt).toLocaleDateString(
+                                    "vi-VN",
+                                    {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }
+                                  )}
+                                </p>
+
+                                <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                                  {reply.comment}
+                                </p>
+
+                                {reply.images && reply.images.length > 0 && (
+                                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-1">
+                                    {reply.images.map((img, i) => (
+                                      <img
+                                        key={i}
+                                        src={img}
+                                        alt={`Ảnh reply ${i + 1}`}
+                                        className="w-full aspect-square object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                        onClick={() =>
+                                          window.open(img, "_blank")
+                                        }
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                )
+              )}
+
+              {/* Xem thêm / Thu gọn */}
+              {reviews.length > 5 && (
+                <div className="flex justify-center mt-6">
+                  <Button
+                    size="large"
+                    onClick={() => setShowAllReviews(!showAllReviews)}
+                  >
+                    {showAllReviews
+                      ? "Thu gọn ▲"
+                      : `Xem thêm ${reviews.length - 5} đánh giá ▼`}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {reviewTotal > 10 && (
+            <div className="flex justify-center mt-6">
+              <Pagination
+                current={reviewPage}
+                total={reviewTotal}
+                pageSize={10}
+                showSizeChanger={false}
+                onChange={(page) => {
+                  loadReviews(product!.id, page);
+                  setShowAllReviews(false);
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

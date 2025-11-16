@@ -1,3 +1,5 @@
+import { Import } from "lucide-react";
+
 export const API_CONFIG = {
   BASE_URL: '/api/v1',
 
@@ -9,6 +11,9 @@ export const API_CONFIG = {
       UPDATE: '/products',
       DELETE: '/products/delete/:id',
       GET_BY_ID: '/products/search/:id',
+      IMPORT: '/products/import/products',
+      IMPORT_VARIANTS: '/products/import/variants',
+
     },
 
     CATEGORIES: {

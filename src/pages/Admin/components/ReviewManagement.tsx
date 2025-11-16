@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   Button,
@@ -12,9 +13,17 @@ import {
   Popconfirm,
   AutoComplete,
   Input,
+  Upload,
+  Rate,
+  Modal,
 } from "antd";
-import { EyeOutlined, DeleteOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import {
+  EyeOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 import { reviewService, type Review } from "../../../services/reviewService";
 import { productService } from "../../../services/productService";
 import dayjs from "dayjs";
@@ -22,6 +31,7 @@ import { useNotification } from "../../../components/NotificationProvider";
 
 export default function ReviewManagement() {
   const notify = useNotification();
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +51,13 @@ export default function ReviewManagement() {
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+  // Reply states
+  const [replyModalVisible, setReplyModalVisible] = useState(false);
+  const [replyingToReview, setReplyingToReview] = useState<Review | null>(null);
+  const [replyComment, setReplyComment] = useState("");
+  const [replyImages, setReplyImages] = useState<any[]>([]);
+  const [submittingReply, setSubmittingReply] = useState(false);
 
   useEffect(() => {
     loadReviews();
@@ -234,6 +251,44 @@ export default function ReviewManagement() {
       loadReviews();
     } catch (error: any) {
       notify.error(error.message || "Lỗi khi xóa đánh giá");
+    }
+  };
+
+  const handleReplyReview = async () => {
+    if (!replyingToReview || !replyComment.trim()) {
+      notify.error("Vui lòng nhập nội dung trả lời");
+      return;
+    }
+
+    setSubmittingReply(true);
+    try {
+      const formData = new FormData();
+      formData.append("rating", "5");
+      formData.append("comment", replyComment);
+      formData.append("productId", replyingToReview.productId);
+      formData.append("replyToId", replyingToReview.id);
+
+      replyImages.forEach((file) => {
+        if (file.originFileObj) {
+          formData.append("images", file.originFileObj);
+        }
+      });
+
+      await reviewService.createReview(
+        formData,
+        localStorage.getItem("authToken") || ""
+      );
+
+      notify.success("Trả lời đánh giá thành công");
+      setReplyModalVisible(false);
+      setReplyingToReview(null);
+      setReplyComment("");
+      setReplyImages([]);
+      loadReviews(); // Reload để hiển thị reply mới
+    } catch (error: any) {
+      notify.error(error.message || "Lỗi khi trả lời đánh giá");
+    } finally {
+      setSubmittingReply(false);
     }
   };
 
@@ -438,6 +493,18 @@ export default function ReviewManagement() {
               </p>
 
               <p className="mt-2">{viewingReview.comment}</p>
+
+              <div className="mt-4">
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    setReplyingToReview(viewingReview);
+                    setReplyModalVisible(true);
+                  }}
+                >
+                  Trả lời đánh giá
+                </Button>
+              </div>
             </Card>
 
             <Card title="Sản phẩm được đánh giá" size="small">
@@ -452,7 +519,16 @@ export default function ReviewManagement() {
                     className="w-20 h-20 rounded object-cover"
                   />
                   <div>
-                    <p className="font-semibold">{viewingProduct.name}</p>
+                    <p
+                      className="font-semibold text-blue-600 hover:text-blue-800 cursor-pointer"
+                      onClick={() =>
+                        navigate(`/products/${viewingProduct.slug}`, {
+                          state: { product: viewingProduct },
+                        })
+                      }
+                    >
+                      {viewingProduct.name}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -476,9 +552,113 @@ export default function ReviewManagement() {
                 </div>
               </Card>
             ) : null}
+
+            {viewingReview.replies?.length ? (
+              <Card
+                size="small"
+                title={`Trả lời (${viewingReview.replies.length})`}
+              >
+                <div className="space-y-3">
+                  {viewingReview.replies.map((reply) => (
+                    <div
+                      key={reply.id}
+                      className="border-l-4 border-blue-500 pl-4 bg-blue-50 p-3 rounded"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-blue-700">
+                          {reply.userName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {dayjs(reply.createdAt).format("DD/MM/YYYY HH:mm")}
+                        </span>
+                        {reply.rating && (
+                          <span className="text-sm font-bold text-yellow-500">
+                            {reply.rating} ⭐
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-700">{reply.comment}</p>
+                      {reply.images?.length ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                          {reply.images.map((img, i) => (
+                            <Image
+                              key={i}
+                              src={img}
+                              className="w-full h-16 object-cover rounded"
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ) : null}
           </div>
         )}
       </Drawer>
+
+      <Modal
+        title="Trả lời đánh giá"
+        open={replyModalVisible}
+        onCancel={() => {
+          setReplyModalVisible(false);
+          setReplyingToReview(null);
+          setReplyComment("");
+          setReplyImages([]);
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setReplyModalVisible(false);
+              setReplyingToReview(null);
+              setReplyComment("");
+              setReplyImages([]);
+            }}
+          >
+            Hủy
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={submittingReply}
+            onClick={handleReplyReview}
+          >
+            Gửi trả lời
+          </Button>,
+        ]}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block font-medium mb-2">Nội dung trả lời</label>
+            <Input.TextArea
+              value={replyComment}
+              onChange={(e) => setReplyComment(e.target.value)}
+              placeholder="Nhập nội dung trả lời..."
+              rows={4}
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium mb-2">
+              Ảnh đính kèm (tùy chọn)
+            </label>
+            <Upload
+              multiple
+              listType="picture-card"
+              fileList={replyImages}
+              onChange={({ fileList }) => setReplyImages(fileList)}
+              beforeUpload={() => false}
+            >
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Tải lên</div>
+              </div>
+            </Upload>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

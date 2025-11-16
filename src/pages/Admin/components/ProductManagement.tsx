@@ -3,6 +3,7 @@ import { categoryService } from "../../../services/categoryService";
 import { colorService } from "../../../services/colorService";
 import { authService } from "../../../services/authService";
 import { productService } from "../../../services/productService";
+import { API_CONFIG } from "../../../config/api.config";
 import {
   Table,
   Button,
@@ -95,6 +96,13 @@ const ProductManagement: React.FC = () => {
     useState<File | null>(null);
   const [currentVariantImageFileList, setCurrentVariantImageFileList] =
     useState<UploadFile[]>([]);
+
+  // Import state
+  // Import state
+  const [importingProducts, setImportingProducts] = useState(false);
+  const [importingVariants, setImportingVariants] = useState(false);
+  const productImportRef = React.useRef<HTMLInputElement>(null);
+  const variantImportRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -511,6 +519,131 @@ const ProductManagement: React.FC = () => {
     }
   };
 
+  // Hàm xử lý import sản phẩm từ JSON
+  const handleImportProductsChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    await handleImportProducts(file);
+    // Reset input để có thể chọn lại cùng file
+    e.target.value = "";
+  };
+
+  const handleImportProducts = async (file: File) => {
+    setImportingProducts(true);
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        notify.error("Vui lòng đăng nhập");
+        return;
+      }
+
+      console.log("🚀 Starting import products...", file.name);
+
+      // Tạo FormData để gửi file
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Gửi request đến API import
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCTS.IMPORT}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      console.log("📡 Response status:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Lỗi khi import sản phẩm");
+      }
+
+      const result = await response.json();
+      console.log("✅ Import result:", result);
+
+      notify.success(result.message || "Import sản phẩm thành công");
+      await fetchProducts();
+    } catch (err: any) {
+      console.error("Import products error:", err);
+      notify.error(err.message || "Lỗi khi import sản phẩm");
+    } finally {
+      setImportingProducts(false);
+    }
+  };
+
+  // Hàm xử lý import thuộc tính (variants) từ JSON
+  const handleImportVariantsChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    await handleImportVariants(file);
+    // Reset input để có thể chọn lại cùng file
+    e.target.value = "";
+  };
+
+  const handleImportVariants = async (file: File) => {
+    setImportingVariants(true);
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        notify.error("Vui lòng đăng nhập");
+        return;
+      }
+
+      // Tạo FormData để gửi file
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Gửi request đến API import variants
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCTS.IMPORT_VARIANTS}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Lỗi khi import thuộc tính");
+      }
+
+      const result = await response.json();
+
+      // Nếu API trả về danh sách variants, set vào form
+      if (result.data && Array.isArray(result.data)) {
+        const validVariants = result.data.map((v: any) => ({
+          size: v.size,
+          price: v.price,
+          stock: v.stock || 0,
+          colorId: v.colorId || v.color?.id,
+          imageFile: null,
+          imagePreview: null,
+        }));
+        setVariants(validVariants);
+      }
+
+      notify.success(result.message || "Import thuộc tính thành công");
+    } catch (err: any) {
+      console.error("Import variants error:", err);
+      notify.error(err.message || "Lỗi khi import thuộc tính");
+    } finally {
+      setImportingVariants(false);
+    }
+  };
+
   const productColumns = [
     {
       title: "Ảnh",
@@ -653,6 +786,38 @@ const ProductManagement: React.FC = () => {
           <Button onClick={() => fetchProducts()}>Làm mới</Button>
           <Button type="primary" onClick={() => setCreateModalVisible(true)}>
             Thêm sản phẩm
+          </Button>
+          <input
+            ref={productImportRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportProductsChange}
+            style={{ display: "none" }}
+          />
+          <Button
+            type="default"
+            onClick={() => productImportRef.current?.click()}
+            icon={<UploadOutlined />}
+            loading={importingProducts}
+            disabled={importingProducts}
+          >
+            {importingProducts ? "Đang import..." : "Import sản phẩm"}
+          </Button>
+          <input
+            ref={variantImportRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportVariantsChange}
+            style={{ display: "none" }}
+          />
+          <Button
+            type="default"
+            onClick={() => variantImportRef.current?.click()}
+            icon={<UploadOutlined />}
+            loading={importingVariants}
+            disabled={importingVariants}
+          >
+            {importingVariants ? "Đang import..." : "Import thuộc tính"}
           </Button>
         </div>
       </div>

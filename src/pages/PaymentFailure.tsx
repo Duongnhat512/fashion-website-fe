@@ -10,7 +10,7 @@ const PaymentFailure: React.FC = () => {
   const orderId = params.get("orderId");
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-red-50 to-rose-100">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

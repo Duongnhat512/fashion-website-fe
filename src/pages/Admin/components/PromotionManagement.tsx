@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   Button,
@@ -38,6 +39,7 @@ const { TextArea } = Input;
 
 export default function PromotionManagement() {
   const notify = useNotification();
+  const navigate = useNavigate();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -555,7 +557,18 @@ export default function PromotionManagement() {
                             className="w-12 h-12 object-cover rounded"
                           />
                         }
-                        title={product.name}
+                        title={
+                          <span
+                            className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                            onClick={() =>
+                              navigate(`/products/${product.slug}`, {
+                                state: { product },
+                              })
+                            }
+                          >
+                            {product.name}
+                          </span>
+                        }
                         description={product.shortDescription}
                       />
                     </List.Item>

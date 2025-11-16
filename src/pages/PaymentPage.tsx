@@ -163,7 +163,7 @@ const PaymentPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
+    <div className="min-h-screen bg-gray-300">
       <div className="w-full px-2 lg:px-4 grid grid-cols-1 xl:grid-cols-3 gap-6 pt-8 pb-24">
         {/* --- Danh sách sản phẩm --- */}
         <div className="xl:col-span-2 space-y-6">

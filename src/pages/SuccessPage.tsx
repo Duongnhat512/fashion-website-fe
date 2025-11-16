@@ -6,7 +6,7 @@ const SuccessPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50 px-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}

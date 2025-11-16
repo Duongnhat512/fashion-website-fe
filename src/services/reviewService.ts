@@ -7,6 +7,17 @@ export interface CreateReviewDto {
   comment: string;
 }
 
+export interface ReviewReply {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  comment: string;
+  rating?: number;
+  images?: string[];
+  createdAt: string;
+}
+
 export interface Review {
   id: string;
   productId: string;
@@ -20,6 +31,7 @@ export interface Review {
   createdAt: string;
   updatedAt: string;
   product?: Product;
+  replies?: ReviewReply[];
 }
 
 export interface ReviewsResponse {
@@ -87,27 +99,50 @@ class ReviewService {
   /**
    * Tạo review mới
    */
-  async createReview(data: CreateReviewDto, token: string): Promise<Review> {
+  async createReview(data: CreateReviewDto | FormData, token: string): Promise<Review> {
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.CREATE}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(data),
+      if (data instanceof FormData) {
+        // Handle FormData for reviews with images
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.CREATE}`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: data,
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Không thể tạo đánh giá');
         }
-      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Không thể tạo đánh giá');
+        const result = await response.json();
+        return result.data;
+      } else {
+        // Handle JSON data
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.CREATE}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Không thể tạo đánh giá');
+        }
+
+        const result = await response.json();
+        return result.data;
       }
-
-      const result = await response.json();
-      return result.data;
     } catch (error) {
       console.error('Create review error:', error);
       throw error;
@@ -119,10 +154,24 @@ class ReviewService {
    */
   async updateReview(
     reviewId: string,
-    data: { rating?: number; comment?: string },
+    data: { rating?: number; comment?: string; images?: File[] },
     token: string
   ): Promise<Review> {
     try {
+      const formData = new FormData();
+      
+      if (data.rating !== undefined) {
+        formData.append('rating', data.rating.toString());
+      }
+      if (data.comment !== undefined) {
+        formData.append('comment', data.comment);
+      }
+      if (data.images && data.images.length > 0) {
+        data.images.forEach((file) => {
+          formData.append('images', file);
+        });
+      }
+
       const response = await fetch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.UPDATE.replace(
           ':id',
@@ -131,10 +180,9 @@ class ReviewService {
         {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(data),
+          body: formData,
         }
       );
 

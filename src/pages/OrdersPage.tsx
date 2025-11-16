@@ -206,9 +206,10 @@ const OrdersPage = () => {
       formData.append("productId", reviewingProduct.id);
       formData.append("rating", reviewRating.toString());
       formData.append("comment", reviewComment.trim());
-      reviewImages.forEach((file) => {
+      // Append images
+      reviewImages.forEach((file, index) => {
         if (file.originFileObj) {
-          formData.append("images", file.originFileObj);
+          formData.append(`images`, file.originFileObj);
         }
       });
 
@@ -287,8 +288,8 @@ const OrdersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-purple-50 to-pink-50 p-6">
-      <div className="max-w-6xl mx-auto bg-white rounded-3xl shadow-xl p-8">
+    <div className="min-h-screen bg-gray-300 p-6">
+      <div className="max-w-[1600px] mx-auto bg-white rounded-3xl shadow-xl p-8">
         <h1 className="text-3xl font-extrabold text-gray-800 mb-8 text-center">
           🧾 Quản lý đơn hàng
         </h1>
@@ -360,6 +361,29 @@ const OrdersPage = () => {
                     {STATUS_LABELS[order.status] || order.status}
                   </Tag>
                 </div>
+                {/* Shipping address */}
+                {order.shippingAddress && (
+                  <div className="mt-2 text-gray-700 bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm">
+                      <strong>Người nhận:</strong>{" "}
+                      {order.shippingAddress.fullName}
+                    </p>
+                    <p className="text-sm">
+                      <strong>SĐT:</strong> {order.shippingAddress.phone}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Địa chỉ:</strong>{" "}
+                      {[
+                        order.shippingAddress.fullAddress,
+                        order.shippingAddress.ward,
+                        order.shippingAddress.district,
+                        order.shippingAddress.city,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  </div>
+                )}
 
                 {/* Items */}
                 <div className="divide-y divide-gray-100">

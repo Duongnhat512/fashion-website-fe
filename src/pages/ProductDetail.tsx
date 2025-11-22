@@ -492,10 +492,11 @@ export default function ProductDetail() {
                         size="large"
                         icon={<MinusOutlined />}
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={(selectedVariant?.stock || 0) === 0}
+                        disabled={quantity <= 1}
                       />
                       <InputNumber
                         min={1}
+                        max={selectedVariant?.stock || 999}
                         value={quantity}
                         onChange={(v) => setQuantity(v || 1)}
                         style={{ width: 100 }}
@@ -508,8 +509,9 @@ export default function ProductDetail() {
                         icon={<PlusOutlined />}
                         onClick={() => setQuantity(quantity + 1)}
                         disabled={
-                          (selectedVariant?.stock || 0) === 0 ||
-                          quantity >= (selectedVariant?.stock || 0)
+                          selectedVariant?.stock
+                            ? quantity >= selectedVariant.stock
+                            : false
                         }
                       />
                     </Space>

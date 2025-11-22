@@ -206,10 +206,9 @@ const OrdersPage = () => {
       formData.append("productId", reviewingProduct.id);
       formData.append("rating", reviewRating.toString());
       formData.append("comment", reviewComment.trim());
-      // Append images
-      reviewImages.forEach((file, index) => {
+      reviewImages.forEach((file) => {
         if (file.originFileObj) {
-          formData.append(`images`, file.originFileObj);
+          formData.append("images", file.originFileObj);
         }
       });
 

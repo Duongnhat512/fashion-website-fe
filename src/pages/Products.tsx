@@ -140,7 +140,7 @@ const Products = () => {
     totalFiltered > itemsPerPage && totalFiltered > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-300">
       <div className="max-w-[1600px] mx-auto px-6 py-12">
         <div className="flex gap-8">
           {/* ⬅️ SIDEBAR */}

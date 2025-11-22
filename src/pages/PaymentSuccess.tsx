@@ -10,7 +10,7 @@ const PaymentSuccess: React.FC = () => {
   const amount = Number(params.get("amount"));
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300 px-4">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

@@ -1,8 +1,8 @@
 import { Import } from "lucide-react";
 
 export const API_CONFIG = {
-  BASE_URL: '/api/v1',
-
+  // BASE_URL: '/api/v1',
+  BASE_URL: 'https://virtual-emmanuel-chiropodial.ngrok-free.dev/api/v1',
   ENDPOINTS: {
     PRODUCTS: {
       GET_ALL: '/products',

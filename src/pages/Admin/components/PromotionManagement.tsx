@@ -295,14 +295,14 @@ export default function PromotionManagement() {
           >
             Xem
           </Button>
-
+          {/* 
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
             Sửa
-          </Button>
+          </Button> */}
 
           {/* SUBMIT */}
           {record.status === "draft" && (
@@ -495,6 +495,11 @@ export default function PromotionManagement() {
               showSearch
               placeholder="Không chọn = áp dụng tất cả"
               options={products.map((p) => ({ value: p.id, label: p.name }))}
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
             />
           </Form.Item>
 

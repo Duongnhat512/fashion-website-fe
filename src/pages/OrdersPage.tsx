@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Empty, Spin, Tag, Modal, Rate, Input, Button, Upload } from "antd";
+import {
+  Empty,
+  Spin,
+  Tag,
+  Modal,
+  Rate,
+  Input,
+  Button,
+  Upload,
+  Pagination,
+} from "antd";
 import orderService from "../services/orderService";
 import paymentService from "../services/paymentService";
 import { useNotification } from "../components/NotificationProvider";
@@ -59,10 +69,15 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [paginationInfo, setPaginationInfo] = useState<any>(null);
+
   // Review modal states
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewingProduct, setReviewingProduct] = useState<any>(null);
-  console.log("reviewingProduct", reviewingProduct);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -77,17 +92,51 @@ const OrdersPage = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const result = await orderService.getUserOrders(user.id);
-        if (activeTab === "all") setOrders(result);
-        else setOrders(result.filter((o: any) => o.status === activeTab));
-      } catch {
+
+        if (activeTab === "all") {
+          // Use pagination for "all" tab
+          const result = await orderService.getUserOrders(
+            user.id,
+            pageSize,
+            currentPage
+          );
+          if (result && result.orders && Array.isArray(result.orders)) {
+            setOrders(result.orders);
+            setTotalOrders(result.pagination?.total || 0);
+            setPaginationInfo(result.pagination);
+          } else {
+            setOrders([]);
+            setTotalOrders(0);
+            setPaginationInfo(null);
+          }
+        } else {
+          // For status tabs, fetch all and filter (no pagination for simplicity)
+          const result = await orderService.getUserOrders(user.id);
+          if (result && result.orders && Array.isArray(result.orders)) {
+            const filteredOrders = result.orders.filter(
+              (o: any) => o.status === activeTab
+            );
+            setOrders(filteredOrders);
+            setTotalOrders(filteredOrders.length);
+            setPaginationInfo(null);
+          } else {
+            setOrders([]);
+            setTotalOrders(0);
+            setPaginationInfo(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching orders:", error);
         notify.error("Không thể tải danh sách đơn hàng!");
+        setOrders([]);
+        setTotalOrders(0);
+        setPaginationInfo(null);
       } finally {
         setLoading(false);
       }
     };
     fetchOrders();
-  }, [activeTab]);
+  }, [activeTab, currentPage, pageSize]);
 
   const formatCurrency = (v: number) =>
     v.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
@@ -300,7 +349,10 @@ const OrdersPage = () => {
               key={tab.value}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveTab(tab.value)}
+              onClick={() => {
+                setActiveTab(tab.value);
+                setCurrentPage(1); // Reset to page 1 when changing tabs
+              }}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                 activeTab === tab.value
                   ? "bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-md"
@@ -520,6 +572,29 @@ const OrdersPage = () => {
             ))}
           </div>
         )}
+
+        {/* Pagination - only show for "all" tab */}
+        {activeTab === "all" &&
+          paginationInfo &&
+          paginationInfo.totalPages > 1 && (
+            <div className="flex justify-center mt-8">
+              <Pagination
+                current={currentPage}
+                total={totalOrders}
+                pageSize={pageSize}
+                onChange={(page) => setCurrentPage(page)}
+                showSizeChanger={false}
+                showQuickJumper
+                locale={{ jump_to: "Đi đến trang", page: "" }}
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} của ${total} đơn hàng`
+                }
+              />
+              <div className="ml-4 text-sm text-gray-500 flex items-center">
+                Trang {paginationInfo.page}/{paginationInfo.totalPages}
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Review Modal */}

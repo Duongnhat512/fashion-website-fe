@@ -91,24 +91,47 @@ class OrderService {
   }
 
   // 🟢 Lấy tất cả đơn hàng (Admin)
-  async getAllOrders(): Promise<OrderResponse[]> {
+  async getAllOrders(limit?: number, page?: number): Promise<{orders: OrderResponse[], pagination?: any}> {
     const token = localStorage.getItem('authToken');
+    let url = API_CONFIG.ENDPOINTS.ORDERS.GET_ALL;
 
-    return this.makeRequest<OrderResponse[]>(API_CONFIG.ENDPOINTS.ORDERS.GET_ALL, {
+    const params = new URLSearchParams();
+    if (limit !== undefined) params.append('limit', limit.toString());
+    if (page !== undefined) params.append('page', page.toString());
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const result = await this.makeRequest<any>(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
+
+    // API trả về {orders: OrderResponse[], pagination: {...}}
+    return result;
   }
 
   // 🟢 Lấy danh sách đơn hàng của user (đã sửa đúng)
-  async getUserOrders(userId: string): Promise<OrderResponse[]> {
+  async getUserOrders(userId: string, limit?: number, page?: number): Promise<{orders: OrderResponse[], pagination?: any}> {
     const token = localStorage.getItem('authToken');
-    const url = API_CONFIG.ENDPOINTS.ORDERS.GET_USER_ORDERS.replace(':userId', userId);
+    let url = API_CONFIG.ENDPOINTS.ORDERS.GET_USER_ORDERS.replace(':userId', userId);
 
-    return this.makeRequest<OrderResponse[]>(url, {
+    const params = new URLSearchParams();
+    if (limit !== undefined) params.append('limit', limit.toString());
+    if (page !== undefined) params.append('page', page.toString());
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const result = await this.makeRequest<any>(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
+
+    // API trả về {orders: OrderResponse[], pagination: {...}}
+    return result;
   }
 
   // 🟢 Lấy chi tiết đơn hàng

@@ -48,7 +48,7 @@ const OrderManagement: React.FC = () => {
     try {
       setLoading(true);
       const data = await orderService.getAllOrders();
-      const sortedData = data.sort(
+      const sortedData = data.orders.sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );

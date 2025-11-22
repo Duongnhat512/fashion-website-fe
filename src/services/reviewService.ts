@@ -16,6 +16,7 @@ export interface ReviewReply {
   rating?: number;
   images?: string[];
   createdAt: string;
+  replyToId?: string | null;
 }
 
 export interface Review {

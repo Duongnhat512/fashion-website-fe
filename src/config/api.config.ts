@@ -13,6 +13,7 @@ export const API_CONFIG = {
       GET_BY_ID: '/products/search/:id',
       IMPORT: '/products/import/products',
       IMPORT_VARIANTS: '/products/import/variants',
+      RECOMMENDATIONS: '/products/recommendations',
 
     },
 

@@ -198,6 +198,13 @@ const HomePage = () => {
           </div>
         </div>
 
+        {/* Badge giảm giá */}
+        {v?.onSales && v.discountPercent && v.discountPercent > 0 && (
+          <div className="absolute top-3 left-3 bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold z-10">
+            -{v.discountPercent}%
+          </div>
+        )}
+
         {/* 🖼 Ảnh sản phẩm */}
         <motion.div
           className="relative overflow-hidden"
@@ -238,41 +245,46 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
         </motion.div>
 
         {/* Thông tin sản phẩm */}
-        <div className="p-4 flex flex-col justify-between h-[140px] text-gray-900">
+        <div className="p-4 text-gray-900">
           <h3 className="font-semibold text-base line-clamp-2 min-h-[48px]">
             {p.name}
           </h3>
 
-          <div className="flex justify-between items-center mt-3">
-            <div className="flex flex-col gap-1">
-              {hasDiscount ? (
-                <>
-                  <span className="text-sm text-gray-400 line-through">
-                    {(v?.price || 0).toLocaleString("vi-VN")}₫
-                  </span>
-                  <span className="text-lg font-bold text-red-600">
-                    {(v?.discountPrice || 0).toLocaleString("vi-VN")}₫
-                  </span>
-                </>
-              ) : (
-                <span className="text-lg font-bold text-gray-900">
+          {/* --- GIÁ --- */}
+          <div className="mt-3 flex items-center gap-2">
+            {hasDiscount ? (
+              <>
+                {/* Giá gốc bị gạch */}
+                <span className="text-sm text-gray-500 line-through">
                   {(v?.price || 0).toLocaleString("vi-VN")}₫
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <Rate
-                disabled
-                value={p.ratingAverage}
-                style={{
-                  fontSize: 14,
-                  color: p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
-                }}
-              />
-              <span className="text-xs text-gray-700">
-                ({p.ratingCount || 0})
+
+                {/* Giá giảm */}
+                <span className="text-lg font-bold text-red-600">
+                  {(v?.discountPrice || 0).toLocaleString("vi-VN")}₫
+                </span>
+              </>
+            ) : (
+              /* Giá thường */
+              <span className="text-lg font-bold text-gray-900">
+                {(v?.price || 0).toLocaleString("vi-VN")}₫
               </span>
-            </div>
+            )}
+          </div>
+
+          {/* --- RATING --- */}
+          <div className="flex items-center gap-1 mt-1">
+            <Rate
+              disabled
+              value={p.ratingAverage}
+              style={{
+                fontSize: 14,
+                color: p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
+              }}
+            />
+            <span className="text-xs text-gray-700">
+              ({p.ratingCount || 0})
+            </span>
           </div>
         </div>
       </div>
@@ -330,6 +342,13 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
           </div>
         </div>
 
+        {/* Badge giảm giá */}
+        {v?.onSales && v.discountPercent && v.discountPercent > 0 && (
+          <div className="absolute top-3 left-3 bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold z-10">
+            -{v.discountPercent}%
+          </div>
+        )}
+
         {/* 🖼 Ảnh sản phẩm */}
         <motion.div
           className="relative overflow-hidden"
@@ -374,36 +393,41 @@ rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
             {p.name}
           </h3>
 
-          <div className="flex justify-between items-center mt-3">
-            <div className="flex flex-col gap-1">
-              {hasDiscount ? (
-                <>
-                  <span className="text-sm text-gray-400 line-through">
-                    {(v?.price || 0).toLocaleString("vi-VN")}₫
-                  </span>
-                  <span className="text-lg font-bold text-red-600">
-                    {(v?.discountPrice || 0).toLocaleString("vi-VN")}₫
-                  </span>
-                </>
-              ) : (
-                <span className="text-lg font-bold text-gray-900">
+          {/* --- GIÁ --- */}
+          <div className="mt-3 flex items-center gap-2">
+            {hasDiscount ? (
+              <>
+                {/* Giá gốc bị gạch */}
+                <span className="text-sm text-gray-500 line-through">
                   {(v?.price || 0).toLocaleString("vi-VN")}₫
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <Rate
-                disabled
-                value={p.ratingAverage}
-                style={{
-                  fontSize: 14,
-                  color: p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
-                }}
-              />
-              <span className="text-xs text-gray-700">
-                ({p.ratingCount || 0})
+
+                {/* Giá giảm */}
+                <span className="text-lg font-bold text-red-600">
+                  {(v?.discountPrice || 0).toLocaleString("vi-VN")}₫
+                </span>
+              </>
+            ) : (
+              /* Giá thường */
+              <span className="text-lg font-bold text-gray-900">
+                {(v?.price || 0).toLocaleString("vi-VN")}₫
               </span>
-            </div>
+            )}
+          </div>
+
+          {/* --- RATING --- */}
+          <div className="flex items-center gap-1 mt-1">
+            <Rate
+              disabled
+              value={p.ratingAverage}
+              style={{
+                fontSize: 14,
+                color: p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
+              }}
+            />
+            <span className="text-xs text-gray-700">
+              ({p.ratingCount || 0})
+            </span>
           </div>
         </div>
       </div>
@@ -469,6 +493,13 @@ rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
           </div>
         </div>
 
+        {/* Badge giảm giá */}
+        {v?.onSales && v.discountPercent && v.discountPercent > 0 && (
+          <div className="absolute top-3 left-3 bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold z-10">
+            -{v.discountPercent}%
+          </div>
+        )}
+
         {/* 🖼 Ảnh sản phẩm */}
         <motion.div
           className="relative overflow-hidden"
@@ -513,36 +544,41 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
             {p.name}
           </h3>
 
-          <div className="flex justify-between items-center mt-3">
-            <div className="flex flex-col gap-1">
-              {hasDiscount ? (
-                <>
-                  <span className="text-sm text-gray-400 line-through">
-                    {(v?.price || 0).toLocaleString("vi-VN")}₫
-                  </span>
-                  <span className="text-lg font-bold text-red-600">
-                    {(v?.discountPrice || 0).toLocaleString("vi-VN")}₫
-                  </span>
-                </>
-              ) : (
-                <span className="text-lg font-bold text-gray-900">
+          {/* --- GIÁ --- */}
+          <div className="mt-3 flex items-center gap-2">
+            {hasDiscount ? (
+              <>
+                {/* Giá gốc bị gạch */}
+                <span className="text-sm text-gray-500 line-through">
                   {(v?.price || 0).toLocaleString("vi-VN")}₫
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <Rate
-                disabled
-                value={p.ratingAverage}
-                style={{
-                  fontSize: 14,
-                  color: p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
-                }}
-              />
-              <span className="text-xs text-gray-700">
-                ({p.ratingCount || 0})
+
+                {/* Giá giảm */}
+                <span className="text-lg font-bold text-red-600">
+                  {(v?.discountPrice || 0).toLocaleString("vi-VN")}₫
+                </span>
+              </>
+            ) : (
+              /* Giá thường */
+              <span className="text-lg font-bold text-gray-900">
+                {(v?.price || 0).toLocaleString("vi-VN")}₫
               </span>
-            </div>
+            )}
+          </div>
+
+          {/* --- RATING --- */}
+          <div className="flex items-center gap-1 mt-1">
+            <Rate
+              disabled
+              value={p.ratingAverage}
+              style={{
+                fontSize: 14,
+                color: p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
+              }}
+            />
+            <span className="text-xs text-gray-700">
+              ({p.ratingCount || 0})
+            </span>
           </div>
         </div>
       </div>

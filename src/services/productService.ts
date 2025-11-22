@@ -75,6 +75,17 @@ class ProductService {
   return res[0]; 
 }
 
+  /**
+   * 🎯 Lấy sản phẩm gợi ý cho người dùng
+   */
+  async getRecommendations(token: string): Promise<Product[]> {
+    return this.makeRequest<Product[]>(API_CONFIG.ENDPOINTS.PRODUCTS.RECOMMENDATIONS, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  }
 
   /**
    * ➕ Tạo sản phẩm mới

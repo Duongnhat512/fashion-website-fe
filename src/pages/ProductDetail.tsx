@@ -30,6 +30,7 @@ import { useCart } from "../contexts/CartContext";
 const { Option } = Select;
 import { useNotification } from "../components/NotificationProvider";
 import { useAuth } from "../contexts/AuthContext";
+import { authService } from "../services/authService";
 import LoginDialog from "../components/LoginDialog";
 import ProductReviews from "../components/ProductReviews";
 
@@ -76,18 +77,39 @@ export default function ProductDetail() {
           } else {
             setMainImage(stateProduct.imageUrl);
           }
+
+          // Nếu stateProduct đã đầy đủ (có variants), không cần load lại
+          if (stateProduct.variants && stateProduct.categoryId) {
+            loadRelatedProducts(stateProduct.name, stateProduct.id);
+            // Ghi nhận người dùng đã xem sản phẩm nếu đã đăng nhập
+            if (user) {
+              const token = authService.getToken();
+              if (token) {
+                try {
+                  await productService.getProductById(stateProduct.id, token);
+                  console.log(
+                    "✅ Đã ghi nhận lượt xem sản phẩm:",
+                    stateProduct.id
+                  );
+                } catch (error) {
+                  console.error("❌ Lỗi ghi nhận lượt xem:", error);
+                }
+              }
+            }
+            setLoading(false);
+            return;
+          }
         }
 
         // Luôn load lại product đầy đủ từ API để có đầy đủ thông tin
-        const response = await productService.searchProducts({
-          slug,
-          limit: 1,
-        });
-        if (!response.products || response.products.length === 0) {
-          throw new Error("Product not found");
+        if (!stateProduct) {
+          throw new Error("No product data available");
         }
-
-        const fullProduct = response.products[0];
+        const token = user ? authService.getToken() : undefined;
+        const fullProduct = await productService.getProductById(
+          stateProduct.id,
+          token || ""
+        );
         console.log("✅ Load product đầy đủ từ API:", fullProduct);
 
         setProduct(fullProduct);
@@ -270,7 +292,9 @@ export default function ProductDetail() {
                         className="text-xl"
                       />
                       <span className="text-gray-600 text-base">
-                        ({product.ratingCount} đánh giá)
+                        {product.ratingCount > 0
+                          ? `(${product.ratingCount} đánh giá)`
+                          : "(Chưa có đánh giá)"}
                       </span>
                     </div>
 
@@ -430,10 +454,19 @@ export default function ProductDetail() {
                       whileHover="visible"
                       variants={{ hidden: {}, visible: {} }}
                     >
+                      {/* Badge giảm giá */}
+                      {v?.onSales &&
+                        v.discountPercent &&
+                        v.discountPercent > 0 && (
+                          <div className="absolute top-3 right-3 bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold z-10">
+                            -{v.discountPercent}%
+                          </div>
+                        )}
+
                       <img
                         src={v?.imageUrl || p.imageUrl}
                         alt={p.name}
-                        className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                        className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />
 
                       {/* Thanh overlay chi tiết */}
@@ -466,29 +499,48 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
                     </motion.div>
 
                     {/* Thông tin sản phẩm */}
-                    <div className="p-4 flex flex-col justify-between h-[140px] text-gray-900">
+                    <div className="p-4 text-gray-900">
                       <h3 className="font-semibold text-base line-clamp-2 min-h-[48px]">
                         {p.name}
                       </h3>
 
-                      <div className="flex justify-between items-center mt-3">
-                        <span className="text-lg font-bold text-gray-900">
-                          {(v?.price || 0).toLocaleString("vi-VN")}₫
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Rate
-                            disabled
-                            value={p.ratingAverage}
-                            style={{
-                              fontSize: 14,
-                              color:
-                                p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
-                            }}
-                          />
-                          <span className="text-xs text-gray-700">
-                            ({p.ratingCount || 0})
+                      {/* --- GIÁ --- */}
+                      <div className="mt-3 flex items-center gap-2">
+                        {v &&
+                        v.discountPrice > 0 &&
+                        v.discountPrice < v.price ? (
+                          <>
+                            {/* Giá gốc bị gạch */}
+                            <span className="text-sm text-gray-500 line-through">
+                              {v.price.toLocaleString("vi-VN")}₫
+                            </span>
+
+                            {/* Giá giảm */}
+                            <span className="text-lg font-bold text-red-600">
+                              {v.discountPrice.toLocaleString("vi-VN")}₫
+                            </span>
+                          </>
+                        ) : (
+                          /* Giá thường */
+                          <span className="text-lg font-bold text-gray-900">
+                            {(v?.price || 0).toLocaleString("vi-VN")}₫
                           </span>
-                        </div>
+                        )}
+                      </div>
+
+                      {/* --- RATING --- */}
+                      <div className="flex items-center gap-1 mt-1">
+                        <Rate
+                          disabled
+                          value={p.ratingAverage}
+                          style={{
+                            fontSize: 14,
+                            color: p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
+                          }}
+                        />
+                        <span className="text-xs text-gray-700">
+                          ({p.ratingCount || 0})
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -5,10 +5,15 @@ import { motion } from "framer-motion";
 
 import { productService } from "../services/productService";
 import type { Product } from "../types/product.types";
+import { useAuth } from "../contexts/AuthContext";
+import { authService } from "../services/authService";
 
 const Products = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+
+  console.log("Products component render - user:", user);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -58,18 +63,20 @@ const Products = () => {
   const fetchProducts = async (page: number = 1) => {
     try {
       setLoading(true);
+
       const params: any = {
         page,
-        limit: 1000, // Lấy tối đa 1000 sản phẩm từ API
+        limit: 1000, // lấy tối đa để tự phân trang client
       };
 
-      // Truyền search query từ URL vào API nếu có
-      if (searchQuery) params.search = searchQuery;
+      // Nếu có search hoặc category -> bỏ gợi ý
+      const isFilter =
+        searchQuery || selectedCategoryId || sortBy !== "default";
 
-      // Truyền categoryId vào API nếu có
+      if (searchQuery) params.search = searchQuery;
       if (selectedCategoryId) params.categoryId = selectedCategoryId;
 
-      // Gửi sort lên server nếu có
+      // sort
       if (sortBy !== "default") {
         if (sortBy === "price-asc") {
           params.sortBy = "price";
@@ -86,16 +93,57 @@ const Products = () => {
         }
       }
 
+      // ⬇️ API lấy toàn bộ danh sách
       const res = await productService.searchProducts(params);
-      setProducts(res.products);
+      let normalProducts = res.products;
+
+      let recommendedProducts: Product[] = [];
+
+      // ⬇️ Chỉ lấy recommend nếu user login + không filter
+      if (user && !isFilter) {
+        console.log("User logged in:", user);
+        const token = authService.getToken();
+        console.log("Token:", token);
+
+        if (token) {
+          try {
+            recommendedProducts = await productService.getRecommendations(
+              token
+            );
+            console.log("Raw recommendations:", recommendedProducts);
+
+            // bỏ sp trùng nhau khỏi normalProducts
+            normalProducts = normalProducts.filter(
+              (p) => !recommendedProducts.some((rec) => rec.id === p.id)
+            );
+
+            console.log("Recommended Products:", recommendedProducts);
+          } catch (err) {
+            console.error("Lỗi recommend:", err);
+          }
+        } else {
+          console.log("No token");
+        }
+      } else {
+        console.log("No user");
+      }
+
+      // 🚀 GHÉP GỢI Ý + SẢN PHẨM BÌNH THƯỜNG
+      const finalList = [...recommendedProducts, ...normalProducts];
+
+      setProducts(finalList);
+
+      // update phân trang
+      const total = finalList.length;
+
       setPagination({
-        page: res.pagination.page,
+        page: page,
         limit: pagination.limit,
-        total: res.pagination.total,
-        totalPages: Math.ceil(res.pagination.total / pagination.limit), // Tính lại số trang
+        total: total,
+        totalPages: Math.ceil(total / pagination.limit),
       });
-    } catch (error) {
-      console.error("❌ Lỗi tải sản phẩm:", error);
+    } catch (err) {
+      console.error("❌ Lỗi tải sản phẩm:", err);
     } finally {
       setLoading(false);
     }
@@ -119,7 +167,7 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts(1);
-  }, [selectedCategoryId, searchQuery, sortBy]);
+  }, [selectedCategoryId, searchQuery, sortBy, user]);
 
   const handlePageChange = (page: number) => {
     setPagination((prev) => ({ ...prev, page }));
@@ -234,17 +282,27 @@ const Products = () => {
                         initial="hidden"
                         whileHover="visible"
                       >
+                        {/* --- BADGE GIẢM GIÁ --- */}
+                        {v?.onSales &&
+                          v.discountPercent &&
+                          v.discountPercent > 0 && (
+                            <div className="absolute top-3 right-3 bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold z-10">
+                              -{v.discountPercent}%
+                            </div>
+                          )}
+
+                        {/* Hình sản phẩm */}
                         <img
                           src={v?.imageUrl || p.imageUrl}
                           alt={p.name}
                           className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                         />
 
-                        {/* Hiệu ứng Xem chi tiết */}
+                        {/* Hiệu ứng xem chi tiết */}
                         <motion.div
                           className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent
-                            opacity-0 group-hover:opacity-100 transition-opacity duration-500
-                            flex items-center justify-center"
+        opacity-0 group-hover:opacity-100 transition-opacity duration-500
+        flex items-center justify-center"
                           variants={{
                             hidden: { y: "150%", opacity: 0 },
                             visible: { y: "0%", opacity: 1 },
@@ -252,44 +310,64 @@ const Products = () => {
                           transition={{ duration: 0.4, ease: "easeOut" }}
                         >
                           <div
-                            className="w-[90%] text-center py-3
-                              bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
-rounded-md shadow-[0,4px,20px,rgba(0,0,0,0.35)]
-border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-300
-"
+                            className="w-[90%] text-center py-3 bg-black/60 backdrop-blur-sm text-white font-semibold uppercase tracking-wide text-sm
+        rounded-md border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-300"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToDetail(p);
                             }}
                           >
-                            XEM CHI TIẾT &nbsp; ➜
+                            XEM CHI TIẾT ➜
                           </div>
                         </motion.div>
                       </motion.div>
 
-                      <div className="p-4 flex flex-col justify-between h-[140px] text-gray-900">
+                      {/* --- BODY PRODUCT CARD --- */}
+                      <div className="p-4 text-gray-900">
+                        {/* Tên sản phẩm */}
                         <h3 className="font-semibold text-base line-clamp-2 min-h-[48px]">
                           {p.name}
                         </h3>
 
-                        <div className="flex justify-between items-center mt-3">
-                          <span className="text-lg font-bold text-gray-900">
-                            {(v?.price || 0).toLocaleString("vi-VN")}₫
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <Rate
-                              disabled
-                              value={p.ratingAverage}
-                              style={{
-                                fontSize: 14,
-                                color:
-                                  p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
-                              }}
-                            />
-                            <span className="text-xs text-gray-700">
-                              ({p.ratingCount || 0})
+                        {/* --- GIÁ --- */}
+                        {/* --- GIÁ --- */}
+                        <div className="mt-3 flex items-center gap-2">
+                          {v?.onSales &&
+                          v.discountPercent &&
+                          v.discountPercent > 0 ? (
+                            <>
+                              {/* Giá gốc bị gạch */}
+                              <span className="text-sm text-gray-500 line-through">
+                                {v.price.toLocaleString("vi-VN")}₫
+                              </span>
+
+                              {/* Giá giảm */}
+                              <span className="text-lg font-bold text-red-600">
+                                {v.discountPrice.toLocaleString("vi-VN")}₫
+                              </span>
+                            </>
+                          ) : (
+                            /* Giá thường */
+                            <span className="text-lg font-bold text-gray-900">
+                              {v?.price?.toLocaleString("vi-VN")}₫
                             </span>
-                          </div>
+                          )}
+                        </div>
+
+                        {/* --- RATING --- */}
+                        <div className="flex items-center gap-1 mt-1">
+                          <Rate
+                            disabled
+                            value={p.ratingAverage}
+                            style={{
+                              fontSize: 14,
+                              color:
+                                p.ratingAverage > 0 ? "#faad14" : "#d9d9d9",
+                            }}
+                          />
+                          <span className="text-xs text-gray-700">
+                            ({p.ratingCount || 0})
+                          </span>
                         </div>
                       </div>
                     </div>

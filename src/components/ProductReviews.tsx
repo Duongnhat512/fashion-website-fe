@@ -203,7 +203,7 @@ export default function ProductReviews({
       </div>
 
       <h3 className="text-xl font-semibold mb-4 text-gray-800">
-        Các đánh giá ({reviewTotal})
+        {reviewTotal > 0 ? `Các đánh giá (${reviewTotal})` : "Các đánh giá"}
       </h3>
 
       {reviewsLoading ? (

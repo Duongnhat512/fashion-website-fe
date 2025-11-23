@@ -224,7 +224,7 @@ export default function ProductReviews({
               <div className="flex items-start gap-4">
                 <Avatar
                   size={48}
-                  src={review.userAvatar}
+                  src={review.userAvatar || undefined}
                   icon={<UserOutlined />}
                   className="flex-shrink-0"
                 />
@@ -357,14 +357,20 @@ export default function ProductReviews({
                       {/* Nếu chỉ có 1 hình */}
                       {(review.images ?? []).length === 1 ? (
                         <div className="relative group cursor-pointer overflow-hidden rounded-lg w-32 h-32">
-                          <img
-                            src={(review.images ?? [])[0]}
-                            alt={`Ảnh đánh giá ${review.userName}`}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            onClick={() =>
-                              openImageViewer(review.images ?? [], 0)
-                            }
-                          />
+                          {(review.images ?? [])[0] ? (
+                            <img
+                              src={(review.images ?? [])[0]}
+                              alt={`Ảnh đánh giá ${review.userName}`}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              onClick={() =>
+                                openImageViewer(review.images ?? [], 0)
+                              }
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+                              Không có ảnh
+                            </div>
+                          )}
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-2">
                               <span className="text-gray-800 font-medium text-xs">
@@ -385,11 +391,17 @@ export default function ProductReviews({
                                   openImageViewer(review.images ?? [], i)
                                 }
                               >
-                                <img
-                                  src={image}
-                                  alt={`Ảnh đánh giá ${i + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={`Ảnh đánh giá ${i + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+                                    Không có ảnh
+                                  </div>
+                                )}
 
                                 {/* Overlay hover */}
                                 <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-all flex items-center justify-center">
@@ -431,7 +443,7 @@ export default function ProductReviews({
                       <div className="flex items-start gap-3">
                         <Avatar
                           size={40}
-                          src={reply.userAvatar}
+                          src={reply.userAvatar || undefined}
                           icon={<UserOutlined />}
                         />
 
@@ -546,11 +558,17 @@ export default function ProductReviews({
 
           {/* Main image */}
           <div className="flex items-center justify-center h-full">
-            <img
-              src={viewerImages[currentImageIndex]}
-              alt={`Ảnh ${currentImageIndex + 1}`}
-              className="max-w-full max-h-full object-contain"
-            />
+            {viewerImages[currentImageIndex] ? (
+              <img
+                src={viewerImages[currentImageIndex]}
+                alt={`Ảnh ${currentImageIndex + 1}`}
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <div className="text-white text-center">
+                <p>Không thể tải ảnh</p>
+              </div>
+            )}
           </div>
 
           {/* Navigation arrows */}

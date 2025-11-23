@@ -22,6 +22,7 @@ import { useNotification } from "../../../components/NotificationProvider";
 
 const OrderManagement: React.FC = () => {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [allOrders, setAllOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(
     null
@@ -30,29 +31,35 @@ const OrderManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
+  const [totalOrders, setTotalOrders] = useState(0);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const notify = useNotification();
   useEffect(() => {
-    fetchOrders();
+    fetchAllOrders();
   }, []);
 
   useEffect(() => {
-    // Reset selected orders khi filter thay đổi
-    setSelectedOrders([]);
-  }, [statusFilter]);
+    // Filter orders based on statusFilter
+    const filtered =
+      statusFilter === "all"
+        ? allOrders
+        : allOrders.filter((order) => order.status === statusFilter);
 
-  const fetchOrders = async () => {
+    setOrders(filtered);
+    setTotalOrders(filtered.length);
+    setCurrentPage(1); // Reset to first page when filter changes
+    setSelectedOrders([]); // Reset selected orders when filter changes
+  }, [statusFilter, allOrders]);
+
+  const fetchAllOrders = async () => {
     try {
       setLoading(true);
-      const data = await orderService.getAllOrders();
-      const sortedData = data.orders.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setOrders(sortedData);
+      // Fetch all orders without pagination for client-side filtering
+      const data = await orderService.getAllOrders(1000, 1); // Large limit to get all orders
+      setAllOrders(data.orders);
     } catch (error) {
       notify.error("Không thể tải danh sách đơn hàng");
       console.error(error);
@@ -87,7 +94,7 @@ const OrderManagement: React.FC = () => {
     try {
       await orderService.markOrderAsReadyToShip(orderId);
       notify.success("Đã đánh dấu đơn hàng sẵn sàng giao!");
-      fetchOrders();
+      fetchAllOrders(); // Refresh all orders
     } catch (error) {
       notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
@@ -98,7 +105,7 @@ const OrderManagement: React.FC = () => {
     try {
       await orderService.markOrderAsDelivered(orderId);
       notify.success("Đã xác nhận đơn hàng đã giao!");
-      fetchOrders();
+      fetchAllOrders(); // Refresh all orders
     } catch (error) {
       notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
@@ -109,7 +116,7 @@ const OrderManagement: React.FC = () => {
     try {
       await orderService.markOrderAsShipping(orderId);
       notify.success("Đã xác nhận đơn hàng đang giao!");
-      fetchOrders();
+      fetchAllOrders(); // Refresh all orders
     } catch (error) {
       notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
@@ -126,6 +133,7 @@ const OrderManagement: React.FC = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
+      const paginatedOrders = getPaginatedOrders();
       const completedOrderIds = paginatedOrders
         .filter((order) => order.status === "completed")
         .map((order) => order.id);
@@ -180,9 +188,35 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  const getPaginatedOrders = () => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return orders.slice(startIndex, endIndex);
+  };
+
+  const getStatusCounts = () => {
+    const counts: Record<string, number> = {
+      all: allOrders.length,
+      unpaid: 0,
+      pending: 0,
+      ready_to_ship: 0,
+      shipping: 0,
+      delivered: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    allOrders.forEach((order) => {
+      counts[order.status] = (counts[order.status] || 0) + 1;
+    });
+
+    return counts;
+  };
+
   const orderColumns = [
     {
       title: () => {
+        const paginatedOrders = getPaginatedOrders();
         const completedOrders = paginatedOrders.filter(
           (order) => order.status === "completed"
         );
@@ -320,71 +354,72 @@ const OrderManagement: React.FC = () => {
     },
   ];
 
-  const filteredOrders =
-    statusFilter === "all"
-      ? orders
-      : orders.filter((order) => order.status === statusFilter);
-
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
-
   return (
     <div>
       {/* Bộ lọc trạng thái */}
       <div className="mb-6 flex gap-3 flex-wrap">
-        <Button type="primary" onClick={fetchOrders} loading={loading}>
+        <Button
+          type="primary"
+          onClick={() => fetchAllOrders()}
+          loading={loading}
+        >
           Làm mới
         </Button>
-        <Button
-          type={statusFilter === "all" ? "primary" : "default"}
-          onClick={() => setStatusFilter("all")}
-        >
-          Tất cả ({orders.length})
-        </Button>
-        <Button
-          type={statusFilter === "unpaid" ? "primary" : "default"}
-          onClick={() => setStatusFilter("unpaid")}
-        >
-          Chưa thanh toán ({orders.filter((o) => o.status === "unpaid").length})
-        </Button>
-        <Button
-          type={statusFilter === "pending" ? "primary" : "default"}
-          onClick={() => setStatusFilter("pending")}
-        >
-          Chờ xử lý ({orders.filter((o) => o.status === "pending").length})
-        </Button>
-        <Button
-          type={statusFilter === "ready_to_ship" ? "primary" : "default"}
-          onClick={() => setStatusFilter("ready_to_ship")}
-        >
-          Sẵn sàng giao (
-          {orders.filter((o) => o.status === "ready_to_ship").length})
-        </Button>
-        <Button
-          type={statusFilter === "shipping" ? "primary" : "default"}
-          onClick={() => setStatusFilter("shipping")}
-        >
-          Đang giao ({orders.filter((o) => o.status === "shipping").length})
-        </Button>
-        <Button
-          type={statusFilter === "delivered" ? "primary" : "default"}
-          onClick={() => setStatusFilter("delivered")}
-        >
-          Đã giao ({orders.filter((o) => o.status === "delivered").length})
-        </Button>
-        <Button
-          type={statusFilter === "completed" ? "primary" : "default"}
-          onClick={() => setStatusFilter("completed")}
-        >
-          Hoàn thành ({orders.filter((o) => o.status === "completed").length})
-        </Button>
-        <Button
-          type={statusFilter === "cancelled" ? "primary" : "default"}
-          onClick={() => setStatusFilter("cancelled")}
-        >
-          Đã hủy ({orders.filter((o) => o.status === "cancelled").length})
-        </Button>
+        {(() => {
+          const counts = getStatusCounts();
+          return (
+            <>
+              <Button
+                type={statusFilter === "all" ? "primary" : "default"}
+                onClick={() => setStatusFilter("all")}
+              >
+                Tất cả ({counts.all})
+              </Button>
+              <Button
+                type={statusFilter === "unpaid" ? "primary" : "default"}
+                onClick={() => setStatusFilter("unpaid")}
+              >
+                Chưa thanh toán ({counts.unpaid})
+              </Button>
+              <Button
+                type={statusFilter === "pending" ? "primary" : "default"}
+                onClick={() => setStatusFilter("pending")}
+              >
+                Chờ xử lý ({counts.pending})
+              </Button>
+              <Button
+                type={statusFilter === "ready_to_ship" ? "primary" : "default"}
+                onClick={() => setStatusFilter("ready_to_ship")}
+              >
+                Sẵn sàng giao ({counts.ready_to_ship})
+              </Button>
+              <Button
+                type={statusFilter === "shipping" ? "primary" : "default"}
+                onClick={() => setStatusFilter("shipping")}
+              >
+                Đang giao ({counts.shipping})
+              </Button>
+              <Button
+                type={statusFilter === "delivered" ? "primary" : "default"}
+                onClick={() => setStatusFilter("delivered")}
+              >
+                Đã giao ({counts.delivered})
+              </Button>
+              <Button
+                type={statusFilter === "completed" ? "primary" : "default"}
+                onClick={() => setStatusFilter("completed")}
+              >
+                Hoàn thành ({counts.completed})
+              </Button>
+              <Button
+                type={statusFilter === "cancelled" ? "primary" : "default"}
+                onClick={() => setStatusFilter("cancelled")}
+              >
+                Đã hủy ({counts.cancelled})
+              </Button>
+            </>
+          );
+        })()}
       </div>
 
       {/* Nút hóa đơn cho đơn hàng đã hoàn thành */}
@@ -414,18 +449,18 @@ const OrderManagement: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <Table
           columns={orderColumns}
-          dataSource={paginatedOrders}
+          dataSource={getPaginatedOrders()}
           loading={loading}
           rowKey="id"
           pagination={false}
         />
       </div>
 
-      {filteredOrders.length > 0 && (
+      {totalOrders > 0 && (
         <div className="flex justify-center mt-8">
           <Pagination
             current={currentPage}
-            total={filteredOrders.length}
+            total={totalOrders}
             pageSize={pageSize}
             onChange={(page) => setCurrentPage(page)}
             showSizeChanger={false}

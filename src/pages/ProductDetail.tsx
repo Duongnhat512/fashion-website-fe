@@ -300,7 +300,7 @@ export default function ProductDetail() {
                         </span>
                         <Select
                           value={selectedVariant?.id}
-                          onChange={(value) => {
+                          onChange={async (value) => {
                             const variant =
                               product.variants.find((v) => v.id === value) ||
                               null;
@@ -309,6 +309,30 @@ export default function ProductDetail() {
                               setMainImage(
                                 variant.imageUrl || product.imageUrl
                               );
+
+                            // Ghi nhận người dùng đã xem variant này nếu đã đăng nhập
+                            if (user && variant) {
+                              const token = authService.getToken();
+                              if (token) {
+                                try {
+                                  await productService.getProductById(
+                                    product.id,
+                                    token
+                                  );
+                                  console.log(
+                                    "✅ Đã ghi nhận lượt xem variant:",
+                                    variant.id,
+                                    "của sản phẩm:",
+                                    product.id
+                                  );
+                                } catch (error) {
+                                  console.error(
+                                    "❌ Lỗi ghi nhận lượt xem variant:",
+                                    error
+                                  );
+                                }
+                              }
+                            }
                           }}
                           style={{ minWidth: 220 }}
                           size="large"

@@ -68,6 +68,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             cartKey: `${item.product.id}-${item.variant?.id ?? "default"}`,
             name: item.product.name,
             price: item.variant?.discountPrice ?? item.variant?.price ?? 0,
+            originalPrice: item.variant?.price ?? item.product.price ?? 0,
+            discountPercent:
+              item.variant?.discountPercent ?? item.product.discountPercent,
             qty: item.quantity,
             image:
               item.variant?.imageUrl ||
@@ -169,13 +172,21 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     const variant = product.variants?.[0] ?? null;
     const cartKey = variant ? `${product.id}-${variant.id}` : product.id;
-    const price = variant ? variant.price : product.price || 0;
+    const price = variant
+      ? variant.discountPrice || variant.price
+      : product.discountPrice || product.price || 0;
+    const originalPrice = variant ? variant.price : product.price || 0;
+    const discountPercent = variant
+      ? variant.discountPercent
+      : product.discountPercent;
 
     const cartItem: CartItem = {
       id: product.id,
       cartKey,
       name: product.name,
       price: price,
+      originalPrice: originalPrice,
+      discountPercent: discountPercent,
       qty,
       image: variant?.imageUrl || product.imageUrl,
       productId: product.id,

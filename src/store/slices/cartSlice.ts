@@ -5,6 +5,8 @@ export interface CartItem {
   cartKey: string;
   name: string;
   price: number;
+  originalPrice?: number; // Giá gốc trước khi giảm
+  discountPercent?: number; // Phần trăm giảm giá
   qty: number;
   image: string;
   productId: string;

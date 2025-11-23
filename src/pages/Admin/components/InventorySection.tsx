@@ -1305,7 +1305,7 @@ const InventorySection: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-600">Mã phiếu</p>
                   <p className="font-mono font-bold text-purple-600">
-                    {selectedStockEntry.id.slice(0, 8)}...
+                    {selectedStockEntry.id}...
                   </p>
                 </div>
                 <div>

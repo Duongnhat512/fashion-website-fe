@@ -6,6 +6,7 @@ import { orderService } from "../services/orderService";
 import type { CreateOrderRequest } from "../services/orderService";
 import { useNotification } from "../components/NotificationProvider";
 import { authService } from "../services/authService";
+import { Modal } from "antd";
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("vi-VN", {
@@ -34,6 +35,7 @@ const PaymentPage = () => {
     paymentMethod: "cod",
   });
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   // ✅ Lấy thông tin người dùng từ API
   useEffect(() => {
@@ -152,7 +154,7 @@ const PaymentPage = () => {
         }
         await fetchCart();
         notify.success("Đặt hàng thành công!");
-        navigate("/success");
+        setSuccessModalVisible(true);
       } else {
         notify.error("Đặt hàng thất bại!");
       }
@@ -346,6 +348,69 @@ const PaymentPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal đặt hàng thành công */}
+      <Modal
+        title={null}
+        open={successModalVisible}
+        onCancel={() => {
+          setSuccessModalVisible(false);
+          navigate("/cart");
+        }}
+        footer={null}
+        centered
+        width={500}
+        className="success-modal"
+      >
+        <div className="text-center py-8">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg
+              className="w-10 h-10 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Đặt hàng thành công!
+          </h2>
+
+          <p className="text-gray-600 mb-8">
+            Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ xử lý đơn hàng của bạn trong
+            thời gian sớm nhất.
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setSuccessModalVisible(false);
+                navigate("/");
+              }}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition"
+            >
+              Tiếp tục mua sắm
+            </button>
+
+            <button
+              onClick={() => {
+                setSuccessModalVisible(false);
+                navigate("/orders");
+              }}
+              className="w-full border border-gray-300 text-gray-700 font-medium py-3 px-6 rounded-xl hover:bg-gray-50 transition"
+            >
+              Xem đơn hàng của tôi
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

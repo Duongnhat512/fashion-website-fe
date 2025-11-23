@@ -14,11 +14,13 @@ import {
   Upload,
   Space,
   Tag,
+  AutoComplete,
 } from "antd";
 import {
   UploadOutlined,
   EditOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useNotification } from "../../../components/NotificationProvider";
@@ -57,12 +59,15 @@ const ProductManagement: React.FC = () => {
   const [productPage, setProductPage] = useState(1);
   const [productPageSize] = useState(10);
   const [variantRows, setVariantRows] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // State cho tìm kiếm thông minh
+  const [searchValue, setSearchValue] = useState("");
+  const [searchOptions, setSearchOptions] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
   const notify = useNotification();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -177,6 +182,102 @@ const ProductManagement: React.FC = () => {
     } finally {
       setProductLoading(false);
     }
+  };
+
+  const handleSearchProducts = async (value: string) => {
+    if (!value.trim()) {
+      setSearchOptions([]);
+      return;
+    }
+
+    try {
+      setSearching(true);
+
+      // Kiểm tra xem input có phải là ID không
+      const trimmed = value.trim();
+
+      // Regex cho Product ID (PRO-XXXXXX-XXXX)
+      const isProductId = /^PRO-\d{6,20}-[A-Z0-9]{4,10}$/i.test(trimmed);
+
+      // UUID
+      const isUUID =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          trimmed
+        );
+
+      // Mongo ObjectId
+      const isObjectId = /^[0-9a-f]{24}$/i.test(trimmed);
+
+      // Variant ID (có thể là UUID hoặc ObjectId)
+      const isIdSearch =
+        (isProductId || isUUID || isObjectId) && trimmed.length >= 12;
+
+      let products: any[] = [];
+
+      if (isIdSearch) {
+        // Tìm kiếm trực tiếp theo ID
+        try {
+          const token = authService.getToken();
+          if (!token) {
+            throw new Error("Vui lòng đăng nhập");
+          }
+          const product = await productService.getProductById(trimmed, token);
+          products = [product];
+        } catch (error) {
+          // Nếu không tìm thấy, products sẽ là mảng rỗng
+          products = [];
+        }
+      } else {
+        // Tìm kiếm theo tên
+        const response = await productService.searchProducts({
+          search: value,
+          limit: 10,
+        });
+        products = response.items || response.products || [];
+      }
+
+      const options = products.map((product: any) => ({
+        value: product.id,
+        label: (
+          <div className="flex items-center gap-3">
+            <img
+              src={
+                product.imageUrl ||
+                product.variants?.[0]?.imageUrl ||
+                "https://via.placeholder.com/40"
+              }
+              alt={product.name}
+              className="w-8 h-8 object-cover rounded"
+            />
+            <div>
+              <div className="font-medium">{product.name}</div>
+              <div className="text-xs text-gray-500">
+                ID: {product.id.slice(0, 8)}...
+              </div>
+            </div>
+          </div>
+        ),
+        product: product,
+      }));
+
+      setSearchOptions(options);
+    } catch (error) {
+      console.error("Search products error:", error);
+      setSearchOptions([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectProduct = (_value: string, option: any) => {
+    // Khi chọn sản phẩm từ dropdown, set searchValue thành ID để filter
+    setSearchValue(option.product.id);
+    setSearchOptions([]);
+  };
+
+  const handleClearSearch = () => {
+    setSearchValue("");
+    setSearchOptions([]);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -673,13 +774,21 @@ const ProductManagement: React.FC = () => {
       key: "productName",
       render: (v: string) => <span className="font-semibold">{v}</span>,
     },
-    { title: "SKU", dataIndex: "sku", key: "sku" },
-    { title: "Size", dataIndex: "size", key: "size" },
     {
-      title: "Màu",
-      dataIndex: ["color", "name"],
-      key: "color",
-      render: (_: any, record: any) => record.color?.name || "N/A",
+      title: "ID sản phẩm",
+      dataIndex: "productId",
+      key: "productId",
+      render: (v: string) => (
+        <span className="text-sm font-mono text-gray-600">{v}</span>
+      ),
+    },
+    {
+      title: "ID variant",
+      dataIndex: "id",
+      key: "id",
+      render: (v: string) => (
+        <span className="text-sm font-mono text-gray-600">{v}</span>
+      ),
     },
     {
       title: "Giá bán",
@@ -767,32 +876,48 @@ const ProductManagement: React.FC = () => {
   const startIndex = (productPage - 1) * productPageSize;
   const endIndex = startIndex + productPageSize;
 
-  // Filter variant rows by search term (product name)
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredVariantRows = normalizedSearch
-    ? variantRows.filter((r) =>
-        (r.productName || "").toLowerCase().includes(normalizedSearch)
-      )
-    : variantRows;
+  // Filter variant rows by search value (ưu tiên ID trước, sau đó tên)
+  const filteredVariantRows = variantRows.filter((r) => {
+    if (!searchValue) return true;
+
+    const searchTerm = searchValue.toLowerCase();
+
+    // Ưu tiên tìm theo ID (productId hoặc variantId)
+    const idMatch =
+      (r.productId || "").toLowerCase().includes(searchTerm) ||
+      (r.id || "").toLowerCase().includes(searchTerm);
+
+    // Nếu tìm thấy theo ID thì trả về true
+    if (idMatch) return true;
+
+    // Nếu không tìm thấy theo ID thì tìm theo tên sản phẩm
+    return (r.productName || "").toLowerCase().includes(searchTerm);
+  });
   // products is kept for context; table displays flattened variantRows instead
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex gap-3 items-center">
-          <Input.Search
-            placeholder="Tìm theo tên sản phẩm"
-            allowClear
-            onSearch={(val) => {
-              setSearchTerm(val || "");
-              setProductPage(1);
-            }}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setProductPage(1);
-            }}
-            style={{ width: 340 }}
-          />
+          {/* Thanh tìm kiếm thông minh */}
+          <div className="p-3">
+            <AutoComplete
+              value={searchValue}
+              options={searchOptions}
+              onSearch={handleSearchProducts}
+              onSelect={handleSelectProduct}
+              onChange={(value) => setSearchValue(value)}
+              allowClear
+              onClear={handleClearSearch}
+              style={{ width: 300 }}
+            >
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="Tìm theo ID hoặc tên sản phẩm"
+              />
+            </AutoComplete>
+          </div>
+
           <Button onClick={() => fetchProducts()}>Làm mới</Button>
           <Button type="primary" onClick={() => setCreateModalVisible(true)}>
             Thêm sản phẩm
@@ -976,48 +1101,7 @@ const ProductManagement: React.FC = () => {
           </div>
 
           <div className="border-t pt-4 mt-4">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-semibold">Danh sách thuộc tính</h4>
-              <Button
-                type="dashed"
-                onClick={() => {
-                  if (!currentVariant.colorId) {
-                    notify.warning("Vui lòng chọn màu cho variant!");
-                    return;
-                  }
-                  if (!currentVariant.size) {
-                    notify.warning("Vui lòng nhập size!");
-                    return;
-                  }
-
-                  // Thêm variant vào danh sách (kèm theo file ảnh)
-                  setVariants([
-                    ...variants,
-                    {
-                      ...currentVariant,
-                      imageFile: currentVariantImageFile, // Lưu file ảnh
-                      imagePreview: currentVariantImageFile
-                        ? URL.createObjectURL(currentVariantImageFile)
-                        : null,
-                    },
-                  ]);
-
-                  // Reset current variant và ảnh
-                  setCurrentVariant({
-                    size: "M",
-                    price: 0,
-                    stock: 0,
-                    colorId: null,
-                  });
-                  setCurrentVariantImageFile(null);
-                  setCurrentVariantImageFileList([]);
-
-                  notify.success("Đã thêm thuộc tính");
-                }}
-              >
-                + Thêm Thuộc Tính
-              </Button>
-            </div>
+            <h4 className="font-semibold mb-3">Danh sách thuộc tính</h4>
 
             {/* Hiển thị danh sách variants đã thêm */}
             {variants.length > 0 && (
@@ -1075,35 +1159,35 @@ const ProductManagement: React.FC = () => {
             <h4 className="font-semibold mb-3">Thêm thuộc tính mới</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1 text-sm font-medium">Size</label>
-                <Input
-                  value={currentVariant.size}
-                  onChange={(e) =>
+                <label className="block mb-1 text-sm font-medium">Màu</label>
+                <Select
+                  style={{ width: "100%" }}
+                  value={currentVariant.colorId || undefined}
+                  onChange={(value) =>
                     setCurrentVariant({
                       ...currentVariant,
-                      size: e.target.value,
+                      colorId: value || null,
                     })
                   }
-                  placeholder="Size"
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium">Giá</label>
-                <Input
-                  type="number"
-                  value={currentVariant.price}
-                  onChange={(e) =>
-                    setCurrentVariant({
-                      ...currentVariant,
-                      price: Number(e.target.value),
-                    })
-                  }
-                  placeholder="Giá"
-                />
+                  placeholder="Chọn màu"
+                  allowClear
+                >
+                  {colors.map((c) => (
+                    <Select.Option key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full border"
+                          style={{ backgroundColor: c.hex }}
+                        />
+                        {c.name} ({c.code})
+                      </div>
+                    </Select.Option>
+                  ))}
+                </Select>
               </div>
 
               {/* Upload ảnh cho variant */}
-              <div className="md:col-span-2">
+              <div>
                 <label className="block mb-1 text-sm font-medium">
                   Ảnh thuộc tính (tùy chọn)
                 </label>
@@ -1138,40 +1222,79 @@ const ProductManagement: React.FC = () => {
                     setCurrentVariantImageFileList([]);
                   }}
                 >
-                  <Button icon={<UploadOutlined />}>Chọn ảnh variant</Button>
+                  <Button icon={<UploadOutlined />}>Chọn ảnh thuộc tính</Button>
                 </Upload>
-                <p className="text-xs text-gray-500 mt-1">
-                  Nếu không chọn, sẽ dùng ảnh sản phẩm chính
-                </p>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium">Size</label>
+                <Input
+                  value={currentVariant.size}
+                  onChange={(e) =>
+                    setCurrentVariant({
+                      ...currentVariant,
+                      size: e.target.value,
+                    })
+                  }
+                  placeholder="Size"
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium">Giá</label>
+                <Input
+                  type="number"
+                  value={currentVariant.price}
+                  onChange={(e) =>
+                    setCurrentVariant({
+                      ...currentVariant,
+                      price: Number(e.target.value),
+                    })
+                  }
+                  placeholder="Giá"
+                />
               </div>
             </div>
 
-            <div className="mt-4">
-              <label className="block mb-1 text-sm font-medium">Màu</label>
-              <Select
-                style={{ width: "100%" }}
-                value={currentVariant.colorId || undefined}
-                onChange={(value) =>
+            <div className="mt-4 flex justify-end">
+              <Button
+                type="dashed"
+                onClick={() => {
+                  if (!currentVariant.colorId) {
+                    notify.warning("Vui lòng chọn màu cho variant!");
+                    return;
+                  }
+                  if (!currentVariant.size) {
+                    notify.warning("Vui lòng nhập size!");
+                    return;
+                  }
+
+                  // Thêm variant vào danh sách (kèm theo file ảnh)
+                  setVariants([
+                    ...variants,
+                    {
+                      ...currentVariant,
+                      imageFile: currentVariantImageFile, // Lưu file ảnh
+                      imagePreview: currentVariantImageFile
+                        ? URL.createObjectURL(currentVariantImageFile)
+                        : null,
+                    },
+                  ]);
+
+                  // Reset current variant và ảnh
                   setCurrentVariant({
-                    ...currentVariant,
-                    colorId: value || null,
-                  })
-                }
-                placeholder="Chọn màu"
-                allowClear
+                    size: "M",
+                    price: 0,
+                    stock: 0,
+                    colorId: null,
+                  });
+                  setCurrentVariantImageFile(null);
+                  setCurrentVariantImageFileList([]);
+
+                  notify.success("Đã thêm thuộc tính");
+                }}
               >
-                {colors.map((c) => (
-                  <Select.Option key={c.id} value={c.id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full border"
-                        style={{ backgroundColor: c.hex }}
-                      />
-                      {c.name} ({c.code})
-                    </div>
-                  </Select.Option>
-                ))}
-              </Select>
+                + Thêm Thuộc Tính
+              </Button>
             </div>
           </div>
 
@@ -1307,13 +1430,11 @@ const ProductManagement: React.FC = () => {
                 </Select>
               </div>
               <div className="md:col-span-2">
-                <label className="block mb-1 text-sm font-medium">
-                  Tags (comma separated)
-                </label>
+                <label className="block mb-1 text-sm font-medium">Tags</label>
                 <Input
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
-                  placeholder="tags (comma separated)"
+                  placeholder="tags"
                 />
               </div>
             </div>

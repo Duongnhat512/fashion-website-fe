@@ -442,7 +442,7 @@ const OrderManagement: React.FC = () => {
       <Modal
         title={
           <div className="text-lg font-bold">
-            Chi tiết đơn hàng #{selectedOrder?.id.slice(0, 8)}
+            Chi tiết đơn hàng #{selectedOrder?.id}
           </div>
         }
         open={modalVisible}

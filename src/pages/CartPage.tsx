@@ -155,11 +155,37 @@ export default function CartPage() {
                     </div>
                   )}
 
-                  <div className="text-gray-900 font-semibold">
-                    Thành tiền:{" "}
-                    <span className="text-orange-600">
-                      {formatCurrency(item.price * item.qty)}
-                    </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-700 font-medium">
+                        Giá bán:
+                      </span>
+                      {item.discountPercent && item.discountPercent > 0 ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-gray-500 line-through">
+                            {formatCurrency(item.originalPrice)}
+                          </span>
+                          <span className="text-lg text-gray-900 font-bold">
+                            {formatCurrency(item.price)}
+                          </span>
+                          <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded">
+                            -{item.discountPercent}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-lg text-gray-900 font-bold">
+                          {formatCurrency(item.price)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-gray-700 font-medium">
+                        Thành tiền:
+                      </span>
+                      <span className="text-xl font-bold text-orange-600">
+                        {formatCurrency(item.price * item.qty)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Nút tăng giảm số lượng */}

@@ -9,6 +9,7 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";
@@ -18,6 +19,7 @@ import RevenueStatistics from "./components/RevenueStatistics";
 import ProductManagement from "./components/ProductManagement";
 import PromotionManagement from "./components/PromotionManagement";
 import ReviewManagement from "./components/ReviewManagement";
+import TaxReport from "./components/TaxReport";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -30,6 +32,7 @@ const AdminDashboard = () => {
     { key: "orders", label: "Quản lý đơn hàng", icon: Package },
     { key: "inventory", label: "Quản lý kho", icon: Warehouse },
     { key: "products", label: "Quản lý sản phẩm", icon: Package },
+    { key: "tax", label: "Báo cáo thuế", icon: FileText },
     // { key: "revenue", label: "Thống kê doanh thu", icon: DollarSign },
     { key: "promotions", label: "Quản lý khuyến mãi", icon: Percent },
     { key: "reviews", label: "Quản lý đánh giá", icon: Star },
@@ -47,6 +50,8 @@ const AdminDashboard = () => {
         return <InventorySection />;
       case "products":
         return <ProductManagement />;
+      case "tax":
+        return <TaxReport />;
       case "revenue":
         return <RevenueStatistics />;
       case "promotions":

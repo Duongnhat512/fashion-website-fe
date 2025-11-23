@@ -114,6 +114,14 @@ export const API_CONFIG = {
     CHAT_BOT: {
       SEND_MESSAGE: '/chatbot/chat',
     },
+    TAX_REPORTS: {
+      VAT: '/reports/tax/vat',
+      VAT_EXPORT: '/reports/tax/vat/export',
+      CIT: '/reports/tax/cit',
+      CIT_EXPORT: '/reports/tax/cit/export',
+      FINANCIAL: '/reports/tax/financial',
+      FINANCIAL_EXPORT: '/reports/tax/financial/export',
+    },
     PROMOTIONS: {
       GET_ALL: '/promotions',
       CREATE: '/promotions',

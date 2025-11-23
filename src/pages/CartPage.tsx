@@ -147,10 +147,30 @@ export default function CartPage() {
                   <h3 className="text-lg font-semibold">{item.name}</h3>
 
                   {item.variant && (
-                    <div className="flex gap-3 text-sm text-gray-600">
-                      <span>Kích thước: {item.variant.size}</span>
+                    <div className="flex gap-4 text-sm text-gray-600 items-center">
+                      <span className="font-semibold">
+                        Kích thước: {item.variant.size}
+                      </span>
                       {item.variant.color && (
-                        <span>Màu: {item.variant.color}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Màu:</span>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-5 h-5 rounded-full border border-gray-300 shadow-sm"
+                              style={{
+                                backgroundColor:
+                                  typeof item.variant.color === "string"
+                                    ? item.variant.color
+                                    : item.variant.color.hex || "#ccc",
+                              }}
+                            />
+                            <span className="text-sm font-medium text-gray-900">
+                              {typeof item.variant.color === "string"
+                                ? item.variant.color
+                                : item.variant.color.name || "Unknown"}
+                            </span>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
@@ -163,7 +183,7 @@ export default function CartPage() {
                       {item.discountPercent && item.discountPercent > 0 ? (
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-gray-500 line-through">
-                            {formatCurrency(item.originalPrice)}
+                            {formatCurrency(item.originalPrice || item.price)}
                           </span>
                           <span className="text-lg text-gray-900 font-bold">
                             {formatCurrency(item.price)}
@@ -177,14 +197,6 @@ export default function CartPage() {
                           {formatCurrency(item.price)}
                         </span>
                       )}
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-gray-700 font-medium">
-                        Thành tiền:
-                      </span>
-                      <span className="text-xl font-bold text-orange-600">
-                        {formatCurrency(item.price * item.qty)}
-                      </span>
                     </div>
                   </div>
 
@@ -212,6 +224,15 @@ export default function CartPage() {
                     >
                       <PlusIcon className="h-4 w-4" />
                     </button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 font-bold text-lg">
+                      Thành tiền:
+                    </span>
+                    <span className="text-2xl font-bold text-orange-600">
+                      {formatCurrency(item.price * item.qty)}
+                    </span>
                   </div>
                 </div>
               </div>

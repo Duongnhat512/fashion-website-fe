@@ -36,6 +36,7 @@ interface Variant {
   size: string;
   price: number;
   availableQuantity: number;
+  imageUrl?: string;
 }
 
 export default function ChatBot() {
@@ -47,6 +48,9 @@ export default function ChatBot() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [selectedVariants, setSelectedVariants] = useState<{
+    [productId: string]: number;
+  }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -138,6 +142,13 @@ export default function ChatBot() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleSelectVariant = (productId: string, variantIndex: number) => {
+    setSelectedVariants((prev) => ({
+      ...prev,
+      [productId]: variantIndex,
+    }));
   };
 
   const formatPrice = (price: number) => {
@@ -350,10 +361,10 @@ export default function ChatBot() {
                   Trợ lý BooBoo
                   <span className="text-lg animate-bounce">🤖</span>
                 </h3>
-                <p className="text-sm text-white/90 flex items-center gap-1">
+                <div className="text-sm text-white/90 flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   Luôn sẵn sàng hỗ trợ bạn
-                </p>
+                </div>
               </div>
             </div>
             <button
@@ -401,21 +412,123 @@ export default function ChatBot() {
                     if (message.products && message.products.length > 0) {
                       return (
                         <div className="mt-4 space-y-3">
-                          {message.products.map((product) => (
+                          {message.products.map((product) => {
+                            const selectedVariantIndex =
+                              selectedVariants[product.id] ?? 0;
+                            const selectedVariant =
+                              product.variants?.[selectedVariantIndex];
+                            const displayImage =
+                              selectedVariant?.imageUrl || product.imageUrl;
+                            const displayPrice =
+                              selectedVariant?.price || product.price;
+
+                            return (
+                              <div
+                                key={product.id}
+                                className="block bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 rounded-xl p-3 transition-all duration-300 cursor-pointer border border-purple-200"
+                              >
+                                <div className="flex gap-3">
+                                  <div className="relative">
+                                    <img
+                                      src={displayImage}
+                                      alt={product.name}
+                                      className="w-16 h-16 object-cover rounded-lg shadow-sm"
+                                      onError={(e) => {
+                                        // Fallback if image fails to load
+                                        (e.target as HTMLImageElement).src =
+                                          "https://via.placeholder.com/64x64?text=No+Image";
+                                      }}
+                                    />
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                                      <span className="text-xs text-white">
+                                        ✨
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-800 truncate mb-1">
+                                      {product.name}
+                                    </p>
+                                    <p className="text-lg font-bold text-purple-600 mb-2">
+                                      {formatPrice(displayPrice)}
+                                    </p>
+                                    {product.variants &&
+                                      product.variants.length > 0 && (
+                                        <div className="flex gap-1 flex-wrap">
+                                          {product.variants.map(
+                                            (variant, idx) => (
+                                              <div
+                                                key={idx}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleSelectVariant(
+                                                    product.id,
+                                                    idx
+                                                  );
+                                                }}
+                                                className={`w-6 h-6 rounded-full border-2 shadow-sm cursor-pointer transition-all duration-200 hover:scale-110 ${
+                                                  selectedVariantIndex === idx
+                                                    ? "border-purple-500 ring-2 ring-purple-300"
+                                                    : "border-white hover:border-purple-300"
+                                                }`}
+                                                style={{
+                                                  backgroundColor:
+                                                    variant.color.hex,
+                                                }}
+                                                title={`${variant.color.name} - ${variant.size}`}
+                                              />
+                                            )
+                                          )}
+                                        </div>
+                                      )}
+                                  </div>
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsOpen(false);
+                                      navigate(`/products/${product.slug}`, {
+                                        state: { product },
+                                      });
+                                    }}
+                                    className="text-xs bg-purple-500 text-white px-3 py-1 rounded-full hover:bg-purple-600 transition-colors"
+                                  >
+                                    Xem chi tiết
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+
+                    // Nếu không có API products, parse từ text
+                    const parsedProducts = parseProductsFromMessage(
+                      message.content
+                    );
+                    return parsedProducts.length > 0 ? (
+                      <div className="mt-4 space-y-3">
+                        {parsedProducts.map((product) => {
+                          const selectedVariantIndex =
+                            selectedVariants[product.id] ?? 0;
+                          const selectedVariant =
+                            product.variants?.[selectedVariantIndex];
+                          const displayImage =
+                            selectedVariant?.imageUrl || product.imageUrl;
+                          const displayPrice =
+                            selectedVariant?.price || product.price;
+
+                          return (
                             <div
                               key={product.id}
-                              onClick={() => {
-                                setIsOpen(false);
-                                navigate(`/products/${product.slug}`, {
-                                  state: { product },
-                                });
-                              }}
                               className="block bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 rounded-xl p-3 transition-all duration-300 cursor-pointer border border-purple-200"
                             >
                               <div className="flex gap-3">
                                 <div className="relative">
                                   <img
-                                    src={product.imageUrl}
+                                    src={displayImage}
                                     alt={product.name}
                                     className="w-16 h-16 object-cover rounded-lg shadow-sm"
                                     onError={(e) => {
@@ -435,96 +548,56 @@ export default function ChatBot() {
                                     {product.name}
                                   </p>
                                   <p className="text-lg font-bold text-purple-600 mb-2">
-                                    {formatPrice(product.price)}
+                                    {formatPrice(displayPrice)}
                                   </p>
                                   {product.variants &&
                                     product.variants.length > 0 && (
-                                      <div className="flex gap-1">
-                                        {product.variants
-                                          .slice(0, 3)
-                                          .map((variant, idx) => (
+                                      <div className="flex gap-1 flex-wrap">
+                                        {product.variants.map(
+                                          (variant: any, idx: number) => (
                                             <div
                                               key={idx}
-                                              className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSelectVariant(
+                                                  product.id,
+                                                  idx
+                                                );
+                                              }}
+                                              className={`w-6 h-6 rounded-full border-2 shadow-sm cursor-pointer transition-all duration-200 hover:scale-110 ${
+                                                selectedVariantIndex === idx
+                                                  ? "border-purple-500 ring-2 ring-purple-300"
+                                                  : "border-white hover:border-purple-300"
+                                              }`}
                                               style={{
                                                 backgroundColor:
                                                   variant.color.hex,
                                               }}
                                               title={`${variant.color.name} - ${variant.size}`}
                                             />
-                                          ))}
+                                          )
+                                        )}
                                       </div>
                                     )}
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-
-                    // Nếu không có API products, parse từ text
-                    const parsedProducts = parseProductsFromMessage(
-                      message.content
-                    );
-                    return parsedProducts.length > 0 ? (
-                      <div className="mt-4 space-y-3">
-                        {parsedProducts.map((product) => (
-                          <div
-                            key={product.id}
-                            onClick={() => {
-                              setIsOpen(false);
-                              navigate(`/products/${product.slug}`, {
-                                state: { product },
-                              });
-                            }}
-                            className="block bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 rounded-xl p-3 transition-all duration-300 cursor-pointer border border-purple-200"
-                          >
-                            <div className="flex gap-3">
-                              <div className="relative">
-                                <img
-                                  src={product.imageUrl}
-                                  alt={product.name}
-                                  className="w-16 h-16 object-cover rounded-lg shadow-sm"
-                                  onError={(e) => {
-                                    // Fallback if image fails to load
-                                    (e.target as HTMLImageElement).src =
-                                      "https://via.placeholder.com/64x64?text=No+Image";
+                              <div className="mt-2 text-center">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsOpen(false);
+                                    navigate(`/products/${product.slug}`, {
+                                      state: { product },
+                                    });
                                   }}
-                                />
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                                  <span className="text-xs text-white">✨</span>
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-gray-800 truncate mb-1">
-                                  {product.name}
-                                </p>
-                                <p className="text-lg font-bold text-purple-600 mb-2">
-                                  {formatPrice(product.price)}
-                                </p>
-                                {product.variants &&
-                                  product.variants.length > 0 && (
-                                    <div className="flex gap-1">
-                                      {product.variants
-                                        .slice(0, 3)
-                                        .map((variant, idx) => (
-                                          <div
-                                            key={idx}
-                                            className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
-                                            style={{
-                                              backgroundColor:
-                                                variant.color.hex,
-                                            }}
-                                            title={`${variant.color.name} - ${variant.size}`}
-                                          />
-                                        ))}
-                                    </div>
-                                  )}
+                                  className="text-xs bg-purple-500 text-white px-3 py-1 rounded-full hover:bg-purple-600 transition-colors"
+                                >
+                                  Xem chi tiết
+                                </button>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : null;
                   })()}{" "}

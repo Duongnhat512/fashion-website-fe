@@ -532,7 +532,7 @@ export default function ProductReviews({
         footer={null}
         width="90%"
         style={{ maxWidth: "none", height: "90vh" }}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
         centered
       >
         <div className="relative bg-black">

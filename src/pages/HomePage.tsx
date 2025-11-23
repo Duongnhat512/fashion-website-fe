@@ -84,23 +84,76 @@ const HomePage = () => {
           console.error("❌ Lỗi tải sản phẩm mới:", error);
         }
 
-        // Load sản phẩm cho Flash Sales
-        if (parentCategories.length > 0) {
-          try {
-            const firstCategory = parentCategories[0];
-            const flashRes = await productService.searchProducts({
-              categoryId: firstCategory.id,
-              limit: 20,
-              page: 1,
-            });
-            const allFlashProducts = flashRes.products || [];
+        // Load sản phẩm cho Flash Sales - lấy sản phẩm giảm giá > 40%
+        try {
+          // Lấy tất cả sản phẩm từ tất cả danh mục
+          const allProductsPromises = parentCategories.map(
+            async (cat: Category) => {
+              try {
+                const res = await productService.searchProducts({
+                  categoryId: cat.id,
+                  limit: 1000, // Lấy nhiều sản phẩm để có đủ lựa chọn
+                  page: 1,
+                });
+                return res.products || [];
+              } catch (error) {
+                console.error(`❌ Lỗi tải sản phẩm cho ${cat.name}:`, error);
+                return [];
+              }
+            }
+          );
 
-            // Lấy 8 sản phẩm từ vị trí thứ 5 đến 12 từ cuối (bỏ 4 cái cuối)
-            const flashProducts = allFlashProducts.slice(-12, -4);
-            setFlashSaleProducts(flashProducts);
-          } catch (error) {
-            console.error("❌ Lỗi tải Flash Sales:", error);
+          const allProductsArrays = await Promise.all(allProductsPromises);
+          const allProducts = allProductsArrays.flat();
+
+          // Lọc sản phẩm có giảm giá > 40%
+          const highDiscountProducts = allProducts.filter((product) => {
+            const variant = product.variants?.[0];
+            if (!variant) return false;
+
+            // Chỉ kiểm tra discountPercent từ API
+            const hasHighDiscount =
+              variant.discountPercent && variant.discountPercent > 40;
+
+            return hasHighDiscount;
+          });
+
+          let flashProducts: Product[] = [];
+
+          if (highDiscountProducts.length >= 5) {
+            // Nếu có đủ 5 sản phẩm giảm giá > 40%, lấy 5 cái đầu
+            flashProducts = highDiscountProducts.slice(0, 5);
+          } else {
+            // Nếu không đủ, lấy tất cả sản phẩm giảm giá > 40%
+            flashProducts = [...highDiscountProducts];
+
+            // Tính số sản phẩm còn thiếu
+            const remainingCount = 5 - flashProducts.length;
+
+            // Lấy các sản phẩm không có trong danh sách giảm giá > 40%
+            const otherProducts = allProducts.filter(
+              (product) =>
+                !highDiscountProducts.some(
+                  (highDiscountProduct) => highDiscountProduct.id === product.id
+                )
+            );
+
+            // Xáo trộn và lấy ngẫu nhiên số sản phẩm còn thiếu
+            const shuffledOtherProducts = otherProducts.sort(
+              () => 0.5 - Math.random()
+            );
+            const additionalProducts = shuffledOtherProducts.slice(
+              0,
+              remainingCount
+            );
+
+            // Thêm vào danh sách flash sales
+            flashProducts = [...flashProducts, ...additionalProducts];
           }
+
+          setFlashSaleProducts(flashProducts);
+        } catch (error) {
+          console.error("❌ Lỗi tải Flash Sales:", error);
         }
 
         // Load 4 sản phẩm cuối cho mỗi danh mục cha

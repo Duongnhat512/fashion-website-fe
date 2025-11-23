@@ -11,17 +11,12 @@ import {
   Space,
   InputNumber,
   Select,
-  Avatar,
-  Divider,
-  Empty,
-  Pagination,
 } from "antd";
 import {
   ShoppingCartOutlined,
   ArrowLeftOutlined,
   PlusOutlined,
   MinusOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import type { Product, ProductVariant } from "../types/product.types";

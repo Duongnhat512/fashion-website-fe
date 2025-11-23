@@ -202,11 +202,13 @@ export default function LoginDialog({
       footer={null}
       centered
       closable={false}
-      maskStyle={{
-        background: "rgba(0,0,0,0.7)",
-        backdropFilter: "blur(10px)",
+      styles={{
+        mask: {
+          background: "rgba(0,0,0,0.7)",
+          backdropFilter: "blur(10px)",
+        },
+        body: { padding: 0, background: "transparent" },
       }}
-      bodyStyle={{ padding: 0, background: "transparent" }}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}

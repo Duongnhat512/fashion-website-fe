@@ -181,14 +181,40 @@ const PaymentPage = () => {
               />
               <div className="flex-1 space-y-3">
                 <h3 className="text-lg font-semibold">{selectedItem.name}</h3>
-                <div className="flex gap-3 text-sm text-gray-600">
+                <div className="flex gap-3 text-sm text-gray-600 items-center">
                   {selectedItem.variant && (
-                    <span className="bg-blue-100 text-blue-800 rounded-md px-2 py-1 text-xs">
-                      Kích thước: {selectedItem.variant.size}
-                    </span>
+                    <>
+                      <span className="bg-blue-100 text-blue-800 rounded-md px-2 py-1 text-xs font-semibold">
+                        Kích thước: {selectedItem.variant.size}
+                      </span>
+                      {selectedItem.variant.color && (
+                        <div className="flex items-center gap-2 bg-gray-100 rounded-md px-2 py-1">
+                          <span className="text-xs font-semibold">Màu:</span>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full border border-gray-300 shadow-sm"
+                              style={{
+                                backgroundColor:
+                                  typeof selectedItem.variant.color === "string"
+                                    ? selectedItem.variant.color
+                                    : selectedItem.variant.color.hex || "#ccc",
+                              }}
+                            />
+                            <span className="text-xs font-medium text-gray-900">
+                              {typeof selectedItem.variant.color === "string"
+                                ? selectedItem.variant.color
+                                : selectedItem.variant.color.name || "Unknown"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="bg-orange-100 text-orange-800 rounded-md px-2 py-1 text-xs">
-                    Số lượng: {selectedItem.qty}
+                    Số lượng: {selectedItem.qty} x{" "}
+                    {formatCurrency(selectedItem.price)}
                   </span>
                 </div>
                 <div className="text-gray-900 font-semibold">
@@ -214,14 +240,39 @@ const PaymentPage = () => {
                 />
                 <div className="flex-1 space-y-3">
                   <h3 className="text-lg font-semibold">{item.name}</h3>
-                  <div className="flex gap-3 text-sm text-gray-600">
+                  <div className="flex gap-3 text-sm text-gray-600 items-center">
                     {item.variant && (
-                      <span className="bg-blue-100 text-blue-800 rounded-md px-2 py-1 text-xs">
-                        Kích thước: {item.variant.size}
-                      </span>
+                      <>
+                        <span className="bg-blue-100 text-blue-800 rounded-md px-2 py-1 text-xs font-semibold">
+                          Kích thước: {item.variant.size}
+                        </span>
+                        {item.variant.color && (
+                          <div className="flex items-center gap-2 bg-gray-100 rounded-md px-2 py-1">
+                            <span className="text-xs font-semibold">Màu:</span>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded-full border border-gray-300 shadow-sm"
+                                style={{
+                                  backgroundColor:
+                                    typeof item.variant.color === "string"
+                                      ? item.variant.color
+                                      : item.variant.color.hex || "#ccc",
+                                }}
+                              />
+                              <span className="text-xs font-medium text-gray-900">
+                                {typeof item.variant.color === "string"
+                                  ? item.variant.color
+                                  : item.variant.color.name || "Unknown"}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
+                  </div>
+                  <div className="flex items-center gap-2">
                     <span className="bg-orange-100 text-orange-800 rounded-md px-2 py-1 text-xs">
-                      Số lượng: {item.qty}
+                      Số lượng: {item.qty} x {formatCurrency(item.price)}
                     </span>
                   </div>
                   <div className="text-gray-900 font-semibold">

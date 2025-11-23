@@ -70,7 +70,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             price: item.variant?.discountPrice ?? item.variant?.price ?? 0,
             originalPrice: item.variant?.price ?? item.product.price ?? 0,
             discountPercent:
-              item.variant?.discountPercent ?? item.product.discountPercent,
+              item.variant?.discountPercent ??
+              item.product.discountPercent ??
+              0,
             qty: item.quantity,
             image:
               item.variant?.imageUrl ||
@@ -177,8 +179,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       : product.discountPrice || product.price || 0;
     const originalPrice = variant ? variant.price : product.price || 0;
     const discountPercent = variant
-      ? variant.discountPercent
-      : product.discountPercent;
+      ? variant.discountPercent || 0
+      : product.discountPercent || 0;
 
     const cartItem: CartItem = {
       id: product.id,

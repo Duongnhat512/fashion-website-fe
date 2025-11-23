@@ -21,9 +21,6 @@ const Products = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
   );
-  const [selectedCategoryName, setSelectedCategoryName] = useState<
-    string | null
-  >(null);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   const [sortBy, setSortBy] = useState<string>("default");
 
@@ -35,14 +32,11 @@ const Products = () => {
     setSearchQuery(query);
     if (query) {
       setSelectedCategoryId(null);
-      setSelectedCategoryName(null);
     } else if (category) {
       setSelectedCategoryId(category);
       // Có thể cần load category name từ API hoặc local
-      setSelectedCategoryName(null);
     } else {
       setSelectedCategoryId(null);
-      setSelectedCategoryName(null);
     }
   }, [searchParams]);
 
@@ -53,8 +47,6 @@ const Products = () => {
     total: 0,
     totalPages: 1,
   });
-
-  const isSearching = searchQuery.trim() !== "";
 
   const handleToDetail = (p: Product) => {
     navigate(`/products/${p.slug}`, { state: { product: p } });
@@ -388,7 +380,6 @@ const Products = () => {
                       setPriceRange([0, 10000000]);
                       setSortBy("default");
                       setSelectedCategoryId(null);
-                      setSelectedCategoryName(null);
                       setSearchQuery("");
                       setPagination((prev) => ({ ...prev, page: 1 }));
                       fetchProducts(1);

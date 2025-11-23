@@ -134,11 +134,11 @@ const ProductManagement: React.FC = () => {
       setProductLoading(true);
       // Load tất cả sản phẩm với limit lớn để hiển thị hết
       const res = await productService.getAllProducts(1, 1000);
-      // res expected to be { items, total, page, limit } or similar depending on API
+      // res expected to be { products, pagination } or similar depending on API
       // try common shapes
       let prods: Product[] = [];
-      if ((res as any).items) prods = (res as any).items || [];
-      else if ((res as any).products) prods = (res as any).products || [];
+      if ((res as any).products) prods = (res as any).products || [];
+      else if ((res as any).items) prods = (res as any).items || [];
       else if (Array.isArray(res)) prods = res as any;
       else prods = [];
 
@@ -233,7 +233,7 @@ const ProductManagement: React.FC = () => {
           search: value,
           limit: 10,
         });
-        products = response.items || response.products || [];
+        products = response.products || [];
       }
 
       const options = products.map((product: any) => ({

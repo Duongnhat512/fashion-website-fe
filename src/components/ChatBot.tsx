@@ -6,15 +6,32 @@ import {
   SendOutlined,
   CloseOutlined,
   MessageOutlined,
+  UserOutlined,
+  RobotOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { API_CONFIG } from "../config/api.config";
+import {
+  conversationService,
+  type Conversation,
+} from "../services/conversationService";
+import {
+  webSocketService,
+  type SocketMessage,
+  type ConversationUpdate,
+  type TypingData,
+} from "../services/webSocketService";
 
 interface Message {
   id: string;
-  type: "user" | "bot";
+  type: "user" | "bot" | "agent";
   content: string;
   timestamp: Date;
   products?: Product[];
+  isRead?: boolean;
+  senderId?: string;
+  metadata?: Record<string, unknown>;
 }
 
 interface Product {
@@ -40,7 +57,7 @@ interface Variant {
 }
 
 export default function ChatBot() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,18 +65,222 @@ export default function ChatBot() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [selectedVariants, setSelectedVariants] = useState<{
+  const [selectedVariants] = useState<{
     [productId: string]: number;
   }>({});
+
+  // New state for realtime chat
+  const [currentConversation, setCurrentConversation] =
+    useState<Conversation | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const loadChatHistory = async (
+    conversationId: string,
+    limit: number = 50
+  ) => {
+    try {
+      const messages = await conversationService.getConversationMessages(
+        conversationId,
+        limit
+      );
+      const formattedMessages: Message[] = messages.map((msg) => ({
+        id: msg.id,
+        type: msg.isFromBot
+          ? "bot"
+          : msg.senderId === user?.id
+          ? "user"
+          : "agent",
+        content: msg.content,
+        timestamp: new Date(msg.createdAt),
+        isRead: msg.isRead,
+        senderId: msg.senderId,
+        metadata: msg.metadata,
+      }));
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+    }
+  };
+
+  const loadMoreChatHistory = async () => {
+    if (!currentConversation) return;
+
+    try {
+      const currentMessageCount = messages.length;
+      const moreMessages = await conversationService.getConversationMessages(
+        currentConversation.id,
+        currentMessageCount + 50
+      );
+      const formattedMessages: Message[] = moreMessages.map((msg) => ({
+        id: msg.id,
+        type: msg.isFromBot
+          ? "bot"
+          : msg.senderId === user?.id
+          ? "user"
+          : "agent",
+        content: msg.content,
+        timestamp: new Date(msg.createdAt),
+        isRead: msg.isRead,
+        senderId: msg.senderId,
+        metadata: msg.metadata,
+      }));
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error("Error loading more chat history:", error);
+    }
+  };
+
+  const loadActiveConversation = async () => {
+    try {
+      const conversation = await conversationService.getActiveConversation();
+      if (conversation) {
+        setCurrentConversation(conversation);
+        // Load conversation messages using the dedicated function
+        await loadChatHistory(conversation.id);
+
+        // Join WebSocket room
+        if (isConnected) {
+          webSocketService.joinConversation(conversation.id);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading active conversation:", error);
+    }
+  };
+
+  const refreshConversation = async () => {
+    if (!currentConversation) return;
+
+    try {
+      const updatedConversation = await conversationService.getConversationById(
+        currentConversation.id
+      );
+      if (updatedConversation) {
+        setCurrentConversation(updatedConversation);
+      }
+    } catch (error) {
+      console.error("Error refreshing conversation:", error);
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // WebSocket connection management
+  useEffect(() => {
+    if (isAuthenticated && isOpen) {
+      webSocketService.connect();
+
+      const unsubscribeConnect = webSocketService.onConnect(() => {
+        setIsConnected(true);
+        console.log("WebSocket connected");
+      });
+
+      const unsubscribeDisconnect = webSocketService.onDisconnect(() => {
+        setIsConnected(false);
+        console.log("WebSocket disconnected");
+      });
+
+      const unsubscribeMessage = webSocketService.onMessage(
+        (socketMessage: SocketMessage) => {
+          // Skip bot messages if conversation is in human mode
+          if (
+            currentConversation?.conversationType === "human" &&
+            socketMessage.isFromBot
+          ) {
+            console.log("Skipping bot message in human mode:", socketMessage);
+            setIsTyping(false);
+            return;
+          }
+
+          const newMessage: Message = {
+            id: socketMessage.id,
+            type: socketMessage.isFromBot
+              ? "bot"
+              : socketMessage.senderId === user?.id
+              ? "user"
+              : "agent",
+            content: socketMessage.content,
+            timestamp: new Date(socketMessage.createdAt),
+            isRead: false,
+            senderId: socketMessage.senderId,
+            metadata: socketMessage.metadata,
+          };
+          setMessages((prev) => [...prev, newMessage]);
+          setIsTyping(false);
+        }
+      );
+
+      const unsubscribeConversationUpdate =
+        webSocketService.onConversationUpdate((update: ConversationUpdate) => {
+          console.log("Conversation update received:", update);
+          setCurrentConversation((prev) =>
+            prev ? { ...prev, ...update } : null
+          );
+          if (
+            update.conversationType === "human" &&
+            update.status === "waiting"
+          ) {
+            // Show waiting message
+            const systemMessage: Message = {
+              id: `system-${Date.now()}`,
+              type: "bot",
+              content:
+                "Đang tìm nhân viên hỗ trợ. Vui lòng đợi trong giây lát...",
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, systemMessage]);
+          }
+        });
+
+      const unsubscribeTyping = webSocketService.onTyping(
+        (data: TypingData) => {
+          setIsTyping(data.isTyping);
+        }
+      );
+
+      return () => {
+        unsubscribeConnect();
+        unsubscribeDisconnect();
+        unsubscribeMessage();
+        unsubscribeConversationUpdate();
+        unsubscribeTyping();
+        webSocketService.disconnect();
+      };
+    } else {
+      webSocketService.disconnect();
+      setIsConnected(false);
+    }
+  }, [isAuthenticated, isOpen, user?.id]);
+
+  // Load conversation when opening chat
+  useEffect(() => {
+    if (isAuthenticated && isOpen && !currentConversation) {
+      loadActiveConversation();
+    }
+  }, [isAuthenticated, isOpen, currentConversation, loadActiveConversation]);
+
+  // Periodic refresh of conversation status when waiting for agent
+  useEffect(() => {
+    if (
+      currentConversation?.conversationType === "human" &&
+      currentConversation?.status === "waiting"
+    ) {
+      const interval = setInterval(() => {
+        refreshConversation();
+      }, 5000); // Check every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [currentConversation]);
 
   const handleOpenChat = () => {
     if (!isAuthenticated) {
@@ -67,28 +288,19 @@ export default function ChatBot() {
       return;
     }
     setIsOpen(true);
-    if (messages.length === 0) {
-      // Tin nhắn chào mừng
-      setMessages([
-        {
-          id: Date.now().toString(),
-          type: "bot",
-          content:
-            "🌟 Xin chào! Tôi là BooBoo - trợ lý ảo của bạn! 🤖\n\nTôi có thể giúp bạn:\n• Tìm kiếm sản phẩm yêu thích\n• Tư vấn về size và màu sắc\n• Hỗ trợ đặt hàng\n• Giải đáp thắc mắc về sản phẩm\n\nHãy hỏi tôi bất cứ điều gì nhé! 💫",
-          timestamp: new Date(),
-        },
-      ]);
-    }
+    // Don't set welcome message here - it will be loaded from conversation history
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || !currentConversation) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`,
       type: "user",
       content: inputValue,
       timestamp: new Date(),
+      isRead: true,
+      senderId: user?.id,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -96,32 +308,57 @@ export default function ChatBot() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT_BOT.SEND_MESSAGE}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ message: inputValue }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        const botMessage: Message = {
+      // **LUÔN ƯU TIÊN GỬI QUA WEBSOCKET** nếu có kết nối
+      if (isConnected && currentConversation) {
+        webSocketService.sendMessage(currentConversation.id, inputValue);
+      } else if (currentConversation.conversationType === "human") {
+        // **TRONG HUMAN MODE, KHÔNG BAO GIỜ GỌI BOT API** - chỉ hiển thị thông báo chờ
+        console.log(
+          "In human mode without WebSocket connection - showing waiting message"
+        );
+        const waitingMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: "bot",
-          content: data.data.message,
+          content:
+            "Đang chờ nhân viên hỗ trợ trả lời. Vui lòng đợi trong giây lát...",
           timestamp: new Date(),
-          products: data.data.products || [],
+          isRead: false,
         };
-        setMessages((prev) => [...prev, botMessage]);
+        setMessages((prev) => [...prev, waitingMessage]);
       } else {
-        throw new Error(data.message || "Có lỗi xảy ra");
+        // **CHỈ GỌI BOT API KHI ĐANG Ở BOT MODE**
+        console.log("In bot mode - calling chatbot API");
+        const token = localStorage.getItem("authToken");
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT_BOT.SEND_MESSAGE}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              message: inputValue,
+              conversationId: currentConversation?.id,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+          const botMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            type: "bot",
+            content: data.data.message,
+            timestamp: new Date(),
+            products: data.data.products || [],
+            isRead: false,
+          };
+          setMessages((prev) => [...prev, botMessage]);
+        } else {
+          throw new Error(data.message || "Có lỗi xảy ra");
+        }
       }
     } catch (error) {
       const errorMessage: Message = {
@@ -137,18 +374,55 @@ export default function ChatBot() {
     }
   };
 
+  const handleSwitchToHuman = async () => {
+    if (!currentConversation) return;
+
+    console.log(
+      "Switching to human mode for conversation:",
+      currentConversation.id
+    );
+    try {
+      // **CẬP NHẬT STATE NGAY LẬP TỨC** để tránh race condition
+      setCurrentConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              conversationType: "human",
+              status: "waiting",
+              agentId: null,
+            }
+          : null
+      );
+
+      if (isConnected) {
+        webSocketService.switchToHuman(currentConversation.id);
+      } else {
+        await conversationService.switchToHuman(currentConversation.id);
+      }
+    } catch (error) {
+      console.error("Error switching to human:", error);
+    }
+  };
+
+  const handleSwitchToBot = async () => {
+    if (!currentConversation) return;
+
+    try {
+      if (isConnected) {
+        webSocketService.switchToBot(currentConversation.id);
+      } else {
+        await conversationService.switchToBot(currentConversation.id);
+      }
+    } catch (error) {
+      console.error("Error switching to bot:", error);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const handleSelectVariant = (productId: string, variantIndex: number) => {
-    setSelectedVariants((prev) => ({
-      ...prev,
-      [productId]: variantIndex,
-    }));
   };
 
   const formatPrice = (price: number) => {
@@ -180,7 +454,7 @@ export default function ChatBot() {
           : 0;
 
         // Parse variants
-        const variants: any[] = [];
+        const variants: Variant[] = [];
         const variantMatches = variantsText.matchAll(/([^\(]+)\s*\(([^)]+)\)/g);
 
         for (const match of variantMatches) {
@@ -204,6 +478,7 @@ export default function ChatBot() {
           };
 
           variants.push({
+            id: `variant-${Date.now()}-${variants.length}`,
             color: {
               name: colorName,
               hex: colorMap[colorName] || "#6b7280",
@@ -351,20 +626,51 @@ export default function ChatBot() {
 
             <div className="flex items-center gap-4 relative z-10">
               <div className="relative">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <MessageOutlined className="text-2xl" />
-                </div>
+                {currentConversation?.conversationType === "human" ? (
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <UserOutlined className="text-2xl" />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <RobotOutlined className="text-2xl" />
+                  </div>
+                )}
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
               </div>
               <div>
                 <h3 className="font-bold text-xl flex items-center gap-2">
-                  Trợ lý BooBoo
-                  <span className="text-lg animate-bounce">🤖</span>
+                  {currentConversation?.conversationType === "human"
+                    ? "Hỗ trợ viên"
+                    : "Trợ lý BooBoo"}
+                  <span className="text-lg animate-bounce">
+                    {currentConversation?.conversationType === "human"
+                      ? "👨‍💼"
+                      : "🤖"}
+                  </span>
                 </h3>
                 <div className="text-sm text-white/90 flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  Luôn sẵn sàng hỗ trợ bạn
+                  <div
+                    className={`w-2 h-2 rounded-full animate-pulse ${
+                      isConnected ? "bg-green-400" : "bg-red-400"
+                    }`}
+                  ></div>
+                  {currentConversation?.status === "waiting" ? (
+                    <span className="flex items-center gap-1">
+                      <ClockCircleOutlined /> Đang chờ nhân viên
+                    </span>
+                  ) : currentConversation?.status === "active" ? (
+                    <span className="flex items-center gap-1">
+                      <CheckCircleOutlined /> Đang trò chuyện
+                    </span>
+                  ) : (
+                    "Luôn sẵn sàng hỗ trợ bạn"
+                  )}
                 </div>
+                {currentConversation?.agentId && (
+                  <div className="text-xs text-white/80 mt-1">
+                    Nhân viên đang hỗ trợ
+                  </div>
+                )}
               </div>
             </div>
             <button
@@ -388,6 +694,8 @@ export default function ChatBot() {
                   className={`max-w-[85%] ${
                     message.type === "user"
                       ? "bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 text-white shadow-lg shadow-purple-500/20"
+                      : message.type === "agent"
+                      ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/20"
                       : "bg-white text-gray-800 shadow-lg border border-purple-100"
                   } rounded-2xl px-5 py-4 relative group`}
                 >
@@ -396,9 +704,17 @@ export default function ChatBot() {
                     className={`absolute top-4 w-3 h-3 ${
                       message.type === "user"
                         ? "right-0 translate-x-1/2 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500"
+                        : message.type === "agent"
+                        ? "left-0 -translate-x-1/2 bg-gradient-to-br from-green-500 to-emerald-500"
                         : "left-0 -translate-x-1/2 bg-white border-l border-t border-purple-100"
                     } transform rotate-45`}
                   ></div>
+                  {/* Sender indicator for agent messages */}
+                  {message.type === "agent" && (
+                    <div className="text-xs text-green-100 mb-1 flex items-center gap-1">
+                      <UserOutlined /> Nhân viên hỗ trợ
+                    </div>
+                  )}
                   <div className="whitespace-pre-wrap text-sm leading-relaxed">
                     {/* Loại bỏ link ảnh khỏi text hiển thị */}
                     {message.content.replace(
@@ -456,21 +772,10 @@ export default function ChatBot() {
                                       product.variants.length > 0 && (
                                         <div className="flex gap-1 flex-wrap">
                                           {product.variants.map(
-                                            (variant, idx) => (
+                                            (variant: Variant, idx: number) => (
                                               <div
                                                 key={idx}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleSelectVariant(
-                                                    product.id,
-                                                    idx
-                                                  );
-                                                }}
-                                                className={`w-6 h-6 rounded-full border-2 shadow-sm cursor-pointer transition-all duration-200 hover:scale-110 ${
-                                                  selectedVariantIndex === idx
-                                                    ? "border-purple-500 ring-2 ring-purple-300"
-                                                    : "border-white hover:border-purple-300"
-                                                }`}
+                                                className="w-6 h-6 rounded-full border-2 shadow-sm"
                                                 style={{
                                                   backgroundColor:
                                                     variant.color.hex,
@@ -554,21 +859,10 @@ export default function ChatBot() {
                                     product.variants.length > 0 && (
                                       <div className="flex gap-1 flex-wrap">
                                         {product.variants.map(
-                                          (variant: any, idx: number) => (
+                                          (variant: Variant, idx: number) => (
                                             <div
                                               key={idx}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSelectVariant(
-                                                  product.id,
-                                                  idx
-                                                );
-                                              }}
-                                              className={`w-6 h-6 rounded-full border-2 shadow-sm cursor-pointer transition-all duration-200 hover:scale-110 ${
-                                                selectedVariantIndex === idx
-                                                  ? "border-purple-500 ring-2 ring-purple-300"
-                                                  : "border-white hover:border-purple-300"
-                                              }`}
+                                              className="w-6 h-6 rounded-full border-2 shadow-sm"
                                               style={{
                                                 backgroundColor:
                                                   variant.color.hex,
@@ -617,6 +911,31 @@ export default function ChatBot() {
               </div>
             ))}
 
+            {isTyping && (
+              <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-white text-gray-800 shadow-lg rounded-2xl px-5 py-4 border border-purple-100">
+                  <div className="flex gap-2 items-center">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
+                    <span className="text-sm text-gray-500 ml-2">
+                      {currentConversation?.conversationType === "human"
+                        ? "Nhân viên đang trả lời..."
+                        : "BooBoo đang trả lời..."}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isLoading && (
               <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
                 <div className="bg-white text-gray-800 shadow-lg rounded-2xl px-5 py-4 border border-purple-100">
@@ -641,6 +960,42 @@ export default function ChatBot() {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Switch to human button */}
+          {currentConversation?.conversationType === "bot" && (
+            <div className="px-5 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-200">
+              <div className="text-center">
+                <p className="text-sm text-amber-800 mb-2">
+                  Cần hỗ trợ thêm từ nhân viên?
+                </p>
+                <Button
+                  onClick={handleSwitchToHuman}
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 border-none text-white hover:from-amber-600 hover:to-orange-600"
+                  icon={<UserOutlined />}
+                >
+                  Chuyển sang chat với nhân viên
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Switch to bot button */}
+          {currentConversation?.conversationType === "human" && (
+            <div className="px-5 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border-t border-blue-200">
+              <div className="text-center">
+                <p className="text-sm text-blue-800 mb-2">
+                  Muốn quay lại chat với bot?
+                </p>
+                <Button
+                  onClick={handleSwitchToBot}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 border-none text-white hover:from-blue-600 hover:to-cyan-600"
+                  icon={<RobotOutlined />}
+                >
+                  Chuyển sang chat với bot
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div
             className={`h-px mx-5 transition-all duration-300 ${

@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";
@@ -20,6 +21,7 @@ import ProductManagement from "./components/ProductManagement";
 import PromotionManagement from "./components/PromotionManagement";
 import ReviewManagement from "./components/ReviewManagement";
 import TaxReport from "./components/TaxReport";
+import ChatManagement from "./components/ChatManagement";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -28,6 +30,7 @@ const AdminDashboard = () => {
 
   const menuItems = [
     { key: "overview", label: "Thống kê tổng quan", icon: ClipboardList },
+    { key: "chat", label: "Quản lý chat", icon: MessageSquare },
     { key: "users", label: "Quản lý người dùng", icon: Users },
     { key: "orders", label: "Quản lý đơn hàng", icon: Package },
     { key: "inventory", label: "Quản lý kho", icon: Warehouse },
@@ -44,6 +47,8 @@ const AdminDashboard = () => {
         return <UserManagement />;
       case "overview":
         return <OverviewSection />;
+      case "chat":
+        return <ChatManagement />;
       case "orders":
         return <OrderManagement />;
       case "inventory":

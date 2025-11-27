@@ -114,6 +114,20 @@ export const API_CONFIG = {
     CHAT_BOT: {
       SEND_MESSAGE: '/chatbot/chat',
     },
+    CONVERSATIONS: {
+      GET_ACTIVE: '/conversations/active',
+      GET_ALL: '/conversations',
+      GET_BY_ID: '/conversations/:id',
+      GET_MESSAGES: '/conversations/:id/messages',
+      SWITCH_TO_HUMAN: '/conversations/:id/switch-to-human',
+      SWITCH_TO_BOT: '/conversations/:id/switch-to-bot',
+      ASSIGN_AGENT: '/conversations/:id/assign-agent',
+      GET_WAITING: '/conversations/waiting',
+      GET_AGENT_CONVERSATIONS: '/conversations/agent/my-conversations',
+      GET_ALL_ADMIN: '/conversations/admin/all',
+      MARK_AS_READ: '/conversations/:id/mark-as-read',
+      GET_STATS: '/conversations/:id/stats',
+    },
     TAX_REPORTS: {
       VAT: '/reports/tax/vat',
       VAT_EXPORT: '/reports/tax/vat/export',

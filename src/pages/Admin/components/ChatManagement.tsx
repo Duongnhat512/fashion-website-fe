@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, List, Button, Avatar, Tabs, Input, message } from "antd";
 import {
   MessageOutlined,
@@ -7,6 +8,7 @@ import {
   CheckCircleOutlined,
   SendOutlined,
   EyeOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import {
   conversationService,
@@ -22,6 +24,28 @@ import {
 import { useAuth } from "../../../contexts/AuthContext";
 
 const { TextArea } = Input;
+
+interface Product {
+  id: string;
+  name: string;
+  imageUrl: string;
+  slug: string;
+  price: number;
+  variants?: Variant[];
+}
+
+interface Variant {
+  id: string;
+  color: {
+    name: string;
+    hex: string;
+    imageUrl?: string;
+  };
+  size: string;
+  price: number;
+  availableQuantity: number;
+  imageUrl?: string;
+}
 
 const getInitials = (fullname: string) => {
   return fullname
@@ -43,8 +67,16 @@ const getRelativeTime = (dateString: string) => {
   return `${days} ngày trước`;
 };
 
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(price);
+};
+
 export default function ChatManagement() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
@@ -54,6 +86,9 @@ export default function ChatManagement() {
   const [isConnected, setIsConnected] = useState(false);
   const [savedScroll, setSavedScroll] = useState(0);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false);
+  const [selectedVariants, setSelectedVariants] = useState<{
+    [productId: string]: number;
+  }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const allConversationsListRef = useRef<HTMLDivElement>(null);
 
@@ -156,7 +191,12 @@ export default function ChatManagement() {
     try {
       const conversations =
         await conversationService.getAllConversationsWithStats();
-      setAllConversations(conversations);
+      // Sort by updatedAt descending (newest first)
+      const sortedConversations = conversations.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      setAllConversations(sortedConversations);
     } catch (error) {
       message.error("Không thể tải tất cả conversations");
     }
@@ -362,7 +402,131 @@ export default function ChatManagement() {
                             : "bg-gray-200 text-gray-800"
                         }`}
                       >
-                        <div className="text-sm">{message.content}</div>
+                        {/* Sender indicator */}
+                        {message.senderId === user?.id ? (
+                          <div className="text-xs text-blue-100 mb-1 flex items-center gap-1">
+                            <UserOutlined /> Admin
+                          </div>
+                        ) : message.isFromBot ? (
+                          <div className="text-xs text-green-100 mb-1 flex items-center gap-1">
+                            <RobotOutlined /> Trợ lý BOOBOO
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                            <UserOutlined />{" "}
+                            {selectedConversation.user?.fullname ||
+                              "Khách hàng"}
+                          </div>
+                        )}
+                        <div className="text-sm whitespace-pre-wrap">
+                          {message.content}
+                        </div>
+
+                        {/* Hiển thị sản phẩm nếu có */}
+                        {(() => {
+                          const products =
+                            (message.metadata?.products as Product[]) || [];
+                          return products.length > 0 ? (
+                            <div className="mt-3 space-y-2">
+                              {products.map((product) => {
+                                const selectedVariantIndex =
+                                  selectedVariants[product.id] ?? 0;
+                                const selectedVariant =
+                                  product.variants?.[selectedVariantIndex];
+                                const displayImage =
+                                  selectedVariant?.imageUrl || product.imageUrl;
+                                const displayPrice =
+                                  selectedVariant?.price || product.price;
+
+                                return (
+                                  <div
+                                    key={product.id}
+                                    className="block bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 rounded-lg p-2 transition-all duration-300 cursor-pointer border border-purple-200"
+                                  >
+                                    <div className="flex gap-2">
+                                      <div className="relative">
+                                        <img
+                                          src={displayImage}
+                                          alt={product.name}
+                                          className="w-12 h-12 object-cover rounded-md shadow-sm"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src =
+                                              "https://via.placeholder.com/48x48?text=No+Image";
+                                          }}
+                                        />
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center">
+                                          <span className="text-xs text-white">
+                                            ✨
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold text-gray-800 truncate mb-1">
+                                          {product.name}
+                                        </p>
+                                        <p className="text-sm font-bold text-purple-600 mb-1">
+                                          {formatPrice(displayPrice)}
+                                        </p>
+                                        {product.variants &&
+                                          product.variants.length > 0 && (
+                                            <div className="flex gap-1 flex-wrap">
+                                              {product.variants.map(
+                                                (
+                                                  variant: Variant,
+                                                  idx: number
+                                                ) => (
+                                                  <div
+                                                    key={idx}
+                                                    className={`w-4 h-4 rounded-full border shadow-sm cursor-pointer transition-all ${
+                                                      selectedVariantIndex ===
+                                                      idx
+                                                        ? "border-purple-500 ring-1 ring-purple-200"
+                                                        : "border-gray-300 hover:border-gray-400"
+                                                    }`}
+                                                    style={{
+                                                      backgroundColor:
+                                                        variant.color.hex,
+                                                    }}
+                                                    title={`${variant.color.name} - ${variant.size}`}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setSelectedVariants(
+                                                        (prev) => ({
+                                                          ...prev,
+                                                          [product.id]: idx,
+                                                        })
+                                                      );
+                                                    }}
+                                                  />
+                                                )
+                                              )}
+                                            </div>
+                                          )}
+                                      </div>
+                                    </div>
+                                    <div className="mt-1 text-center">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(
+                                            `/products/${product.slug}`,
+                                            {
+                                              state: { product },
+                                            }
+                                          );
+                                        }}
+                                        className="text-xs bg-purple-500 text-white px-2 py-1 rounded-full hover:bg-purple-600 transition-colors"
+                                      >
+                                        Xem chi tiết
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : null;
+                        })()}
+
                         <div
                           className={`text-xs mt-1 ${
                             message.senderId === user?.id

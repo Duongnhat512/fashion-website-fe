@@ -753,10 +753,14 @@ export default function ChatBot() {
               {messages.length === 0 && (
                 <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
                   <div className="bg-white text-gray-800 shadow-lg rounded-2xl px-5 py-4 border border-purple-100">
+                    {/* Sender indicator for bot welcome message */}
+                    <div className="text-xs text-purple-600 mb-1 flex items-center gap-1">
+                      <RobotOutlined /> Trợ lý BOOBOO
+                    </div>
                     <div className="text-sm">
                       {currentConversation?.conversationType === "human"
                         ? "Quý khách vui lòng cho câu hỏi hoặc tư vấn vui lòng gửi tin nhắn nhân viên sẽ trả lời nhanh nhất có thể."
-                        : "Xin chào! Tôi là chatbot hỗ trợ của cửa hàng. Tôi có thể giúp gì cho bạn?"}
+                        : "Xin chào! Tôi là trợ lý BOOBOO của cửa hàng. Tôi có thể giúp gì cho bạn?"}
                     </div>
                   </div>
                 </div>
@@ -791,6 +795,18 @@ export default function ChatBot() {
                     {message.type === "agent" && (
                       <div className="text-xs text-green-100 mb-1 flex items-center gap-1">
                         <UserOutlined /> Nhân viên hỗ trợ
+                      </div>
+                    )}
+                    {/* Sender indicator for bot messages */}
+                    {message.type === "bot" && (
+                      <div className="text-xs text-purple-600 mb-1 flex items-center gap-1">
+                        <RobotOutlined /> Trợ lý BOOBOO
+                      </div>
+                    )}
+                    {/* Sender indicator for user messages */}
+                    {message.type === "user" && (
+                      <div className="text-xs text-purple-100 mb-1 flex items-center gap-1">
+                        <UserOutlined /> Bạn
                       </div>
                     )}
                     <div className="whitespace-pre-wrap text-sm leading-relaxed">

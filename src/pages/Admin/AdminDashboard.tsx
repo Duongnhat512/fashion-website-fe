@@ -30,7 +30,7 @@ const AdminDashboard = () => {
 
   const menuItems = [
     { key: "overview", label: "Thống kê tổng quan", icon: ClipboardList },
-    { key: "chat", label: "Quản lý chat", icon: MessageSquare },
+    { key: "chat", label: "Quản lý trò chuyện", icon: MessageSquare },
     { key: "users", label: "Quản lý người dùng", icon: Users },
     { key: "orders", label: "Quản lý đơn hàng", icon: Package },
     { key: "inventory", label: "Quản lý kho", icon: Warehouse },

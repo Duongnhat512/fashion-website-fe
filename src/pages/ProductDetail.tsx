@@ -62,7 +62,6 @@ export default function ProductDetail() {
 
         // Hiển thị product từ state trước (nếu có) để tăng tốc độ
         if (stateProduct && stateProduct.slug === slug) {
-          console.log("✅ Hiển thị tạm product từ state:", stateProduct);
           setProduct(stateProduct);
           if (stateProduct.variants?.length > 0) {
             setSelectedVariant(stateProduct.variants[0]);
@@ -82,10 +81,6 @@ export default function ProductDetail() {
               if (token) {
                 try {
                   await productService.getProductById(stateProduct.id, token);
-                  console.log(
-                    "✅ Đã ghi nhận lượt xem sản phẩm:",
-                    stateProduct.id
-                  );
                 } catch (error) {
                   console.error("❌ Lỗi ghi nhận lượt xem:", error);
                 }

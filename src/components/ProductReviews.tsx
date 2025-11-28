@@ -64,17 +64,8 @@ export default function ProductReviews({
   const loadReviews = async (page: number = 1) => {
     try {
       setReviewsLoading(true);
-      console.log("🔍 Loading reviews for product:", productId, "page:", page);
       const data = await reviewService.getProductReviews(productId, page, 10);
-      console.log("✅ Loaded reviews:", data.reviews.length, "reviews");
-      console.log(
-        "Reviews data:",
-        data.reviews.map((r) => ({
-          id: r.id,
-          productId: r.productId,
-          userName: r.userName,
-        }))
-      );
+
       setReviews(data.reviews);
       setReviewTotal(data.pagination.total);
       setReviewPage(page);

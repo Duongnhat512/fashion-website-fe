@@ -268,7 +268,6 @@ class AuthService {
 
   getToken(): string | null {
     const token = localStorage.getItem('authToken');
-    console.log('Getting token from localStorage:', token);
     return token;
   }
 

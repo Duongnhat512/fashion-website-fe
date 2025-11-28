@@ -44,13 +44,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const token = authService.getToken();
     const userData = authService.getUser();
 
-    console.log("AuthContext init - token:", token);
-    console.log("AuthContext init - userData:", userData);
-
     if (token && userData) {
       setUser(userData);
       setIsAuthenticated(true);
-      console.log("User restored:", userData);
     } else {
       console.log("No token or userData");
     }

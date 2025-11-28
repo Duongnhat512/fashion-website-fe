@@ -33,9 +33,7 @@ export default function Header() {
     const loadCategories = async () => {
       try {
         const response = await categoryService.getTree();
-        console.log("Categories API response:", response);
         if (response.success) {
-          console.log("Categories data:", response.data);
           setCategories(response.data);
         }
       } catch (error) {

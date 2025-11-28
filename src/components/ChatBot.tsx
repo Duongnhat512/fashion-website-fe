@@ -65,7 +65,7 @@ export default function ChatBot() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [selectedVariants] = useState<{
+  const [selectedVariants, setSelectedVariants] = useState<{
     [productId: string]: number;
   }>({});
 
@@ -102,6 +102,7 @@ export default function ChatBot() {
         isRead: msg.isRead,
         senderId: msg.senderId,
         metadata: msg.metadata,
+        products: (msg.metadata?.products as Product[]) || [],
       }));
       if (formattedMessages.length === 0) {
         setMessages([]);
@@ -197,6 +198,7 @@ export default function ChatBot() {
             isRead: false,
             senderId: socketMessage.senderId,
             metadata: socketMessage.metadata,
+            products: (socketMessage.metadata?.products as Product[]) || [],
           };
           setMessages((prev) => {
             // Check if message already exists to prevent duplicates
@@ -854,12 +856,25 @@ export default function ChatBot() {
                                               ) => (
                                                 <div
                                                   key={idx}
-                                                  className="w-6 h-6 rounded-full border-2 shadow-sm"
+                                                  className={`w-6 h-6 rounded-full border-2 shadow-sm cursor-pointer transition-all ${
+                                                    selectedVariantIndex === idx
+                                                      ? "border-purple-500 ring-2 ring-purple-200"
+                                                      : "border-gray-300 hover:border-gray-400"
+                                                  }`}
                                                   style={{
                                                     backgroundColor:
                                                       variant.color.hex,
                                                   }}
                                                   title={`${variant.color.name} - ${variant.size}`}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedVariants(
+                                                      (prev) => ({
+                                                        ...prev,
+                                                        [product.id]: idx,
+                                                      })
+                                                    );
+                                                  }}
                                                 />
                                               )
                                             )}
@@ -941,12 +956,25 @@ export default function ChatBot() {
                                             (variant: Variant, idx: number) => (
                                               <div
                                                 key={idx}
-                                                className="w-6 h-6 rounded-full border-2 shadow-sm"
+                                                className={`w-6 h-6 rounded-full border-2 shadow-sm cursor-pointer transition-all ${
+                                                  selectedVariantIndex === idx
+                                                    ? "border-purple-500 ring-2 ring-purple-200"
+                                                    : "border-gray-300 hover:border-gray-400"
+                                                }`}
                                                 style={{
                                                   backgroundColor:
                                                     variant.color.hex,
                                                 }}
                                                 title={`${variant.color.name} - ${variant.size}`}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedVariants(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      [product.id]: idx,
+                                                    })
+                                                  );
+                                                }}
                                               />
                                             )
                                           )}

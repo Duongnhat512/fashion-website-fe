@@ -145,6 +145,14 @@ export const API_CONFIG = {
       ACTIVATE: '/promotions/:id/activate',
       DEACTIVATE: '/promotions/:id/deactivate',
     },
+    VOUCHERS: {
+      GET_ALL: '/vouchers',
+      GET_BY_ID: '/vouchers/:id',
+      CREATE: '/vouchers',
+      UPDATE: '/vouchers/:id',
+      DELETE: '/vouchers/:id',
+      TOGGLE: '/vouchers/:id/toggle',
+    },
   },
 
   DEFAULT_PAGINATION: {

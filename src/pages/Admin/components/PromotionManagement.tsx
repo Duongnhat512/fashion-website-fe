@@ -16,6 +16,7 @@ import {
   Drawer,
   List,
   Card,
+  Tabs,
 } from "antd";
 import {
   PlusOutlined,
@@ -33,6 +34,7 @@ import {
 import { productService } from "../../../services/productService";
 import dayjs from "dayjs";
 import { useNotification } from "../../../components/NotificationProvider";
+import VoucherManagement from "./VoucherManagement";
 
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
@@ -354,238 +356,261 @@ export default function PromotionManagement() {
   const paginatedPromotions = filteredPromotions.slice(startIndex, endIndex);
 
   return (
-    <div>
-      {/* HEADER */}
+    <Tabs defaultActiveKey="promotion" type="card">
+      <Tabs.TabPane tab="Khuyến mãi" key="promotion">
+        <div>
+          {/* HEADER */}
 
-      {/* FILTERS */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
-        <div className="flex items-center gap-4 flex-wrap">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleCreate}
-            className="bg-blue-600"
-          >
-            Tạo khuyến mãi
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-700">Thời gian:</span>
-            <RangePicker
-              value={dateRange}
-              onChange={setDateRange}
-              format="DD/MM/YYYY"
-              placeholder={["Từ ngày", "Đến ngày"]}
-              className="w-64"
+          {/* FILTERS */}
+          <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+            <div className="flex items-center gap-4 flex-wrap">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+                className="bg-blue-600"
+              >
+                Tạo khuyến mãi
+              </Button>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-gray-700">Thời gian:</span>
+                <RangePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                  format="DD/MM/YYYY"
+                  placeholder={["Từ ngày", "Đến ngày"]}
+                  className="w-64"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-gray-700">
+                  Trạng thái duyệt:
+                </span>
+                <Select
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  className="w-40"
+                >
+                  <Select.Option value="all">Tất cả</Select.Option>
+                  <Select.Option value="draft">Bản nháp</Select.Option>
+                  <Select.Option value="submitted">Đã duyệt</Select.Option>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-gray-700">Hoạt động:</span>
+                <Select
+                  value={activeFilter}
+                  onChange={setActiveFilter}
+                  className="w-32"
+                >
+                  <Select.Option value="all">Tất cả</Select.Option>
+                  <Select.Option value="active">Đang bật</Select.Option>
+                  <Select.Option value="inactive">Đang tắt</Select.Option>
+                </Select>
+              </div>
+
+              <Button onClick={handleResetFilters} type="primary">
+                Xem tất cả
+              </Button>
+            </div>
+          </div>
+
+          {/* TABLE */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <Table
+              columns={columns}
+              dataSource={paginatedPromotions}
+              loading={loading}
+              rowKey="id"
+              pagination={false}
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-700">Trạng thái duyệt:</span>
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              className="w-40"
-            >
-              <Select.Option value="all">Tất cả</Select.Option>
-              <Select.Option value="draft">Bản nháp</Select.Option>
-              <Select.Option value="submitted">Đã duyệt</Select.Option>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-700">Hoạt động:</span>
-            <Select
-              value={activeFilter}
-              onChange={setActiveFilter}
-              className="w-32"
-            >
-              <Select.Option value="all">Tất cả</Select.Option>
-              <Select.Option value="active">Đang bật</Select.Option>
-              <Select.Option value="inactive">Đang tắt</Select.Option>
-            </Select>
-          </div>
-
-          <Button onClick={handleResetFilters} type="primary">
-            Xem tất cả
-          </Button>
-        </div>
-      </div>
-
-      {/* TABLE */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <Table
-          columns={columns}
-          dataSource={paginatedPromotions}
-          loading={loading}
-          rowKey="id"
-          pagination={false}
-        />
-      </div>
-
-      {/* PAGINATION */}
-      <div className="flex justify-center mt-8">
-        <Pagination
-          current={page}
-          total={filteredPromotions.length}
-          pageSize={limit}
-          onChange={(p) => setPage(p)}
-          showSizeChanger={false}
-          showTotal={(t, range) =>
-            `${range[0]}-${range[1]} của ${t} khuyến mãi`
-          }
-        />
-      </div>
-
-      {/* MODAL CREATE / UPDATE */}
-      <Modal
-        title={editingPromotion ? "Cập nhật khuyến mãi" : "Tạo khuyến mãi mới"}
-        open={isModalVisible}
-        onOk={handleSubmit}
-        onCancel={() => {
-          setIsModalVisible(false);
-          form.resetFields();
-        }}
-        width={700}
-        okText={editingPromotion ? "Cập nhật" : "Tạo mới"}
-        cancelText="Hủy"
-      >
-        <Form form={form} layout="vertical" className="mt-4">
-          <Form.Item
-            name="name"
-            label="Tên khuyến mãi"
-            rules={[{ required: true }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item name="type" label="Loại" rules={[{ required: true }]}>
-              <Select>
-                <Select.Option value="PERCENTAGE">Phần trăm (%)</Select.Option>
-                <Select.Option value="FIXED_AMOUNT">
-                  Giảm tiền (₫)
-                </Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="value"
-              label="Giá trị"
-              rules={[{ required: true }]}
-            >
-              <InputNumber className="w-full" min={0} max={100} />
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            name="dateRange"
-            label="Thời gian áp dụng"
-            rules={[{ required: true }]}
-          >
-            <RangePicker
-              showTime
-              format="DD/MM/YYYY HH:mm"
-              className="w-full"
-            />
-          </Form.Item>
-
-          <Form.Item name="productIds" label="Sản phẩm áp dụng">
-            <Select
-              mode="multiple"
-              showSearch
-              placeholder="Không chọn = áp dụng tất cả"
-              options={products.map((p) => ({ value: p.id, label: p.name }))}
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
+          {/* PAGINATION */}
+          <div className="flex justify-center mt-8">
+            <Pagination
+              current={page}
+              total={filteredPromotions.length}
+              pageSize={limit}
+              onChange={(p) => setPage(p)}
+              showSizeChanger={false}
+              showTotal={(t, range) =>
+                `${range[0]}-${range[1]} của ${t} khuyến mãi`
               }
             />
-          </Form.Item>
-
-          <Form.Item name="note" label="Ghi chú">
-            <TextArea rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* DRAWER XEM CHI TIẾT */}
-      <Drawer
-        title="Chi tiết khuyến mãi"
-        open={isDrawerVisible}
-        onClose={() => setIsDrawerVisible(false)}
-        width={600}
-      >
-        {viewingPromotion && (
-          <div className="space-y-4">
-            <Card title="Thông tin chung" size="small">
-              <p>
-                <strong>Tên:</strong> {viewingPromotion.name}
-              </p>
-              <p>
-                <strong>Loại:</strong>{" "}
-                {viewingPromotion.type === "PERCENTAGE"
-                  ? "Phần trăm"
-                  : "Giảm tiền"}
-              </p>
-              <p>
-                <strong>Giá trị:</strong>{" "}
-                {viewingPromotion.type === "PERCENTAGE"
-                  ? `${viewingPromotion.value}%`
-                  : `${viewingPromotion.value.toLocaleString()} ₫`}
-              </p>
-              <p>
-                <strong>Thời gian:</strong>{" "}
-                {dayjs(viewingPromotion.startDate).format("DD/MM/YYYY HH:mm")} →{" "}
-                {dayjs(viewingPromotion.endDate).format("DD/MM/YYYY HH:mm")}
-              </p>
-              <p>
-                <strong>Ghi chú:</strong> {viewingPromotion.note}
-              </p>
-            </Card>
-
-            <Card
-              title={`Sản phẩm áp dụng (${
-                viewingPromotion.products?.length || 0
-              })`}
-              size="small"
-            >
-              {viewingPromotion.products?.length ? (
-                <List
-                  dataSource={viewingPromotion.products}
-                  renderItem={(product) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={
-                          <img
-                            src={product.imageUrl}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        }
-                        title={
-                          <span
-                            className="text-blue-600 hover:text-blue-800 cursor-pointer"
-                            onClick={() =>
-                              navigate(`/products/${product.slug}`, {
-                                state: { product },
-                              })
-                            }
-                          >
-                            {product.name}
-                          </span>
-                        }
-                        description={product.shortDescription}
-                      />
-                    </List.Item>
-                  )}
-                />
-              ) : (
-                <p className="text-gray-500">Áp dụng cho tất cả sản phẩm</p>
-              )}
-            </Card>
           </div>
-        )}
-      </Drawer>
-    </div>
+
+          {/* MODAL CREATE / UPDATE */}
+          <Modal
+            title={
+              editingPromotion ? "Cập nhật khuyến mãi" : "Tạo khuyến mãi mới"
+            }
+            open={isModalVisible}
+            onOk={handleSubmit}
+            onCancel={() => {
+              setIsModalVisible(false);
+              form.resetFields();
+            }}
+            width={700}
+            okText={editingPromotion ? "Cập nhật" : "Tạo mới"}
+            cancelText="Hủy"
+          >
+            <Form form={form} layout="vertical" className="mt-4">
+              <Form.Item
+                name="name"
+                label="Tên khuyến mãi"
+                rules={[{ required: true }]}
+              >
+                <Input />
+              </Form.Item>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item
+                  name="type"
+                  label="Loại"
+                  rules={[{ required: true }]}
+                >
+                  <Select>
+                    <Select.Option value="PERCENTAGE">
+                      Phần trăm (%)
+                    </Select.Option>
+                    <Select.Option value="FIXED_AMOUNT">
+                      Giảm tiền (₫)
+                    </Select.Option>
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="value"
+                  label="Giá trị"
+                  rules={[{ required: true }]}
+                >
+                  <InputNumber className="w-full" min={0} max={100} />
+                </Form.Item>
+              </div>
+
+              <Form.Item
+                name="dateRange"
+                label="Thời gian áp dụng"
+                rules={[{ required: true }]}
+              >
+                <RangePicker
+                  showTime
+                  format="DD/MM/YYYY HH:mm"
+                  className="w-full"
+                />
+              </Form.Item>
+
+              <Form.Item name="productIds" label="Sản phẩm áp dụng">
+                <Select
+                  mode="multiple"
+                  showSearch
+                  placeholder="Không chọn = áp dụng tất cả"
+                  options={products.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  }))}
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                />
+              </Form.Item>
+
+              <Form.Item name="note" label="Ghi chú">
+                <TextArea rows={3} />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* DRAWER XEM CHI TIẾT */}
+          <Drawer
+            title="Chi tiết khuyến mãi"
+            open={isDrawerVisible}
+            onClose={() => setIsDrawerVisible(false)}
+            width={600}
+          >
+            {viewingPromotion && (
+              <div className="space-y-4">
+                <Card title="Thông tin chung" size="small">
+                  <p>
+                    <strong>Tên:</strong> {viewingPromotion.name}
+                  </p>
+                  <p>
+                    <strong>Loại:</strong>{" "}
+                    {viewingPromotion.type === "PERCENTAGE"
+                      ? "Phần trăm"
+                      : "Giảm tiền"}
+                  </p>
+                  <p>
+                    <strong>Giá trị:</strong>{" "}
+                    {viewingPromotion.type === "PERCENTAGE"
+                      ? `${viewingPromotion.value}%`
+                      : `${viewingPromotion.value.toLocaleString()} ₫`}
+                  </p>
+                  <p>
+                    <strong>Thời gian:</strong>{" "}
+                    {dayjs(viewingPromotion.startDate).format(
+                      "DD/MM/YYYY HH:mm"
+                    )}{" "}
+                    →{" "}
+                    {dayjs(viewingPromotion.endDate).format("DD/MM/YYYY HH:mm")}
+                  </p>
+                  <p>
+                    <strong>Ghi chú:</strong> {viewingPromotion.note}
+                  </p>
+                </Card>
+
+                <Card
+                  title={`Sản phẩm áp dụng (${
+                    viewingPromotion.products?.length || 0
+                  })`}
+                  size="small"
+                >
+                  {viewingPromotion.products?.length ? (
+                    <List
+                      dataSource={viewingPromotion.products}
+                      renderItem={(product) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            avatar={
+                              <img
+                                src={product.imageUrl}
+                                className="w-12 h-12 object-cover rounded"
+                              />
+                            }
+                            title={
+                              <span
+                                className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                onClick={() =>
+                                  navigate(`/products/${product.slug}`, {
+                                    state: { product },
+                                  })
+                                }
+                              >
+                                {product.name}
+                              </span>
+                            }
+                            description={product.shortDescription}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  ) : (
+                    <p className="text-gray-500">Áp dụng cho tất cả sản phẩm</p>
+                  )}
+                </Card>
+              </div>
+            )}
+          </Drawer>
+        </div>
+      </Tabs.TabPane>
+      <Tabs.TabPane tab="Voucher" key="voucher">
+        <VoucherManagement />
+      </Tabs.TabPane>
+    </Tabs>
   );
 }

@@ -6,7 +6,8 @@ import { orderService } from "../services/orderService";
 import type { CreateOrderRequest } from "../services/orderService";
 import { useNotification } from "../components/NotificationProvider";
 import { authService } from "../services/authService";
-import { Modal } from "antd";
+import { Modal, Card, Tag, List } from "antd";
+import voucherService, { type Voucher } from "../services/voucherService";
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("vi-VN", {
@@ -36,6 +37,13 @@ const PaymentPage = () => {
   });
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+
+  // Voucher states
+  const [voucherModalVisible, setVoucherModalVisible] = useState(false);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
 
   // ✅ Lấy thông tin người dùng từ API
   useEffect(() => {
@@ -86,7 +94,8 @@ const PaymentPage = () => {
     : selectedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   const shippingFee = 0;
-  const grandTotal = total + shippingFee;
+  const discountAmount = selectedVoucher ? Math.min(voucherDiscount, selectedVoucher.maxDiscountValue || voucherDiscount) : 0;
+  const grandTotal = Math.max(total - discountAmount + shippingFee, 0);
 
   const handleFormChange = (
     e: React.ChangeEvent<
@@ -99,6 +108,55 @@ const PaymentPage = () => {
     });
   };
 
+  // Voucher functions
+  const loadVouchers = async () => {
+    try {
+      setLoadingVouchers(true);
+      const response = await voucherService.getAll(1, 50, undefined, true); // Load active vouchers
+      setVouchers(response.data);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách voucher:", error);
+    } finally {
+      setLoadingVouchers(false);
+    }
+  };
+
+  const handleOpenVoucherModal = () => {
+    setVoucherModalVisible(true);
+    loadVouchers();
+  };
+
+  const handleSelectVoucher = (voucher: Voucher) => {
+    // Check if voucher is expired
+    if (new Date(voucher.endDate) < new Date()) {
+      notify.error("Voucher đã hết hạn");
+      return;
+    }
+
+    // Check if voucher usage limit reached
+    if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit) {
+      notify.error("Voucher đã hết lượt sử dụng");
+      return;
+    }
+
+    // Check minimum order value
+    if (total < (voucher.minOrderValue || 0)) {
+      notify.error(`Đơn hàng phải có giá trị tối thiểu ${formatCurrency(voucher.minOrderValue || 0)} để áp dụng voucher này`);
+      return;
+    }
+
+    setSelectedVoucher(voucher);
+    setVoucherDiscount(total * (voucher.discountPercentage / 100));
+    setVoucherModalVisible(false);
+    notify.success(`Đã áp dụng voucher ${voucher.code}`);
+  };
+
+  const handleRemoveVoucher = () => {
+    setSelectedVoucher(null);
+    setVoucherDiscount(0);
+    notify.info("Đã bỏ áp dụng voucher");
+  };
+
   const handlePlaceOrder = async () => {
     if (!user || !user.id || !user.fullname || !user.email) {
       notify.error("Vui lòng đăng nhập trước khi đặt hàng!");
@@ -108,9 +166,10 @@ const PaymentPage = () => {
 
     const orderData: CreateOrderRequest = {
       status: "unpaid",
-      discount: 0,
+      discount: selectedVoucher ? selectedVoucher.discountPercentage : 0,
       shippingFee,
       isCOD: form.paymentMethod === "cod",
+      voucherCode: selectedVoucher?.code,
       items: selectedItem
         ? [
             {
@@ -304,9 +363,80 @@ const PaymentPage = () => {
             </span>
           </div>
           <hr />
-          <div className="flex justify-between font-semibold text-lg">
+
+          {/* Voucher Section */}
+          <div className="space-y-3 bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">%</span>
+                <span className="font-medium text-gray-900">Voucher</span>
+              </div>
+              {selectedVoucher ? (
+                <div className="flex items-center gap-2">
+                  <Tag color="green" className="font-medium">
+                    {selectedVoucher.code}
+                  </Tag>
+                  <button
+                    onClick={handleRemoveVoucher}
+                    className="text-red-500 hover:text-red-700 text-sm underline"
+                  >
+                    Bỏ voucher
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleOpenVoucherModal}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-sm flex items-center gap-2"
+                >
+                  <span>%</span>
+                  Chọn voucher
+                </button>
+              )}
+            </div>
+            {selectedVoucher && (
+              <div className="bg-white rounded-md p-3 border border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-green-600 text-lg">
+                      Giảm {selectedVoucher.discountPercentage}%
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {selectedVoucher.title || 'Voucher giảm giá'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-green-600">
+                      -{formatCurrency(Math.min(voucherDiscount, selectedVoucher.maxDiscountValue || voucherDiscount))}
+                    </p>
+                    {selectedVoucher.maxDiscountValue && voucherDiscount > selectedVoucher.maxDiscountValue && (
+                      <p className="text-xs text-gray-500">
+                        (đã áp dụng giới hạn tối đa)
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <hr />
+
+          <div className="flex justify-between font-semibold text-lg bg-gray-50 rounded-lg p-4 border">
             <span>Tổng cộng</span>
-            <span>{formatCurrency(grandTotal)}</span>
+            <div className="text-right">
+              {selectedVoucher && discountAmount > 0 && (
+                <div className="text-sm text-gray-500 line-through">
+                  {formatCurrency(total + shippingFee)}
+                </div>
+              )}
+              <div className="text-xl text-green-600 font-bold">
+                {formatCurrency(grandTotal)}
+              </div>
+              {selectedVoucher && discountAmount > 0 && (
+                <div className="text-sm text-green-600">
+                  Tiết kiệm: {formatCurrency(discountAmount)}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* --- Form thông tin --- */}
@@ -399,6 +529,125 @@ const PaymentPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal chọn voucher */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold">Chọn Voucher</span>
+            <Tag color="blue">{vouchers.length} voucher</Tag>
+          </div>
+        }
+        open={voucherModalVisible}
+        onCancel={() => setVoucherModalVisible(false)}
+        footer={null}
+        width={700}
+        bodyStyle={{ maxHeight: '60vh', overflowY: 'auto' }}
+      >
+        <div className="space-y-4">
+          {loadingVouchers ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Đang tải danh sách voucher...</p>
+            </div>
+          ) : vouchers.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4 text-gray-400">📋</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Không có voucher khả dụng</h3>
+              <p className="text-gray-500">Hiện tại không có voucher phù hợp với đơn hàng của bạn.</p>
+            </div>
+          ) : (
+            <List
+              grid={{ gutter: 16, column: 1 }}
+              dataSource={vouchers}
+              renderItem={(voucher) => {
+                const isExpired = new Date(voucher.endDate) < new Date();
+                const isUsageLimitReached = voucher.usageLimit && voucher.usedCount >= voucher.usageLimit;
+                const isDisabled = !voucher.isActive || isExpired || isUsageLimitReached;
+
+                return (
+                  <List.Item>
+                    <Card
+                      hoverable={!isDisabled}
+                      className={`transition-all duration-200 ${
+                        isDisabled 
+                          ? 'opacity-60 bg-gray-50 border-gray-200' 
+                          : 'hover:shadow-lg border-blue-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => !isDisabled && handleSelectVoucher(voucher)}
+                      bodyStyle={{ padding: '16px' }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-blue-600 font-bold text-lg">%</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-bold text-lg text-gray-900 truncate">{voucher.code}</h3>
+                              {voucher.isActive && !isExpired && !isUsageLimitReached && (
+                                <Tag color="green" size="small">Có thể dùng</Tag>
+                              )}
+                              {isExpired && <Tag color="red" size="small">Hết hạn</Tag>}
+                              {isUsageLimitReached && <Tag color="orange" size="small">Hết lượt</Tag>}
+                            </div>
+                            
+                            {voucher.title && (
+                              <p className="text-gray-700 font-medium mb-2">{voucher.title}</p>
+                            )}
+                            
+                            <div className="space-y-1 text-sm text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-green-600">
+                                  Giảm {voucher.discountPercentage}%
+                                </span>
+                                {voucher.maxDiscountValue && (
+                                  <span className="text-gray-500">
+                                    (tối đa {formatCurrency(voucher.maxDiscountValue)})
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {voucher.minOrderValue > 0 && (
+                                <div className="text-sm text-gray-600">
+                                  Đơn tối thiểu: {formatCurrency(voucher.minOrderValue)}
+                                </div>
+                              )}
+                              
+                              <div className="text-sm text-gray-600">
+                                Hết hạn: {new Date(voucher.endDate).toLocaleDateString('vi-VN')}
+                              </div>
+                              
+                              {voucher.usageLimit && (
+                                <div className="text-sm text-gray-600">
+                                  Đã dùng: {voucher.usedCount}/{voucher.usageLimit}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end gap-2">
+                          {!isDisabled && (
+                            <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-sm">
+                              Áp dụng
+                            </button>
+                          )}
+                          {isDisabled && (
+                            <div className="text-center">
+                              <div className="text-gray-400 text-sm font-medium">Không khả dụng</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </List.Item>
+                );
+              }}
+            />
+          )}
+        </div>
+      </Modal>
 
       {/* Modal đặt hàng thành công */}
       <Modal

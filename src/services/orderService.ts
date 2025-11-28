@@ -24,6 +24,7 @@ export interface CreateOrderRequest {
   shippingFee: number;
   shippingAddress: CreateOrderShippingAddressRequest;
   items: CreateOrderItemRequest[];
+  voucherCode?: string;
 }
 
 export interface OrderResponse {

@@ -11,6 +11,7 @@ export interface Voucher {
   minOrderValue?: number;
   usageLimit?: number;
   usageLimitPerUser?: number;
+  usedCount: number;
   isActive: boolean;
   isStackable?: boolean;
   startDate: string;
@@ -65,13 +66,13 @@ class VoucherService {
     if (isActive !== undefined) params.append("isActive", isActive.toString());
     if (includeExpired !== undefined) params.append("includeExpired", includeExpired.toString());
 
-    const response = await fetch(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VOUCHERS.GET_ALL}?${params.toString()}`,
-      {
-        method: "GET",
-        headers: this.getAuthHeaders(),
-      }
-    );
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VOUCHERS.GET_ALL}?${params.toString()}`;
+    console.log("Fetching vouchers from:", url);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

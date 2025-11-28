@@ -1,5 +1,12 @@
 import { API_CONFIG } from '../config/api.config';
 
+export interface User {
+  id: string;
+  fullname: string;
+  email: string;
+  avt?: string;
+}
+
 export interface Conversation {
   id: string;
   userId: string;
@@ -10,6 +17,8 @@ export interface Conversation {
   lastMessage?: string;
   createdAt: string;
   updatedAt: string;
+  user?: User;
+  isReplied?: boolean;
 }
 
 export interface ChatMessage {
@@ -210,6 +219,7 @@ class ConversationService {
         {
           method: 'POST',
           headers: this.getAuthHeaders(),
+          body: JSON.stringify({}),
         }
       );
 

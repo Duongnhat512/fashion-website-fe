@@ -53,7 +53,7 @@ class WebSocketService {
       return;
     }
 
-    this.socket = io('/', {
+    this.socket = io('http://localhost:3636', {
       auth: {
         token: token,
       },

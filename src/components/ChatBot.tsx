@@ -103,53 +103,37 @@ export default function ChatBot() {
         senderId: msg.senderId,
         metadata: msg.metadata,
       }));
-      setMessages(formattedMessages);
+      if (formattedMessages.length === 0) {
+        setMessages([]);
+      } else {
+        setMessages(formattedMessages);
+      }
     } catch (error) {
       console.error("Error loading chat history:", error);
     }
   };
 
-  const loadMoreChatHistory = async () => {
-    if (!currentConversation) return;
-
-    try {
-      const currentMessageCount = messages.length;
-      const moreMessages = await conversationService.getConversationMessages(
-        currentConversation.id,
-        currentMessageCount + 50
-      );
-      const formattedMessages: Message[] = moreMessages.map((msg) => ({
-        id: msg.id,
-        type: msg.isFromBot
-          ? "bot"
-          : msg.senderId === user?.id
-          ? "user"
-          : "agent",
-        content: msg.content,
-        timestamp: new Date(msg.createdAt),
-        isRead: msg.isRead,
-        senderId: msg.senderId,
-        metadata: msg.metadata,
-      }));
-      setMessages(formattedMessages);
-    } catch (error) {
-      console.error("Error loading more chat history:", error);
-    }
-  };
-
   const loadActiveConversation = async () => {
     try {
-      const conversation = await conversationService.getActiveConversation();
-      if (conversation) {
-        setCurrentConversation(conversation);
+      // Get all user conversations
+      const userConversations = await conversationService.getConversations();
+
+      if (userConversations && userConversations.length > 0) {
+        // Find the most recent active conversation, or fallback to the first one
+        const activeConversation =
+          userConversations.find((conv) => conv.status === "active") ||
+          userConversations[0];
+
+        setCurrentConversation(activeConversation);
         // Load conversation messages using the dedicated function
-        await loadChatHistory(conversation.id);
+        await loadChatHistory(activeConversation.id);
 
         // Join WebSocket room
         if (isConnected) {
-          webSocketService.joinConversation(conversation.id);
+          webSocketService.joinConversation(activeConversation.id);
         }
       }
+      // If no conversations exist, don't create one - wait for user to send first message
     } catch (error) {
       console.error("Error loading active conversation:", error);
     }
@@ -214,7 +198,20 @@ export default function ChatBot() {
             senderId: socketMessage.senderId,
             metadata: socketMessage.metadata,
           };
-          setMessages((prev) => [...prev, newMessage]);
+          setMessages((prev) => {
+            // Check if message already exists to prevent duplicates
+            const messageExists = prev.some(
+              (msg) => msg.id === socketMessage.id
+            );
+            if (messageExists) {
+              console.log(
+                "Message already exists, skipping:",
+                socketMessage.id
+              );
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
           setIsTyping(false);
         }
       );
@@ -234,7 +231,7 @@ export default function ChatBot() {
               id: `system-${Date.now()}`,
               type: "bot",
               content:
-                "Đang tìm nhân viên hỗ trợ. Vui lòng đợi trong giây lát...",
+                "Khách hàng thân mến, nhân viên sẽ trả lời nhanh nhất có thể.",
               timestamp: new Date(),
             };
             setMessages((prev) => [...prev, systemMessage]);
@@ -292,26 +289,38 @@ export default function ChatBot() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading || !currentConversation) return;
+    if (!inputValue.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: `temp-${Date.now()}`,
-      type: "user",
-      content: inputValue,
-      timestamp: new Date(),
-      isRead: true,
-      senderId: user?.id,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const messageContent = inputValue;
     setInputValue("");
     setIsLoading(true);
 
     try {
+      // Create conversation if none exists
+      let conversation = currentConversation;
+      if (!conversation) {
+        conversation = await conversationService.getActiveConversation();
+        if (conversation) {
+          setCurrentConversation(conversation);
+          // Load conversation messages
+          await loadChatHistory(conversation.id);
+          // Join WebSocket room
+          if (isConnected) {
+            webSocketService.joinConversation(conversation.id);
+          }
+        }
+      }
+
+      if (!conversation) {
+        console.error("Failed to create or get conversation");
+        return;
+      }
+
       // **LUÔN ƯU TIÊN GỬI QUA WEBSOCKET** nếu có kết nối
-      if (isConnected && currentConversation) {
-        webSocketService.sendMessage(currentConversation.id, inputValue);
-      } else if (currentConversation.conversationType === "human") {
+      if (isConnected && conversation) {
+        // **KHÔNG THÊM MESSAGE LOCALLY** - để WebSocket listener xử lý
+        webSocketService.sendMessage(conversation.id, messageContent);
+      } else if (conversation.conversationType === "human") {
         // **TRONG HUMAN MODE, KHÔNG BAO GIỜ GỌI BOT API** - chỉ hiển thị thông báo chờ
         console.log(
           "In human mode without WebSocket connection - showing waiting message"
@@ -320,7 +329,7 @@ export default function ChatBot() {
           id: (Date.now() + 1).toString(),
           type: "bot",
           content:
-            "Đang chờ nhân viên hỗ trợ trả lời. Vui lòng đợi trong giây lát...",
+            "Khách hàng thân mến, nhân viên sẽ trả lời nhanh nhất có thể.",
           timestamp: new Date(),
           isRead: false,
         };
@@ -328,6 +337,18 @@ export default function ChatBot() {
       } else {
         // **CHỈ GỌI BOT API KHI ĐANG Ở BOT MODE**
         console.log("In bot mode - calling chatbot API");
+
+        // Thêm user message locally khi dùng HTTP API
+        const userMessage: Message = {
+          id: `temp-${Date.now()}`,
+          type: "user",
+          content: messageContent,
+          timestamp: new Date(),
+          isRead: true,
+          senderId: user?.id,
+        };
+        setMessages((prev) => [...prev, userMessage]);
+
         const token = localStorage.getItem("authToken");
         const response = await fetch(
           `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT_BOT.SEND_MESSAGE}`,
@@ -338,8 +359,8 @@ export default function ChatBot() {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              message: inputValue,
-              conversationId: currentConversation?.id,
+              message: messageContent,
+              conversationId: conversation.id,
             }),
           }
         );
@@ -389,7 +410,7 @@ export default function ChatBot() {
               ...prev,
               conversationType: "human",
               status: "waiting",
-              agentId: null,
+              agentId: undefined,
             }
           : null
       );
@@ -565,6 +586,28 @@ export default function ChatBot() {
         .animate-wave {
           animation: wave 1.5s ease-in-out infinite;
         }
+
+        /* Custom scrollbar styles */
+        .scrollbar-thin {
+          scrollbar-width: thin;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thumb-purple-300::-webkit-scrollbar-thumb {
+          background-color: rgb(196 181 253);
+          border-radius: 3px;
+        }
+        .scrollbar-thumb-purple-300::-webkit-scrollbar-thumb:hover {
+          background-color: rgb(167 139 250);
+        }
+        .scrollbar-track-purple-100::-webkit-scrollbar-track {
+          background-color: rgb(245 243 255);
+          border-radius: 3px;
+        }
+        .hover\\:scrollbar-thumb-purple-400::-webkit-scrollbar-thumb:hover {
+          background-color: rgb(147 51 234);
+        }
       `}</style>
 
       {/* Modal yêu cầu đăng nhập */}
@@ -615,9 +658,9 @@ export default function ChatBot() {
 
       {/* Cửa sổ chat */}
       {isOpen && isAuthenticated && (
-        <div className="fixed bottom-6 right-6 z-50 w-[420px] h-[650px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-emerald-100 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="fixed bottom-6 right-6 z-50 w-[420px] h-[650px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-emerald-100 animate-in slide-in-from-bottom-4 duration-500 max-h-[80vh]">
           {/* Header */}
-          <div className="bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 text-white p-5 flex items-center justify-between relative overflow-hidden">
+          <div className="flex-shrink-0 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 text-white p-5 flex items-center justify-between relative overflow-hidden">
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full -translate-x-16 -translate-y-16"></div>
@@ -649,16 +692,8 @@ export default function ChatBot() {
                   </span>
                 </h3>
                 <div className="text-sm text-white/90 flex items-center gap-1">
-                  <div
-                    className={`w-2 h-2 rounded-full animate-pulse ${
-                      isConnected ? "bg-green-400" : "bg-red-400"
-                    }`}
-                  ></div>
-                  {currentConversation?.status === "waiting" ? (
-                    <span className="flex items-center gap-1">
-                      <ClockCircleOutlined /> Đang chờ nhân viên
-                    </span>
-                  ) : currentConversation?.status === "active" ? (
+                  <div className="w-2 h-2 rounded-full animate-pulse bg-green-400"></div>
+                  {currentConversation?.status === "active" ? (
                     <span className="flex items-center gap-1">
                       <CheckCircleOutlined /> Đang trò chuyện
                     </span>
@@ -673,62 +708,193 @@ export default function ChatBot() {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="w-10 h-10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 relative z-10 group"
-            >
-              <CloseOutlined className="text-lg group-hover:rotate-90 transition-transform duration-300" />
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gradient-to-b from-purple-50/30 via-blue-50/20 to-cyan-50/30 min-h-0">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.type === "user" ? "justify-end" : "justify-start"
-                } animate-in slide-in-from-bottom-2 duration-300`}
+            <div className="flex items-center gap-2 relative z-10">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-8 h-8 hover:bg-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 group"
               >
-                <div
-                  className={`max-w-[85%] ${
-                    message.type === "user"
-                      ? "bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 text-white shadow-lg shadow-purple-500/20"
-                      : message.type === "agent"
-                      ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/20"
-                      : "bg-white text-gray-800 shadow-lg border border-purple-100"
-                  } rounded-2xl px-5 py-4 relative group`}
-                >
-                  {/* Message bubble tail */}
-                  <div
-                    className={`absolute top-4 w-3 h-3 ${
-                      message.type === "user"
-                        ? "right-0 translate-x-1/2 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500"
-                        : message.type === "agent"
-                        ? "left-0 -translate-x-1/2 bg-gradient-to-br from-green-500 to-emerald-500"
-                        : "left-0 -translate-x-1/2 bg-white border-l border-t border-purple-100"
-                    } transform rotate-45`}
-                  ></div>
-                  {/* Sender indicator for agent messages */}
-                  {message.type === "agent" && (
-                    <div className="text-xs text-green-100 mb-1 flex items-center gap-1">
-                      <UserOutlined /> Nhân viên hỗ trợ
+                <CloseOutlined className="text-sm group-hover:rotate-90 transition-transform duration-300" />
+              </button>
+            </div>
+          </div>
+          {/* Chat mode indicator */}
+          <div className="flex-shrink-0 bg-gradient-to-r from-purple-100 to-blue-100 border-b border-purple-200 px-5 py-2 flex items-center justify-between">
+            <span className="text-sm text-purple-800 font-medium">
+              {currentConversation?.conversationType === "human"
+                ? "Đang trò chuyện với Nhân viên"
+                : "Đang trò chuyện với Bot"}
+            </span>
+            <Button
+              size="small"
+              onClick={
+                currentConversation?.conversationType === "human"
+                  ? handleSwitchToBot
+                  : handleSwitchToHuman
+              }
+              className="bg-gradient-to-r from-purple-500 to-blue-500 border-none text-white hover:from-purple-600 hover:to-blue-600 text-xs"
+              icon={
+                currentConversation?.conversationType === "human" ? (
+                  <RobotOutlined />
+                ) : (
+                  <UserOutlined />
+                )
+              }
+            >
+              {currentConversation?.conversationType === "human"
+                ? "Chuyển sang Bot"
+                : "Chuyển sang Nhân viên"}
+            </Button>
+          </div>
+          {/* Messages */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-gradient-to-b from-purple-50/30 via-blue-50/20 to-cyan-50/30 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100 hover:scrollbar-thumb-purple-400">
+            <div className="space-y-4">
+              {messages.length === 0 && (
+                <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="bg-white text-gray-800 shadow-lg rounded-2xl px-5 py-4 border border-purple-100">
+                    <div className="text-sm">
+                      {currentConversation?.conversationType === "human"
+                        ? "Quý khách vui lòng cho câu hỏi hoặc tư vấn vui lòng gửi tin nhắn nhân viên sẽ trả lời nhanh nhất có thể."
+                        : "Xin chào! Tôi là chatbot hỗ trợ của cửa hàng. Tôi có thể giúp gì cho bạn?"}
                     </div>
-                  )}
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {/* Loại bỏ link ảnh khỏi text hiển thị */}
-                    {message.content.replace(
-                      /\s*\(Ảnh:\s*https?:\/\/[^\)]+\)/g,
-                      ""
-                    )}
                   </div>
-                  {/* Hiển thị sản phẩm - ưu tiên API object, nếu không có thì parse từ text */}
-                  {(() => {
-                    // Nếu có products từ API, hiển thị từ API
-                    if (message.products && message.products.length > 0) {
-                      return (
+                </div>
+              )}
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.type === "user" ? "justify-end" : "justify-start"
+                  } animate-in slide-in-from-bottom-2 duration-300`}
+                >
+                  <div
+                    className={`max-w-[85%] ${
+                      message.type === "user"
+                        ? "bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 text-white shadow-lg shadow-purple-500/20"
+                        : message.type === "agent"
+                        ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/20"
+                        : "bg-white text-gray-800 shadow-lg border border-purple-100"
+                    } rounded-2xl px-5 py-4 relative group`}
+                  >
+                    {/* Message bubble tail */}
+                    <div
+                      className={`absolute top-4 w-3 h-3 ${
+                        message.type === "user"
+                          ? "right-0 translate-x-1/2 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500"
+                          : message.type === "agent"
+                          ? "left-0 -translate-x-1/2 bg-gradient-to-br from-green-500 to-emerald-500"
+                          : "left-0 -translate-x-1/2 bg-white border-l border-t border-purple-100"
+                      } transform rotate-45`}
+                    ></div>
+                    {/* Sender indicator for agent messages */}
+                    {message.type === "agent" && (
+                      <div className="text-xs text-green-100 mb-1 flex items-center gap-1">
+                        <UserOutlined /> Nhân viên hỗ trợ
+                      </div>
+                    )}
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {/* Loại bỏ link ảnh khỏi text hiển thị */}
+                      {message.content.replace(
+                        /\s*\(Ảnh:\s*https?:\/\/[^\)]+\)/g,
+                        ""
+                      )}
+                    </div>
+                    {/* Hiển thị sản phẩm - ưu tiên API object, nếu không có thì parse từ text */}
+                    {(() => {
+                      // Nếu có products từ API, hiển thị từ API
+                      if (message.products && message.products.length > 0) {
+                        return (
+                          <div className="mt-4 space-y-3">
+                            {message.products.map((product) => {
+                              const selectedVariantIndex =
+                                selectedVariants[product.id] ?? 0;
+                              const selectedVariant =
+                                product.variants?.[selectedVariantIndex];
+                              const displayImage =
+                                selectedVariant?.imageUrl || product.imageUrl;
+                              const displayPrice =
+                                selectedVariant?.price || product.price;
+
+                              return (
+                                <div
+                                  key={product.id}
+                                  className="block bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 rounded-xl p-3 transition-all duration-300 cursor-pointer border border-purple-200"
+                                >
+                                  <div className="flex gap-3">
+                                    <div className="relative">
+                                      <img
+                                        src={displayImage}
+                                        alt={product.name}
+                                        className="w-16 h-16 object-cover rounded-lg shadow-sm"
+                                        onError={(e) => {
+                                          // Fallback if image fails to load
+                                          (e.target as HTMLImageElement).src =
+                                            "https://via.placeholder.com/64x64?text=No+Image";
+                                        }}
+                                      />
+                                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                                        <span className="text-xs text-white">
+                                          ✨
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-gray-800 truncate mb-1">
+                                        {product.name}
+                                      </p>
+                                      <p className="text-lg font-bold text-purple-600 mb-2">
+                                        {formatPrice(displayPrice)}
+                                      </p>
+                                      {product.variants &&
+                                        product.variants.length > 0 && (
+                                          <div className="flex gap-1 flex-wrap">
+                                            {product.variants.map(
+                                              (
+                                                variant: Variant,
+                                                idx: number
+                                              ) => (
+                                                <div
+                                                  key={idx}
+                                                  className="w-6 h-6 rounded-full border-2 shadow-sm"
+                                                  style={{
+                                                    backgroundColor:
+                                                      variant.color.hex,
+                                                  }}
+                                                  title={`${variant.color.name} - ${variant.size}`}
+                                                />
+                                              )
+                                            )}
+                                          </div>
+                                        )}
+                                    </div>
+                                  </div>
+                                  <div className="mt-2 text-center">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsOpen(false);
+                                        navigate(`/products/${product.slug}`, {
+                                          state: { product },
+                                        });
+                                      }}
+                                      className="text-xs bg-purple-500 text-white px-3 py-1 rounded-full hover:bg-purple-600 transition-colors"
+                                    >
+                                      Xem chi tiết
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      }
+
+                      // Nếu không có API products, parse từ text
+                      const parsedProducts = parseProductsFromMessage(
+                        message.content
+                      );
+                      return parsedProducts.length > 0 ? (
                         <div className="mt-4 space-y-3">
-                          {message.products.map((product) => {
+                          {parsedProducts.map((product) => {
                             const selectedVariantIndex =
                               selectedVariants[product.id] ?? 0;
                             const selectedVariant =
@@ -806,110 +972,24 @@ export default function ChatBot() {
                             );
                           })}
                         </div>
-                      );
-                    }
-
-                    // Nếu không có API products, parse từ text
-                    const parsedProducts = parseProductsFromMessage(
-                      message.content
-                    );
-                    return parsedProducts.length > 0 ? (
-                      <div className="mt-4 space-y-3">
-                        {parsedProducts.map((product) => {
-                          const selectedVariantIndex =
-                            selectedVariants[product.id] ?? 0;
-                          const selectedVariant =
-                            product.variants?.[selectedVariantIndex];
-                          const displayImage =
-                            selectedVariant?.imageUrl || product.imageUrl;
-                          const displayPrice =
-                            selectedVariant?.price || product.price;
-
-                          return (
-                            <div
-                              key={product.id}
-                              className="block bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 rounded-xl p-3 transition-all duration-300 cursor-pointer border border-purple-200"
-                            >
-                              <div className="flex gap-3">
-                                <div className="relative">
-                                  <img
-                                    src={displayImage}
-                                    alt={product.name}
-                                    className="w-16 h-16 object-cover rounded-lg shadow-sm"
-                                    onError={(e) => {
-                                      // Fallback if image fails to load
-                                      (e.target as HTMLImageElement).src =
-                                        "https://via.placeholder.com/64x64?text=No+Image";
-                                    }}
-                                  />
-                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                                    <span className="text-xs text-white">
-                                      ✨
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-gray-800 truncate mb-1">
-                                    {product.name}
-                                  </p>
-                                  <p className="text-lg font-bold text-purple-600 mb-2">
-                                    {formatPrice(displayPrice)}
-                                  </p>
-                                  {product.variants &&
-                                    product.variants.length > 0 && (
-                                      <div className="flex gap-1 flex-wrap">
-                                        {product.variants.map(
-                                          (variant: Variant, idx: number) => (
-                                            <div
-                                              key={idx}
-                                              className="w-6 h-6 rounded-full border-2 shadow-sm"
-                                              style={{
-                                                backgroundColor:
-                                                  variant.color.hex,
-                                              }}
-                                              title={`${variant.color.name} - ${variant.size}`}
-                                            />
-                                          )
-                                        )}
-                                      </div>
-                                    )}
-                                </div>
-                              </div>
-                              <div className="mt-2 text-center">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsOpen(false);
-                                    navigate(`/products/${product.slug}`, {
-                                      state: { product },
-                                    });
-                                  }}
-                                  className="text-xs bg-purple-500 text-white px-3 py-1 rounded-full hover:bg-purple-600 transition-colors"
-                                >
-                                  Xem chi tiết
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : null;
-                  })()}{" "}
-                  <p
-                    className={`text-xs mt-3 ${
-                      message.type === "user"
-                        ? "text-white/70"
-                        : "text-gray-400"
-                    }`}
-                  >
-                    {new Date(message.timestamp).toLocaleTimeString("vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                      ) : null;
+                    })()}{" "}
+                    <p
+                      className={`text-xs mt-3 ${
+                        message.type === "user"
+                          ? "text-white/70"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {new Date(message.timestamp).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             {isTyping && (
               <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
@@ -959,54 +1039,16 @@ export default function ChatBot() {
               </div>
             )}
             <div ref={messagesEndRef} />
-          </div>
-
-          {/* Switch to human button */}
-          {currentConversation?.conversationType === "bot" && (
-            <div className="px-5 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-200">
-              <div className="text-center">
-                <p className="text-sm text-amber-800 mb-2">
-                  Cần hỗ trợ thêm từ nhân viên?
-                </p>
-                <Button
-                  onClick={handleSwitchToHuman}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 border-none text-white hover:from-amber-600 hover:to-orange-600"
-                  icon={<UserOutlined />}
-                >
-                  Chuyển sang chat với nhân viên
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Switch to bot button */}
-          {currentConversation?.conversationType === "human" && (
-            <div className="px-5 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border-t border-blue-200">
-              <div className="text-center">
-                <p className="text-sm text-blue-800 mb-2">
-                  Muốn quay lại chat với bot?
-                </p>
-                <Button
-                  onClick={handleSwitchToBot}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 border-none text-white hover:from-blue-600 hover:to-cyan-600"
-                  icon={<RobotOutlined />}
-                >
-                  Chuyển sang chat với bot
-                </Button>
-              </div>
-            </div>
-          )}
-
+          </div>{" "}
           <div
-            className={`h-px mx-5 transition-all duration-300 ${
+            className={`flex-shrink-0 h-px mx-5 transition-all duration-300 ${
               isInputFocused
                 ? "bg-gradient-to-r from-purple-300 via-purple-400 to-purple-300"
                 : "bg-gradient-to-r from-transparent via-purple-200 to-transparent"
             }`}
           ></div>
-
           <div
-            className={`p-5 border-t transition-all duration-300 rounded-b-3xl ${
+            className={`flex-shrink-0 p-5 border-t transition-all duration-300 rounded-b-3xl ${
               isInputFocused
                 ? "bg-white border-purple-300"
                 : "bg-gray-50/30 backdrop-blur-sm border-purple-100"

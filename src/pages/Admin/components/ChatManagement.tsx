@@ -1,24 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  Card,
-  List,
-  Button,
-  Avatar,
-  Badge,
-  Tabs,
-  Input,
-  message,
-  Modal,
-  Select,
-  Tag,
-} from "antd";
+import { Card, List, Button, Avatar, Tabs, Input, message } from "antd";
 import {
   MessageOutlined,
   UserOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   SendOutlined,
-  UserAddOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
 import {
@@ -34,24 +21,30 @@ import {
 } from "../../../services/webSocketService";
 import { useAuth } from "../../../contexts/AuthContext";
 
-const { TabPane } = Tabs;
 const { TextArea } = Input;
-const { Option } = Select;
 
-interface Agent {
-  id: string;
-  name: string;
-  email: string;
-}
+const getInitials = (fullname: string) => {
+  return fullname
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+};
+
+const getRelativeTime = (dateString: string) => {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  return `${days} ngày trước`;
+};
 
 export default function ChatManagement() {
   const { user } = useAuth();
-  const [waitingConversations, setWaitingConversations] = useState<
-    Conversation[]
-  >([]);
-  const [agentConversations, setAgentConversations] = useState<Conversation[]>(
-    []
-  );
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
@@ -59,18 +52,14 @@ export default function ChatManagement() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [assignModalVisible, setAssignModalVisible] = useState(false);
-  const [selectedConversationForAssign, setSelectedConversationForAssign] =
-    useState<string | null>(null);
+  const [savedScroll, setSavedScroll] = useState(0);
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const allConversationsListRef = useRef<HTMLDivElement>(null);
 
   // Load data on component mount
   useEffect(() => {
-    loadWaitingConversations();
-    loadAgentConversations();
     loadAllConversations();
-    loadAgents();
 
     // WebSocket connection for admin
     webSocketService.connect();
@@ -86,12 +75,15 @@ export default function ChatManagement() {
     const unsubscribeNewWaiting = webSocketService.onNewWaitingConversation(
       (data: NewWaitingConversation) => {
         message.info(`Có conversation mới đang chờ: ${data.conversationId}`);
-        loadWaitingConversations();
+        loadAllConversations();
       }
     );
 
     const unsubscribeMessage = webSocketService.onMessage(
       (socketMessage: SocketMessage) => {
+        // Reload conversation list to update latest messages
+        loadAllConversations();
+
         if (
           selectedConversation &&
           socketMessage.conversationId === selectedConversation.id
@@ -109,6 +101,11 @@ export default function ChatManagement() {
             updatedAt: socketMessage.createdAt,
           };
           setMessages((prev) => [...prev, newMessage]);
+
+          // Only scroll to bottom for incoming messages (from user/bot), not when admin sends
+          if (socketMessage.senderId !== user?.id) {
+            setShouldScrollToBottom(true);
+          }
         }
       }
     );
@@ -116,8 +113,6 @@ export default function ChatManagement() {
     const unsubscribeConversationUpdate = webSocketService.onConversationUpdate(
       (update: ConversationUpdate) => {
         // Refresh data when conversation status changes
-        loadWaitingConversations();
-        loadAgentConversations();
         loadAllConversations();
 
         if (
@@ -143,26 +138,19 @@ export default function ChatManagement() {
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const loadWaitingConversations = async () => {
-    try {
-      const conversations = await conversationService.getWaitingConversations();
-      setWaitingConversations(conversations);
-    } catch (error) {
-      message.error("Không thể tải conversations đang chờ");
+    if (shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShouldScrollToBottom(false);
     }
-  };
+  }, [shouldScrollToBottom]);
 
-  const loadAgentConversations = async () => {
-    try {
-      const conversations = await conversationService.getAgentConversations();
-      setAgentConversations(conversations);
-    } catch (error) {
-      message.error("Không thể tải conversations của agent");
+  // Restore scroll position after selecting conversation
+  useEffect(() => {
+    if (savedScroll && allConversationsListRef.current) {
+      allConversationsListRef.current.scrollTop = savedScroll;
+      setSavedScroll(0);
     }
-  };
+  }, [messages, savedScroll]);
 
   const loadAllConversations = async () => {
     try {
@@ -174,17 +162,11 @@ export default function ChatManagement() {
     }
   };
 
-  const loadAgents = async () => {
-    // This would typically come from a user service
-    // For now, we'll use mock data
-    setAgents([
-      { id: "agent-1", name: "Nguyễn Văn A", email: "agent1@example.com" },
-      { id: "agent-2", name: "Trần Thị B", email: "agent2@example.com" },
-      { id: "agent-3", name: "Lê Văn C", email: "agent3@example.com" },
-    ]);
-  };
-
   const selectConversation = async (conversation: Conversation) => {
+    // Save current scroll position
+    const currentScroll = allConversationsListRef.current?.scrollTop || 0;
+    setSavedScroll(currentScroll);
+
     setSelectedConversation(conversation);
 
     try {
@@ -199,6 +181,11 @@ export default function ChatManagement() {
 
       // Mark as read
       await conversationService.markAsRead(conversation.id);
+
+      // Scroll to bottom after loading messages
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } catch (error) {
       message.error("Không thể tải tin nhắn");
     }
@@ -211,37 +198,19 @@ export default function ChatManagement() {
     try {
       if (isConnected) {
         webSocketService.sendMessage(selectedConversation.id, inputValue);
+        setInputValue("");
+        // Scroll to bottom after sending message
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       } else {
-        // Fallback to API - though admin should always use WebSocket
         message.warning("WebSocket chưa kết nối, không thể gửi tin nhắn");
         return;
       }
-
-      setInputValue("");
     } catch (error) {
       message.error("Không thể gửi tin nhắn");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const assignAgent = async (conversationId: string, agentId: string) => {
-    try {
-      const success = await conversationService.assignAgent(
-        conversationId,
-        agentId
-      );
-      if (success) {
-        message.success("Đã assign agent thành công");
-        loadWaitingConversations();
-        loadAgentConversations();
-        loadAllConversations();
-        setAssignModalVisible(false);
-      } else {
-        message.error("Không thể assign agent");
-      }
-    } catch (error) {
-      message.error("Lỗi khi assign agent");
     }
   };
 
@@ -258,36 +227,6 @@ export default function ChatManagement() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "waiting":
-        return "orange";
-      case "active":
-        return "green";
-      case "resolved":
-        return "blue";
-      case "closed":
-        return "gray";
-      default:
-        return "default";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "waiting":
-        return "Đang chờ";
-      case "active":
-        return "Đang chat";
-      case "resolved":
-        return "Đã giải quyết";
-      case "closed":
-        return "Đã đóng";
-      default:
-        return status;
-    }
-  };
-
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleString("vi-VN", {
       hour: "2-digit",
@@ -298,331 +237,159 @@ export default function ChatManagement() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Quản lý Chat</h1>
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              isConnected ? "bg-green-500" : "bg-red-500"
-            }`}
-          ></div>
-          <span className="text-sm text-gray-600">
-            {isConnected ? "Đã kết nối WebSocket" : "Mất kết nối WebSocket"}
-          </span>
-        </div>
-      </div>
-
+    <div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Conversations List */}
-        <div className="lg:col-span-1">
-          <Card title="Conversations" className="h-[600px]">
-            <Tabs defaultActiveKey="waiting" className="h-full">
-              <TabPane
-                tab={
-                  <Badge count={waitingConversations.length} showZero>
-                    <span>Đang chờ</span>
-                  </Badge>
-                }
-                key="waiting"
+        {/* Conversations List - BÊN TRÁI */}
+        <div className="lg:col-span-1 lg:sticky lg:top-6 lg:self-start">
+          <Card
+            title="Danh sách cuộc trò chuyện"
+            className="flex flex-col"
+            style={{ height: "calc(100vh - 64px)" }}
+            bodyStyle={{
+              padding: 0,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div className="flex-1 min-h-0">
+              <div
+                className="h-full max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100 hover:scrollbar-thumb-purple-400 p-2"
+                ref={allConversationsListRef}
               >
-                <div className="h-96 overflow-y-auto">
-                  <List
-                    dataSource={waitingConversations}
-                    renderItem={(conversation) => (
-                      <List.Item
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => selectConversation(conversation)}
-                        actions={[
-                          <Button
-                            key="assign"
-                            size="small"
-                            icon={<UserAddOutlined />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedConversationForAssign(conversation.id);
-                              setAssignModalVisible(true);
-                            }}
+                <List
+                  className="overflow-hidden"
+                  dataSource={allConversations}
+                  renderItem={(conversation) => (
+                    <List.Item
+                      key={conversation.id}
+                      className={`cursor-pointer hover:bg-gray-50 px-2 py-3 ${
+                        selectedConversation?.id === conversation.id
+                          ? "bg-blue-50 border-l-4 border-blue-500"
+                          : ""
+                      }`}
+                      onClick={() => selectConversation(conversation)}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar
+                            src={conversation.user?.avt}
+                            alt={conversation.user?.fullname}
                           >
-                            Assign
-                          </Button>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              icon={<ClockCircleOutlined />}
-                              style={{ backgroundColor: "#faad14" }}
-                            />
-                          }
-                          title={
-                            <div className="flex items-center gap-2">
-                              <span>
-                                Conversation {conversation.id.slice(-8)}
-                              </span>
-                              <Tag color={getStatusColor(conversation.status)}>
-                                {getStatusText(conversation.status)}
-                              </Tag>
+                            {conversation.user
+                              ? getInitials(conversation.user.fullname)
+                              : "?"}
+                          </Avatar>
+                        }
+                        title={
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="truncate text-sm">
+                              {conversation.user?.fullname || "Unknown User"}
+                            </span>
+                          </div>
+                        }
+                        description={
+                          <div className="space-y-1">
+                            <div
+                              className={`text-xs truncate ${
+                                conversation.isReplied === false
+                                  ? "font-bold text-gray-800"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {conversation.lastMessage || "Chưa có tin nhắn"}
                             </div>
-                          }
-                          description={
-                            <div>
-                              <div className="text-xs text-gray-500">
-                                {conversation.lastMessage || "Chưa có tin nhắn"}
-                              </div>
-                              <div className="text-xs text-gray-400 mt-1">
-                                {formatTime(conversation.updatedAt)}
-                              </div>
+                            <div className="text-xs text-gray-400">
+                              {getRelativeTime(conversation.updatedAt)}
                             </div>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                  />
-                </div>
-              </TabPane>
-
-              <TabPane
-                tab={
-                  <Badge count={agentConversations.length} showZero>
-                    <span>Của tôi</span>
-                  </Badge>
-                }
-                key="my-conversations"
-              >
-                <div className="h-96 overflow-y-auto">
-                  <List
-                    dataSource={agentConversations}
-                    renderItem={(conversation) => (
-                      <List.Item
-                        className={`cursor-pointer hover:bg-gray-50 ${
-                          selectedConversation?.id === conversation.id
-                            ? "bg-blue-50 border-l-4 border-blue-500"
-                            : ""
-                        }`}
-                        onClick={() => selectConversation(conversation)}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              icon={
-                                conversation.conversationType === "human" ? (
-                                  <UserOutlined />
-                                ) : (
-                                  <MessageOutlined />
-                                )
-                              }
-                              style={{
-                                backgroundColor:
-                                  conversation.conversationType === "human"
-                                    ? "#1890ff"
-                                    : "#52c41a",
-                              }}
-                            />
-                          }
-                          title={
-                            <div className="flex items-center gap-2">
-                              <span>
-                                Conversation {conversation.id.slice(-8)}
-                              </span>
-                              <Tag color={getStatusColor(conversation.status)}>
-                                {getStatusText(conversation.status)}
-                              </Tag>
-                            </div>
-                          }
-                          description={
-                            <div>
-                              <div className="text-xs text-gray-500">
-                                {conversation.lastMessage || "Chưa có tin nhắn"}
-                              </div>
-                              <div className="text-xs text-gray-400 mt-1">
-                                {formatTime(conversation.updatedAt)}
-                              </div>
-                            </div>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                  />
-                </div>
-              </TabPane>
-
-              <TabPane tab="Tất cả" key="all">
-                <div className="h-96 overflow-y-auto">
-                  <List
-                    dataSource={allConversations}
-                    renderItem={(conversation) => (
-                      <List.Item
-                        className={`cursor-pointer hover:bg-gray-50 ${
-                          selectedConversation?.id === conversation.id
-                            ? "bg-blue-50 border-l-4 border-blue-500"
-                            : ""
-                        }`}
-                        onClick={() => selectConversation(conversation)}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              icon={
-                                conversation.conversationType === "human" ? (
-                                  <UserOutlined />
-                                ) : (
-                                  <MessageOutlined />
-                                )
-                              }
-                              style={{
-                                backgroundColor:
-                                  conversation.conversationType === "human"
-                                    ? "#1890ff"
-                                    : "#52c41a",
-                              }}
-                            />
-                          }
-                          title={
-                            <div className="flex items-center gap-2">
-                              <span>
-                                Conversation {conversation.id.slice(-8)}
-                              </span>
-                              <Tag color={getStatusColor(conversation.status)}>
-                                {getStatusText(conversation.status)}
-                              </Tag>
-                            </div>
-                          }
-                          description={
-                            <div>
-                              <div className="text-xs text-gray-500">
-                                Agent:{" "}
-                                {conversation.agentId
-                                  ? "Đã assign"
-                                  : "Chưa assign"}
-                              </div>
-                              <div className="text-xs text-gray-400 mt-1">
-                                {formatTime(conversation.updatedAt)}
-                              </div>
-                            </div>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                  />
-                </div>
-              </TabPane>
-            </Tabs>
+                          </div>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </div>
+            </div>
           </Card>
         </div>
 
-        {/* Chat Interface */}
+        {/* Chat Interface - BÊN PHẢI */}
         <div className="lg:col-span-2">
           {selectedConversation ? (
             <Card
               title={
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      icon={
-                        selectedConversation.conversationType === "human" ? (
-                          <UserOutlined />
-                        ) : (
-                          <MessageOutlined />
-                        )
-                      }
-                      style={{
-                        backgroundColor:
-                          selectedConversation.conversationType === "human"
-                            ? "#1890ff"
-                            : "#52c41a",
-                      }}
-                    />
-                    <div>
-                      <div className="font-semibold">
-                        Conversation {selectedConversation.id.slice(-8)}
-                      </div>
-                      <div className="text-sm text-gray-500 flex items-center gap-2">
-                        <Tag
-                          color={getStatusColor(selectedConversation.status)}
-                        >
-                          {getStatusText(selectedConversation.status)}
-                        </Tag>
-                        <span>•</span>
-                        <span>
-                          {selectedConversation.conversationType === "human"
-                            ? "Chat với nhân viên"
-                            : "Chat với bot"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {selectedConversation.conversationType === "human" && (
-                      <Button
-                        size="small"
-                        onClick={() => switchToBot(selectedConversation.id)}
-                        icon={<MessageOutlined />}
-                      >
-                        Chuyển về bot
-                      </Button>
-                    )}
-                    <Button
-                      size="small"
-                      icon={<EyeOutlined />}
-                      onClick={() =>
-                        conversationService.markAsRead(selectedConversation.id)
-                      }
-                    >
-                      Đánh dấu đã đọc
-                    </Button>
+                <div className="flex items-center gap-3">
+                  <Avatar
+                    src={selectedConversation.user?.avt}
+                    alt={selectedConversation.user?.fullname}
+                  >
+                    {selectedConversation.user
+                      ? getInitials(selectedConversation.user.fullname)
+                      : "?"}
+                  </Avatar>
+                  <div className="font-semibold">
+                    {selectedConversation.user?.fullname || "Unknown User"}
                   </div>
                 </div>
               }
               className="h-[600px] flex flex-col"
+              bodyStyle={{
+                padding: 0,
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.senderId === user?.id
-                        ? "justify-end"
-                        : "justify-start"
-                    }`}
-                  >
+              {/* Messages Container */}
+              <div className="flex-1 min-h-0 flex flex-col">
+                {/* Messages */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100 hover:scrollbar-thumb-purple-400">
+                  {messages.map((message) => (
                     <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      key={message.id}
+                      className={`flex ${
                         message.senderId === user?.id
-                          ? "bg-blue-500 text-white"
-                          : message.isFromBot
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-200 text-gray-800"
+                          ? "justify-end"
+                          : "justify-start"
                       }`}
                     >
-                      <div className="text-sm">{message.content}</div>
                       <div
-                        className={`text-xs mt-1 ${
+                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.senderId === user?.id
-                            ? "text-blue-100"
-                            : "text-gray-500"
+                            ? "bg-blue-500 text-white"
+                            : message.isFromBot
+                            ? "bg-green-500 text-white"
+                            : "bg-gray-200 text-gray-800"
                         }`}
                       >
-                        {formatTime(message.createdAt)}
-                        {message.senderId === user?.id && (
-                          <span className="ml-2">
-                            {message.isRead ? (
-                              <CheckCircleOutlined />
-                            ) : (
-                              <ClockCircleOutlined />
-                            )}
-                          </span>
-                        )}
+                        <div className="text-sm">{message.content}</div>
+                        <div
+                          className={`text-xs mt-1 ${
+                            message.senderId === user?.id
+                              ? "text-blue-100"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {getRelativeTime(message.createdAt)}
+                          {message.senderId === user?.id && (
+                            <span className="ml-2">
+                              {message.isRead ? (
+                                <CheckCircleOutlined />
+                              ) : (
+                                <ClockCircleOutlined />
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
               </div>
 
-              {/* Input */}
-              <div className="p-4 border-t">
+              {/* Input - Fixed at bottom */}
+              <div className="flex-shrink-0 p-4 border-t bg-white">
                 <div className="flex gap-2">
                   <TextArea
                     value={inputValue}
@@ -664,36 +431,6 @@ export default function ChatManagement() {
           )}
         </div>
       </div>
-
-      {/* Assign Agent Modal */}
-      <Modal
-        title="Assign Agent"
-        open={assignModalVisible}
-        onCancel={() => setAssignModalVisible(false)}
-        onOk={() => {
-          if (selectedConversationForAssign) {
-            // For demo, assign to first agent
-            assignAgent(selectedConversationForAssign, agents[0].id);
-          }
-        }}
-      >
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Chọn Agent:
-          </label>
-          <Select
-            style={{ width: "100%" }}
-            placeholder="Chọn agent"
-            defaultValue={agents[0]?.id}
-          >
-            {agents.map((agent) => (
-              <Option key={agent.id} value={agent.id}>
-                {agent.name} ({agent.email})
-              </Option>
-            ))}
-          </Select>
-        </div>
-      </Modal>
     </div>
   );
 }

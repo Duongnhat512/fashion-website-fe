@@ -221,12 +221,12 @@ const OverviewSection = () => {
     if (millionValue >= 1000) {
       return {
         value: (millionValue / 1000).toFixed(1),
-        suffix: "B"
+        suffix: "B",
       };
     } else {
       return {
         value: millionValue.toFixed(1),
-        suffix: "M"
+        suffix: "M",
       };
     }
   };
@@ -1104,7 +1104,9 @@ const OverviewSection = () => {
                   {forecastLoading ? (
                     <div className="flex justify-center items-center py-8">
                       <Spin size="large" />
-                      <span className="ml-3 text-gray-600">Đang tải dữ liệu dự báo...</span>
+                      <span className="ml-3 text-gray-600">
+                        Đang tải dữ liệu dự báo...
+                      </span>
                     </div>
                   ) : forecastData?.forecast ? (
                     <div className="space-y-4">
@@ -1119,10 +1121,16 @@ const OverviewSection = () => {
                                 </span>
                               }
                               value={
-                                formatForecastCurrency(forecastData.forecast.predictedRevenue).value
+                                formatForecastCurrency(
+                                  forecastData.forecast.predictedRevenue
+                                ).value
                               }
                               precision={1}
-                              suffix={formatForecastCurrency(forecastData.forecast.predictedRevenue).suffix}
+                              suffix={
+                                formatForecastCurrency(
+                                  forecastData.forecast.predictedRevenue
+                                ).suffix
+                              }
                               prefix={
                                 <DollarOutlined className="text-purple-500 text-2xl" />
                               }
@@ -1151,11 +1159,19 @@ const OverviewSection = () => {
                                 </span>
                               }
                               value={`${
-                                formatForecastCurrency(forecastData.forecast.range.min).value
+                                formatForecastCurrency(
+                                  forecastData.forecast.range.min
+                                ).value
                               } - ${
-                                formatForecastCurrency(forecastData.forecast.range.max).value
+                                formatForecastCurrency(
+                                  forecastData.forecast.range.max
+                                ).value
                               }`}
-                              suffix={formatForecastCurrency(forecastData.forecast.range.max).suffix}
+                              suffix={
+                                formatForecastCurrency(
+                                  forecastData.forecast.range.max
+                                ).suffix
+                              }
                               prefix={
                                 <BarChartOutlined className="text-green-500 text-2xl" />
                               }

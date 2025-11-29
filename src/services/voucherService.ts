@@ -87,6 +87,37 @@ class VoucherService {
     return data.data;
   }
 
+  async getAllVouchers(
+    search?: string,
+    isActive?: boolean,
+    includeExpired?: boolean
+  ): Promise<Voucher[]> {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (isActive !== undefined) params.append("isActive", isActive.toString());
+    if (includeExpired !== undefined) params.append("includeExpired", includeExpired.toString());
+
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VOUCHERS.GET_ALL}?${params.toString()}`;
+    console.log("Fetching all vouchers from:", url);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: ApiResponse<VoucherListResponse> = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || "Lấy danh sách voucher thất bại");
+    }
+
+    return data.data.data; // Trả về mảng Voucher[]
+  }
+
   async getById(id: string): Promise<Voucher> {
     const response = await fetch(
       `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VOUCHERS.GET_BY_ID.replace(":id", id)}`,

@@ -11,12 +11,12 @@ import {
   ChevronRight,
   FileText,
   MessageSquare,
+  DollarSign,
 } from "lucide-react";
 import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";
 import OrderManagement from "./components/OrderManagement";
 import InventorySection from "./components/InventorySection";
-import RevenueStatistics from "./components/RevenueStatistics";
 import ProductManagement from "./components/ProductManagement";
 import PromotionManagement from "./components/PromotionManagement";
 import ReviewManagement from "./components/ReviewManagement";
@@ -36,7 +36,6 @@ const AdminDashboard = () => {
     { key: "inventory", label: "Quản lý kho", icon: Warehouse },
     { key: "products", label: "Quản lý sản phẩm", icon: Package },
     { key: "tax", label: "Báo cáo thuế", icon: FileText },
-    // { key: "revenue", label: "Thống kê doanh thu", icon: DollarSign },
     { key: "promotions", label: "Quản lý khuyến mãi", icon: Percent },
     { key: "reviews", label: "Quản lý đánh giá", icon: Star },
   ];
@@ -57,8 +56,6 @@ const AdminDashboard = () => {
         return <ProductManagement />;
       case "tax":
         return <TaxReport />;
-      case "revenue":
-        return <RevenueStatistics />;
       case "promotions":
         return <PromotionManagement />;
       case "reviews":

@@ -1,10 +1,22 @@
 import { useState, useEffect } from "react";
-import { Card, DatePicker, Table, Tag, Spin, Row, Col, Statistic } from "antd";
+import {
+  Card,
+  DatePicker,
+  Table,
+  Tag,
+  Spin,
+  Row,
+  Col,
+  Statistic,
+  Select,
+} from "antd";
 import {
   DollarOutlined,
   ShoppingOutlined,
   UserOutlined,
   AppstoreOutlined,
+  BarChartOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import dayjs, { Dayjs } from "dayjs";
@@ -79,10 +91,19 @@ const OverviewSection = () => {
   const [profitTimeSeries, setProfitTimeSeries] = useState<ProfitTimeSeries[]>(
     []
   );
+  const [forecastData, setForecastData] = useState<any>(null);
+  const [forecastLoading, setForecastLoading] = useState<boolean>(false);
+  const [forecastPeriod, setForecastPeriod] = useState<
+    "week" | "month" | "quarter" | "year"
+  >("month");
 
   useEffect(() => {
     fetchStatistics();
   }, [dateRange]);
+
+  useEffect(() => {
+    fetchForecastData();
+  }, [forecastPeriod]);
 
   const fetchStatistics = async () => {
     try {
@@ -174,11 +195,40 @@ const OverviewSection = () => {
     }
   };
 
+  const fetchForecastData = async () => {
+    try {
+      setForecastLoading(true);
+      const forecast = await statisticsService.getRevenueForecast(
+        forecastPeriod
+      );
+      setForecastData(forecast);
+    } catch (error) {
+      console.error("Không thể tải dữ liệu dự báo:", error);
+    } finally {
+      setForecastLoading(false);
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(value);
+  };
+
+  const formatForecastCurrency = (value: number) => {
+    const millionValue = value / 1000000;
+    if (millionValue >= 1000) {
+      return {
+        value: (millionValue / 1000).toFixed(1),
+        suffix: "B"
+      };
+    } else {
+      return {
+        value: millionValue.toFixed(1),
+        suffix: "M"
+      };
+    }
   };
 
   const statusMap: Record<string, { text: string; color: string }> = {
@@ -1017,6 +1067,187 @@ const OverviewSection = () => {
                     size="small"
                     pagination={false} // Không cần phân trang
                   />
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+
+          {/* Dự báo doanh thu */}
+          <Row gutter={16} style={{ marginTop: 24 }}>
+            <Col span={24}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 }}
+              >
+                <Card
+                  title={
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-semibold text-purple-600">
+                        📈 Dự báo doanh thu
+                      </span>
+                      <Select
+                        value={forecastPeriod}
+                        onChange={(value) => setForecastPeriod(value)}
+                        style={{ width: 120 }}
+                        size="small"
+                      >
+                        <Select.Option value="week">Tuần</Select.Option>
+                        <Select.Option value="month">Tháng</Select.Option>
+                        <Select.Option value="quarter">Quý</Select.Option>
+                        <Select.Option value="year">Năm</Select.Option>
+                      </Select>
+                    </div>
+                  }
+                  className="shadow-lg"
+                >
+                  {forecastLoading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <Spin size="large" />
+                      <span className="ml-3 text-gray-600">Đang tải dữ liệu dự báo...</span>
+                    </div>
+                  ) : forecastData?.forecast ? (
+                    <div className="space-y-4">
+                      {/* Thông tin dự báo chính */}
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Card className="shadow-lg hover:shadow-xl transition-shadow border-l-4 border-purple-500 h-full">
+                            <Statistic
+                              title={
+                                <span className="text-lg font-semibold">
+                                  Doanh thu dự báo
+                                </span>
+                              }
+                              value={
+                                formatForecastCurrency(forecastData.forecast.predictedRevenue).value
+                              }
+                              precision={1}
+                              suffix={formatForecastCurrency(forecastData.forecast.predictedRevenue).suffix}
+                              prefix={
+                                <DollarOutlined className="text-purple-500 text-2xl" />
+                              }
+                              valueStyle={{
+                                color: "#a855f7",
+                                fontSize: "28px",
+                                fontWeight: "bold",
+                              }}
+                            />
+                            <p className="text-sm text-gray-600 mt-2 font-medium">
+                              Độ tin cậy:{" "}
+                              {forecastData.forecast.confidence === "low"
+                                ? "Thấp"
+                                : forecastData.forecast.confidence === "medium"
+                                ? "Trung bình"
+                                : "Cao"}
+                            </p>
+                          </Card>
+                        </Col>
+                        <Col span={8}>
+                          <Card className="shadow-lg hover:shadow-xl transition-shadow border-l-4 border-green-500 h-full">
+                            <Statistic
+                              title={
+                                <span className="text-lg font-semibold">
+                                  Khoảng dự báo
+                                </span>
+                              }
+                              value={`${
+                                formatForecastCurrency(forecastData.forecast.range.min).value
+                              } - ${
+                                formatForecastCurrency(forecastData.forecast.range.max).value
+                              }`}
+                              suffix={formatForecastCurrency(forecastData.forecast.range.max).suffix}
+                              prefix={
+                                <BarChartOutlined className="text-green-500 text-2xl" />
+                              }
+                              valueStyle={{
+                                color: "#10b981",
+                                fontSize: "22px",
+                                fontWeight: "bold",
+                              }}
+                            />
+                          </Card>
+                        </Col>
+                        <Col span={8}>
+                          <Card className="shadow-lg hover:shadow-xl transition-shadow border-l-4 border-orange-500 h-full">
+                            <Statistic
+                              title={
+                                <span className="text-lg font-semibold">
+                                  Xu hướng
+                                </span>
+                              }
+                              value={
+                                forecastData.historicalData.trend ===
+                                "increasing"
+                                  ? "Tăng"
+                                  : forecastData.historicalData.trend ===
+                                    "decreasing"
+                                  ? "Giảm"
+                                  : "Ổn định"
+                              }
+                              prefix={
+                                <LineChartOutlined className="text-orange-500 text-2xl" />
+                              }
+                              valueStyle={{
+                                color: "#f97316",
+                                fontSize: "28px",
+                                fontWeight: "bold",
+                              }}
+                            />
+                            <p className="text-sm text-gray-600 mt-2 font-medium">
+                              Tốc độ:{" "}
+                              {forecastData.historicalData.growthRate.toFixed(
+                                2
+                              )}
+                              %
+                            </p>
+                          </Card>
+                        </Col>
+                      </Row>
+
+                      {/* Insights */}
+                      <Card size="small" className="bg-gray-50">
+                        <h4 className="font-medium text-gray-700 mb-2">
+                          Phân tích & Khuyến nghị
+                        </h4>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {forecastData.insights.summary}
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h5 className="font-medium text-gray-700 text-sm">
+                              Yếu tố ảnh hưởng:
+                            </h5>
+                            <ul className="text-xs text-gray-600 list-disc list-inside">
+                              {forecastData.insights.factors
+                                .slice(0, 2)
+                                .map((factor: string, index: number) => (
+                                  <li key={index}>{factor}</li>
+                                ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h5 className="font-medium text-gray-700 text-sm">
+                              Khuyến nghị:
+                            </h5>
+                            <ul className="text-xs text-gray-600 list-disc list-inside">
+                              {forecastData.insights.recommendations
+                                .slice(0, 2)
+                                .map((rec: string, index: number) => (
+                                  <li key={index}>{rec}</li>
+                                ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Spin size="small" />
+                      <p className="mt-2 text-gray-600">
+                        Đang tải dữ liệu dự báo...
+                      </p>
+                    </div>
+                  )}
                 </Card>
               </motion.div>
             </Col>

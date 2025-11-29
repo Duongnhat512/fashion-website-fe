@@ -11,7 +11,6 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
-import RevenueStatistics from "./pages/Admin/components/RevenueStatistics";
 import SuccessPage from "./pages/SuccessPage";
 import OrdersPage from "./pages/OrdersPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -39,7 +38,6 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/profile" element={<UserProfilePage />} />
-              <Route path="/admin/revenue" element={<RevenueStatistics />} />
             </Routes>
           </Layout>
         </Router>

@@ -109,6 +109,7 @@ export const API_CONFIG = {
       REVENUE_HOURLY: '/statistics/revenue/hourly',
       REVENUE_COMPARISON: '/statistics/revenue/comparison',
       PROFIT_TIME_SERIES: '/statistics/profit/time-series',
+      REVENUE_FORECAST: '/statistics/revenue/forecast',
       ORDERS_STATISTICS: '/statistics/orders',
     },
     CHAT_BOT: {

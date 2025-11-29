@@ -244,6 +244,16 @@ class StatisticsService {
       `${API_CONFIG.ENDPOINTS.STATISTICS.PROFIT_TIME_SERIES}${query ? `?${query}` : ''}`
     );
   }
+
+  async getRevenueForecast(period: 'week' | 'month' | 'quarter' | 'year' = 'month', startDate?: string, endDate?: string): Promise<any> {
+    const params = new URLSearchParams({ period });
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const query = params.toString();
+    return this.makeRequest<any>(
+      `${API_CONFIG.ENDPOINTS.STATISTICS.REVENUE_FORECAST}?${query}`
+    );
+  }
 }
 
 export const statisticsService = new StatisticsService();

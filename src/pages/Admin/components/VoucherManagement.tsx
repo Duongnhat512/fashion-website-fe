@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Button,
@@ -35,8 +34,7 @@ const { TextArea } = Input;
 
 export default function VoucherManagement() {
   const notify = useNotification();
-  const navigate = useNavigate();
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [allVouchers, setAllVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null);
@@ -44,8 +42,7 @@ export default function VoucherManagement() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
-  const [total, setTotal] = useState(0);
+  const [pageSize] = useState(10);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -53,31 +50,40 @@ export default function VoucherManagement() {
 
   useEffect(() => {
     loadVouchers();
-  }, [page, search, isActiveFilter]);
+  }, [search, isActiveFilter]);
 
   const loadVouchers = async () => {
     try {
       setLoading(true);
-      const isActive =
-        isActiveFilter === "active"
-          ? true
-          : isActiveFilter === "inactive"
-          ? false
-          : undefined;
-      const response = await voucherService.getAll(
-        page,
-        limit,
-        search || undefined,
-        isActive
-      );
-      setVouchers(response.data);
-      setTotal(response.total);
+      const vouchers = await voucherService.getAllVouchers();
+      setAllVouchers(vouchers);
     } catch (error: any) {
       message.error(error.message || "Lỗi khi tải danh sách voucher");
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredVouchers = useMemo(() => {
+    let filtered = allVouchers;
+    if (search) {
+      filtered = filtered.filter(
+        (v) =>
+          v.code.toLowerCase().includes(search.toLowerCase()) ||
+          v.title?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    if (isActiveFilter === "active") {
+      filtered = filtered.filter((v) => v.isActive);
+    } else if (isActiveFilter === "inactive") {
+      filtered = filtered.filter((v) => !v.isActive);
+    }
+    return filtered;
+  }, [allVouchers, search, isActiveFilter]);
+
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedVouchers = filteredVouchers.slice(startIndex, endIndex);
 
   const handleCreate = () => {
     setEditingVoucher(null);
@@ -127,7 +133,7 @@ export default function VoucherManagement() {
         usageLimit: values.usageLimit,
         usageLimitPerUser: values.usageLimitPerUser,
         isActive: values.isActive,
-        isStackable: values.isStackable,
+        isStackable: false,
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: endDate.format("YYYY-MM-DD"),
       };
@@ -227,12 +233,18 @@ export default function VoucherManagement() {
           <Input
             placeholder="Tìm kiếm voucher..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             style={{ width: 200, marginRight: 16 }}
           />
           <Select
             value={isActiveFilter}
-            onChange={setIsActiveFilter}
+            onChange={(value) => {
+              setIsActiveFilter(value);
+              setPage(1);
+            }}
             style={{ width: 120 }}
           >
             <Select.Option value="all">Tất cả</Select.Option>
@@ -247,19 +259,28 @@ export default function VoucherManagement() {
 
       <Table
         columns={columns}
-        dataSource={vouchers}
+        dataSource={paginatedVouchers}
         rowKey="id"
         loading={loading}
         pagination={false}
       />
 
-      <Pagination
-        current={page}
-        total={total}
-        pageSize={limit}
-        onChange={setPage}
-        style={{ marginTop: 16, textAlign: "right" }}
-      />
+      {filteredVouchers.length > 0 && (
+        <div className="flex justify-center mt-8">
+          <Pagination
+            current={page}
+            total={filteredVouchers.length}
+            pageSize={pageSize}
+            onChange={setPage}
+            showSizeChanger={false}
+            showQuickJumper
+            locale={{ jump_to: "Đi đến trang", page: "" }}
+            showTotal={(total, range) =>
+              `${range[0]}-${range[1]} của ${total} voucher`
+            }
+          />
+        </div>
+      )}
 
       <Modal
         title={editingVoucher ? "Chỉnh sửa Voucher" : "Thêm Voucher"}
@@ -295,35 +316,41 @@ export default function VoucherManagement() {
             <InputNumber min={0} max={100} style={{ width: "100%" }} />
           </Form.Item>
 
-          <Form.Item name="maxDiscountValue" label="Giá trị giảm tối đa (VNĐ)">
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
+          <div style={{ display: "flex", gap: 16 }}>
+            <Form.Item
+              name="maxDiscountValue"
+              label="Giá trị giảm tối đa (VNĐ)"
+              style={{ flex: 1 }}
+            >
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
 
-          <Form.Item
-            name="minOrderValue"
-            label="Giá trị đơn hàng tối thiểu (VNĐ)"
-          >
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
+            <Form.Item
+              name="minOrderValue"
+              label="Giá trị đơn hàng tối thiểu (VNĐ)"
+              style={{ flex: 1 }}
+            >
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
+          </div>
 
-          <Form.Item name="usageLimit" label="Số lần sử dụng tối đa">
-            <InputNumber min={1} style={{ width: "100%" }} />
-          </Form.Item>
+          <div style={{ display: "flex", gap: 16 }}>
+            <Form.Item
+              name="usageLimit"
+              label="Số lần sử dụng tối đa"
+              style={{ flex: 1 }}
+            >
+              <InputNumber min={1} style={{ width: "100%" }} />
+            </Form.Item>
 
-          <Form.Item
-            name="usageLimitPerUser"
-            label="Số lần sử dụng tối đa mỗi người"
-          >
-            <InputNumber min={1} style={{ width: "100%" }} />
-          </Form.Item>
-
-          <Form.Item
-            name="isStackable"
-            label="Có thể gộp với voucher khác"
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
+            <Form.Item
+              name="usageLimitPerUser"
+              label="Số lần sử dụng tối đa mỗi người"
+              style={{ flex: 1 }}
+            >
+              <InputNumber min={1} style={{ width: "100%" }} />
+            </Form.Item>
+          </div>
 
           <Form.Item
             name="isActive"

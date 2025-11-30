@@ -58,6 +58,7 @@ class ReviewService {
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+          "ngrok-skip-browser-warning": "true",
         },
       });
 
@@ -72,30 +73,38 @@ class ReviewService {
       throw error;
     }
   }
-  async getProductReviews(
-    productId: string,
-    page: number = 1,
-    limit: number = 10
-  ): Promise<ReviewsResponse> {
-    try {
-      const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.GET_BY_PRODUCT.replace(
-        ':productId',
-        productId
-      )}?page=${page}&limit=${limit}`;
+ async getProductReviews(
+  productId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<ReviewsResponse> {
+  try {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.GET_BY_PRODUCT.replace(
+      ':productId',
+      productId
+    )}?page=${page}&limit=${limit}`;
 
-      const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error('Không thể tải danh sách đánh giá');
-      }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true', // thêm header này để bỏ cảnh báo ngrok
+      },
+    });
 
-      const result = await response.json();
-      return result.data;
-    } catch (error) {
-      console.error('Get reviews error:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error('Không thể tải danh sách đánh giá');
     }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('Get reviews error:', error);
+    throw error;
   }
+}
+
 
   /**
    * Tạo review mới

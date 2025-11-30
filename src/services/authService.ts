@@ -106,6 +106,7 @@ class AuthService {
       ...options,
       headers: {
         'Content-Type': 'application/json', // luôn ưu tiên JSON
+        "ngrok-skip-browser-warning": "true",
         ...(options?.headers || {}),
       },
     });
@@ -198,6 +199,7 @@ class AuthService {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true",
       },
     });
   }
@@ -218,6 +220,7 @@ class AuthService {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
         },
         body: form,
       });

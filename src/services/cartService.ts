@@ -25,6 +25,7 @@ export const cartService = {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : '', // Thêm token vào header nếu có
+        "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify({
         productId: item.productId,
@@ -49,6 +50,7 @@ export const cartService = {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : '', // Thêm token vào header nếu có
+        "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify({
         productId: item.productId,
@@ -73,6 +75,7 @@ export const cartService = {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : '', // Thêm token vào header nếu có
+        "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify({
         productId: item.productId,
@@ -93,7 +96,8 @@ export const cartService = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '', // Thêm token vào header nếu có
+        'Authorization': `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true",
       },
     });
 

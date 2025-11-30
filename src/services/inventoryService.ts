@@ -55,6 +55,7 @@ export const inventoryService = {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
         },
       }
@@ -79,6 +80,7 @@ export const inventoryService = {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
         Authorization: `Bearer ${token}`,
       },
     });
@@ -104,6 +106,7 @@ export const inventoryService = {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
         Authorization: `Bearer ${token}`,
       },
     });
@@ -129,6 +132,7 @@ export const inventoryService = {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
         Authorization: `Bearer ${token}`,
       },
     });

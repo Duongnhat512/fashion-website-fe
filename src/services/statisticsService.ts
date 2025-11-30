@@ -129,6 +129,7 @@ class StatisticsService {
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      "ngrok-skip-browser-warning": "true",
     };
   }
 
@@ -136,7 +137,10 @@ class StatisticsService {
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: {
+          ...this.getAuthHeaders(),
+          "ngrok-skip-browser-warning": "true",
+        },
       });
 
       if (!response.ok) {

@@ -15,7 +15,7 @@ class ProductService {
   private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
-        headers: { "Content-Type": "application/json", ...options?.headers },
+        headers: { "Content-Type": "application/json", ...options?.headers, "ngrok-skip-browser-warning": "true" },
         ...options,
       });
 
@@ -67,6 +67,7 @@ class ProductService {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });

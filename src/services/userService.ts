@@ -37,6 +37,7 @@ class UserService {
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      "ngrok-skip-browser-warning": "true",
     };
   }
 
@@ -46,6 +47,7 @@ class UserService {
         ...options,
         headers: {
           ...this.getAuthHeaders(),
+          "ngrok-skip-browser-warning": "true",
           ...(options?.headers || {}),
         },
       });
@@ -71,6 +73,10 @@ class UserService {
   async getAllUsers(): Promise<User[]> {
     return this.makeRequest<User[]>('/users', {
       method: 'GET',
+      headers: {
+        ...this.getAuthHeaders(),
+        "ngrok-skip-browser-warning": "true",
+      },
     });
   }
 

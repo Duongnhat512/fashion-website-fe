@@ -5,7 +5,7 @@ export const colorService = {
   async getAll(): Promise<ApiResponse<any>> {
     const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.COLOR.GET_ALL}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', "ngrok-skip-browser-warning": "true" },
     });
 
     if (!res.ok) throw new Error('Không thể tải danh sách màu sắc');

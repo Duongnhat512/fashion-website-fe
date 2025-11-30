@@ -195,6 +195,7 @@ class TaxService {
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      "ngrok-skip-browser-warning": "true",
     };
   }
 
@@ -202,7 +203,10 @@ class TaxService {
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: {
+          ...this.getAuthHeaders(),
+          "ngrok-skip-browser-warning": "true",
+        },
       });
 
       if (!response.ok) {
@@ -264,7 +268,10 @@ class TaxService {
     const query = params.toString();
     const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TAX_REPORTS.VAT_EXPORT}${query ? `?${query}` : ''}`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
+      headers: {
+        ...this.getAuthHeaders(),
+        "ngrok-skip-browser-warning": "true",
+      },
     });
 
     if (!response.ok) {
@@ -282,7 +289,10 @@ class TaxService {
     const query = params.toString();
     const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TAX_REPORTS.CIT_EXPORT}${query ? `?${query}` : ''}`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
+      headers: {
+        ...this.getAuthHeaders(),
+        "ngrok-skip-browser-warning": "true",
+      },
     });
 
     if (!response.ok) {
@@ -300,7 +310,10 @@ class TaxService {
     const query = params.toString();
     const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TAX_REPORTS.FINANCIAL_EXPORT}${query ? `?${query}` : ''}`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
+      headers: {
+        ...this.getAuthHeaders(),
+        "ngrok-skip-browser-warning": "true",
+      },
     });
 
     if (!response.ok) {

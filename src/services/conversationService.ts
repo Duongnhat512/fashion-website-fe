@@ -58,7 +58,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_ACTIVE}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(false),
+          headers: {
+            ...this.getAuthHeaders(false),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 
@@ -79,7 +82,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_ALL}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(false),
+          headers: {
+            ...this.getAuthHeaders(false),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 
@@ -100,7 +106,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_BY_ID.replace(':id', id)}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(false),
+          headers: {
+            ...this.getAuthHeaders(false),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 
@@ -121,7 +130,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_MESSAGES.replace(':id', id)}?limit=${limit}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(false),
+          headers: {
+            ...this.getAuthHeaders(false),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 
@@ -197,7 +209,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_WAITING}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(false),
+          headers: {
+            ...this.getAuthHeaders(false),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 
@@ -237,7 +252,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_STATS.replace(':id', conversationId)}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(),
+          headers: {
+            ...this.getAuthHeaders(),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 
@@ -258,7 +276,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_ALL_ADMIN}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(),
+          headers: {
+            ...this.getAuthHeaders(),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 
@@ -279,7 +300,10 @@ class ConversationService {
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_AGENT_CONVERSATIONS}`,
         {
           method: 'GET',
-          headers: this.getAuthHeaders(),
+          headers: {
+            ...this.getAuthHeaders(),
+            "ngrok-skip-browser-warning": "true",
+          },
         }
       );
 

@@ -49,6 +49,7 @@ class OrderService {
         ...options,
         headers: {
           'Content-Type': 'application/json',
+          "ngrok-skip-browser-warning": "true",
           ...(options?.headers || {}),
         },
       });
@@ -106,7 +107,7 @@ class OrderService {
 
     const result = await this.makeRequest<any>(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
     });
 
     // API trả về {orders: OrderResponse[], pagination: {...}}
@@ -128,7 +129,7 @@ class OrderService {
 
     const result = await this.makeRequest<any>(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
     });
 
     // API trả về {orders: OrderResponse[], pagination: {...}}
@@ -142,7 +143,7 @@ class OrderService {
 
     return this.makeRequest<OrderResponse>(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
     });
   }
 

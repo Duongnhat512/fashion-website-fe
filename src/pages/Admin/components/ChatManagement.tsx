@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, List, Button, Avatar, Tabs, Input, message } from "antd";
+import { Card, List, Button, Avatar, Input, message } from "antd";
 import {
   MessageOutlined,
   UserOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   SendOutlined,
-  EyeOutlined,
   RobotOutlined,
 } from "@ant-design/icons";
 import {
@@ -252,28 +251,6 @@ export default function ChatManagement() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const switchToBot = async (conversationId: string) => {
-    try {
-      if (isConnected) {
-        webSocketService.switchToBot(conversationId);
-      } else {
-        await conversationService.switchToBot(conversationId);
-      }
-      message.success("Đã chuyển về chat với bot");
-    } catch (error) {
-      message.error("Không thể chuyển về bot");
-    }
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "2-digit",
-      month: "2-digit",
-    });
   };
 
   return (

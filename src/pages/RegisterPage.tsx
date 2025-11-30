@@ -48,7 +48,6 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [verificationToken, setVerificationToken] = useState<string>("");
   const notify = useNotification();
 
   // Nếu đã đăng nhập thì quay lại home
@@ -166,7 +165,6 @@ export default function RegisterPage() {
         email: formData.email,
         otp: otp.trim(),
       });
-      setVerificationToken(response.verificationToken);
       await handleFinalRegister(response.verificationToken);
     } catch (error) {
       console.error("Verify OTP error:", error);

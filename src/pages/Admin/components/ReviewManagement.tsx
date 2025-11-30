@@ -14,7 +14,6 @@ import {
   AutoComplete,
   Input,
   Upload,
-  Rate,
   Modal,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -37,20 +36,16 @@ export default function ReviewManagement() {
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [total, setTotal] = useState(0);
 
   const [viewingReview, setViewingReview] = useState<Review | null>(null);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [viewingProduct, setViewingProduct] = useState<any>(null);
-  const [loadingProduct, setLoadingProduct] = useState(false);
 
   const [ratingFilter, setRatingFilter] = useState<string>("all");
 
   // Search states
   const [searchValue, setSearchValue] = useState("");
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   // Reply states
   const [replyModalVisible, setReplyModalVisible] = useState(false);
@@ -91,7 +86,6 @@ export default function ReviewManagement() {
       }));
 
       setReviews(reviewsWithProducts);
-      setTotal(response.pagination.total);
     } catch (error: any) {
       message.error(error.message || "Lỗi khi tải danh sách đánh giá");
     } finally {
@@ -121,7 +115,6 @@ export default function ReviewManagement() {
       }));
 
       setReviews(reviewsWithProducts);
-      setTotal(response.pagination.total);
     } catch (error: any) {
       message.error(error.message || "Lỗi khi tải đánh giá sản phẩm");
     } finally {
@@ -136,8 +129,6 @@ export default function ReviewManagement() {
     }
 
     try {
-      setSearching(true);
-
       // Kiểm tra xem input có phải là ID không
       // Có thể là: UUID, dài > 20 ký tự, hoặc có format như PRO-XXXX, SKU-XXXX, etc.
       const trimmed = value.trim();
@@ -206,18 +197,15 @@ export default function ReviewManagement() {
       console.error("Search products error:", error);
       setSearchOptions([]);
     } finally {
-      setSearching(false);
     }
   };
 
   const handleSelectProduct = (_value: string, option: any) => {
-    setSelectedProduct(option.product);
     setSearchValue(`${option.product.name} (${option.product.id})`);
     loadProductReviews(option.product.id);
   };
 
   const handleClearSearch = () => {
-    setSelectedProduct(null);
     setSearchValue("");
     setSearchOptions([]);
     loadReviews();
@@ -226,7 +214,6 @@ export default function ReviewManagement() {
   const handleViewReview = async (review: Review) => {
     setViewingReview(review);
     setIsDrawerVisible(true);
-    setLoadingProduct(true);
 
     try {
       const productData = await productService.getProductById(
@@ -237,7 +224,6 @@ export default function ReviewManagement() {
     } catch {
       setViewingProduct(review.product); // luôn undefined hoặc Product
     } finally {
-      setLoadingProduct(false);
     }
   };
 

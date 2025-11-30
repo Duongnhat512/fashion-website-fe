@@ -3,16 +3,15 @@ import {
   Table,
   Tag,
   Button,
-  Modal,
+  // Modal,
   Pagination,
-  Form,
+  // Form,
   Input,
-  Select,
+  // Select,
   Switch,
-  DatePicker,
+  // DatePicker,
 } from "antd";
-import { EditOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
+// import dayjs from "dayjs";
 import { userService } from "../../../services/userService";
 import type { User } from "../../../services/userService";
 import { useNotification } from "../../../components/NotificationProvider";
@@ -21,12 +20,12 @@ const UserManagement: React.FC = () => {
   const notify = useNotification();
   const [users, setUsers] = useState<User[]>([]);
   const [userLoading, setUserLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [userModalVisible, setUserModalVisible] = useState(false);
+  // const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  // const [userModalVisible, setUserModalVisible] = useState(false);
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const [userPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
-  const [form] = Form.useForm();
+  // const [form] = Form.useForm();
 
   useEffect(() => {
     fetchUsers();
@@ -49,39 +48,39 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const showUserEditModal = (user: User) => {
-    setSelectedUser(user);
-    form.setFieldsValue({
-      fullname: user.fullname,
-      email: user.email,
-      phone: user.phone,
-      dob: user.dob ? dayjs(user.dob) : null,
-      gender: user.gender,
-      role: user.role,
-      status: user.status,
-    });
-    setUserModalVisible(true);
-  };
+  // const showUserEditModal = (user: User) => {
+  //   setSelectedUser(user);
+  //   form.setFieldsValue({
+  //     fullname: user.fullname,
+  //     email: user.email,
+  //     phone: user.phone,
+  //     dob: user.dob ? dayjs(user.dob) : null,
+  //     gender: user.gender,
+  //     role: user.role,
+  //     status: user.status,
+  //   });
+  //   setUserModalVisible(true);
+  // };
 
-  const handleUpdateUser = async (values: any) => {
-    if (!selectedUser) return;
-    try {
-      await userService.updateUser(selectedUser.id, {
-        fullname: values.fullname,
-        phone: values.phone,
-        dob: values.dob ? values.dob.format("YYYY-MM-DD") : undefined,
-        gender: values.gender as "male" | "female" | "other",
-        role: values.role,
-        status: values.status,
-      });
-      notify.success("Cập nhật người dùng thành công!");
-      setUserModalVisible(false);
-      fetchUsers();
-    } catch (error) {
-      notify.error("Không thể cập nhật người dùng");
-      console.error(error);
-    }
-  };
+  // const handleUpdateUser = async (values: any) => {
+  //   if (!selectedUser) return;
+  //   try {
+  //     await userService.updateUser(selectedUser.id, {
+  //       fullname: values.fullname,
+  //       phone: values.phone,
+  //       dob: values.dob ? values.dob.format("YYYY-MM-DD") : undefined,
+  //       gender: values.gender as "male" | "female" | "other",
+  //       role: values.role,
+  //       status: values.status,
+  //     });
+  //     notify.success("Cập nhật người dùng thành công!");
+  //     setUserModalVisible(false);
+  //     fetchUsers();
+  //   } catch (error) {
+  //     notify.error("Không thể cập nhật người dùng");
+  //     console.error(error);
+  //   }
+  // };
 
   const handleToggleUserStatus = async (
     userId: string,
@@ -258,7 +257,7 @@ const UserManagement: React.FC = () => {
       )}
 
       {/* Modal cập nhật người dùng */}
-      <Modal
+      {/* <Modal
         title={
           <div className="text-lg font-bold">Cập nhật thông tin người dùng</div>
         }
@@ -335,7 +334,7 @@ const UserManagement: React.FC = () => {
             </Button>
           </div>
         </Form>
-      </Modal>
+      </Modal> */}
     </div>
   );
 };

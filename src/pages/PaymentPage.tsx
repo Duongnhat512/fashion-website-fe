@@ -35,7 +35,7 @@ const PaymentPage = () => {
     note: "",
     paymentMethod: "cod",
   });
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  // const [loadingProfile, setLoadingProfile] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   // Voucher states
@@ -50,7 +50,7 @@ const PaymentPage = () => {
     const fetchUserProfile = async () => {
       if (user?.id) {
         try {
-          setLoadingProfile(true);
+          // setLoadingProfile(true);
           const profile = await authService.getUserProfile(user.id);
           setForm((prev) => ({
             ...prev,
@@ -65,7 +65,7 @@ const PaymentPage = () => {
             phone: user.phone || "",
           }));
         } finally {
-          setLoadingProfile(false);
+          // setLoadingProfile(false);
         }
       }
     };
@@ -618,19 +618,11 @@ const PaymentPage = () => {
                               {voucher.isActive &&
                                 !isExpired &&
                                 !isUsageLimitReached && (
-                                  <Tag color="green" size="small">
-                                    Có thể dùng
-                                  </Tag>
+                                  <Tag color="green">Có thể dùng</Tag>
                                 )}
-                              {isExpired && (
-                                <Tag color="red" size="small">
-                                  Hết hạn
-                                </Tag>
-                              )}
+                              {isExpired && <Tag color="red">Hết hạn</Tag>}
                               {isUsageLimitReached && (
-                                <Tag color="orange" size="small">
-                                  Hết lượt
-                                </Tag>
+                                <Tag color="orange">Hết lượt</Tag>
                               )}
                             </div>
 
@@ -653,12 +645,13 @@ const PaymentPage = () => {
                                 )}
                               </div>
 
-                              {voucher.minOrderValue > 0 && (
-                                <div className="text-sm text-gray-600">
-                                  Đơn tối thiểu:{" "}
-                                  {formatCurrency(voucher.minOrderValue)}
-                                </div>
-                              )}
+                              {voucher.minOrderValue &&
+                                voucher.minOrderValue > 0 && (
+                                  <div className="text-sm text-gray-600">
+                                    Đơn tối thiểu:{" "}
+                                    {formatCurrency(voucher.minOrderValue)}
+                                  </div>
+                                )}
 
                               <div className="text-sm text-gray-600">
                                 Hết hạn:{" "}

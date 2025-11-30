@@ -11,7 +11,6 @@ import {
   ChevronRight,
   FileText,
   MessageSquare,
-  DollarSign,
 } from "lucide-react";
 import OverviewSection from "./components/OverviewSection";
 import UserManagement from "./components/UserManagement";

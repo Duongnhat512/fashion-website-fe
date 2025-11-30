@@ -20,7 +20,6 @@ import {
 } from "antd";
 import {
   PlusOutlined,
-  EditOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   EyeOutlined,
@@ -53,7 +52,6 @@ export default function PromotionManagement() {
   // Pagination
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [total, setTotal] = useState(0);
 
   // Products
   const [products, setProducts] = useState<any[]>([]);
@@ -87,7 +85,6 @@ export default function PromotionManagement() {
       setLoading(true);
       const response = await promotionService.getAll(page, limit);
       setPromotions(response.data);
-      setTotal(response.total);
     } catch (error: any) {
       message.error(error.message || "Lỗi khi tải danh sách khuyến mãi");
     } finally {
@@ -158,19 +155,6 @@ export default function PromotionManagement() {
   const handleCreate = () => {
     setEditingPromotion(null);
     form.resetFields();
-    setIsModalVisible(true);
-  };
-
-  const handleEdit = (promotion: Promotion) => {
-    setEditingPromotion(promotion);
-    form.setFieldsValue({
-      name: promotion.name,
-      type: promotion.type,
-      value: promotion.value,
-      note: promotion.note,
-      productIds: promotion.productIds,
-      dateRange: [dayjs(promotion.startDate), dayjs(promotion.endDate)],
-    });
     setIsModalVisible(true);
   };
 

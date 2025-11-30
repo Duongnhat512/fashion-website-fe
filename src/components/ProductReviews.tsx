@@ -12,7 +12,6 @@ import {
   Upload,
   Empty,
   Modal,
-  Carousel,
 } from "antd";
 import {
   UserOutlined,
@@ -35,10 +34,7 @@ interface ProductReviewsProps {
   productName: string;
 }
 
-export default function ProductReviews({
-  productId,
-  productName,
-}: ProductReviewsProps) {
+export default function ProductReviews({ productId }: ProductReviewsProps) {
   const { user } = useAuth();
   const notify = useNotification();
 

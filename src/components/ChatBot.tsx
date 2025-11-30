@@ -8,7 +8,6 @@ import {
   MessageOutlined,
   UserOutlined,
   RobotOutlined,
-  ClockCircleOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import { API_CONFIG } from "../config/api.config";

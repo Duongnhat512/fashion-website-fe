@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  Tag,
-  Button,
-  Space,
-  Modal,
-  Pagination,
-  Checkbox,
-  message,
-} from "antd";
+import { Table, Tag, Button, Space, Modal, Pagination, Checkbox } from "antd";
 import {
   EyeOutlined,
   CheckCircleOutlined,
@@ -33,8 +24,6 @@ const OrderManagement: React.FC = () => {
   const [pageSize] = useState(10);
   const [totalOrders, setTotalOrders] = useState(0);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
-  const [invoiceData, setInvoiceData] = useState<any>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const notify = useNotification();
   useEffect(() => {
@@ -599,160 +588,6 @@ const OrderManagement: React.FC = () => {
                 </Tag>
               </div>
             </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Modal hiển thị hóa đơn */}
-      <Modal
-        title={
-          <div className="text-lg font-bold">
-            Hóa đơn đơn hàng ({selectedOrders.length} đơn)
-          </div>
-        }
-        open={invoiceModalVisible}
-        onCancel={() => setInvoiceModalVisible(false)}
-        footer={null}
-        width={1000}
-      >
-        {invoiceData && (
-          <div className="space-y-6">
-            {invoiceData.map((invoice: any, index: number) => (
-              <div key={index} className="border rounded-lg p-6 bg-gray-50">
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold text-center mb-2">
-                    HÓA ĐƠN
-                  </h3>
-                  <p className="text-center text-sm text-gray-600">
-                    Mã đơn hàng: {invoice.orderId?.slice(0, 8)}...
-                  </p>
-                  <p className="text-center text-sm text-gray-600">
-                    Ngày:{" "}
-                    {new Date(
-                      invoice.createdAt || new Date()
-                    ).toLocaleDateString("vi-VN")}
-                  </p>
-                </div>
-
-                {/* Thông tin khách hàng */}
-                <div className="mb-4">
-                  <h4 className="font-semibold mb-2">Thông tin khách hàng:</h4>
-                  <p>
-                    <strong>Họ tên:</strong> {invoice.customerName}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {invoice.customerEmail}
-                  </p>
-                  <p>
-                    <strong>SĐT:</strong> {invoice.customerPhone}
-                  </p>
-                </div>
-
-                {/* Địa chỉ giao hàng */}
-                <div className="mb-4">
-                  <h4 className="font-semibold mb-2">Địa chỉ giao hàng:</h4>
-                  <p>{invoice.shippingAddress}</p>
-                </div>
-
-                {/* Chi tiết sản phẩm */}
-                <div className="mb-4">
-                  <h4 className="font-semibold mb-2">Chi tiết sản phẩm:</h4>
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 p-2 text-left">
-                          Sản phẩm
-                        </th>
-                        <th className="border border-gray-300 p-2 text-center">
-                          SL
-                        </th>
-                        <th className="border border-gray-300 p-2 text-right">
-                          Đơn giá
-                        </th>
-                        <th className="border border-gray-300 p-2 text-right">
-                          Thành tiền
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoice.items?.map((item: any, idx: number) => (
-                        <tr key={idx}>
-                          <td className="border border-gray-300 p-2">
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={item.imageUrl}
-                                alt={item.productName}
-                                className="w-12 h-12 object-cover rounded"
-                              />
-                              <div>
-                                <p className="font-medium">
-                                  {item.productName}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  Màu: {item.color} | Size: {item.size}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="border border-gray-300 p-2 text-center">
-                            {item.quantity}
-                          </td>
-                          <td className="border border-gray-300 p-2 text-right">
-                            {item.price?.toLocaleString("vi-VN")}đ
-                          </td>
-                          <td className="border border-gray-300 p-2 text-right">
-                            {item.total?.toLocaleString("vi-VN")}đ
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Tổng tiền */}
-                <div className="border-t pt-4">
-                  <div className="flex justify-end">
-                    <div className="w-64 space-y-2">
-                      <div className="flex justify-between">
-                        <span>Tạm tính:</span>
-                        <span>
-                          {invoice.subTotal?.toLocaleString("vi-VN")}đ
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Giảm giá:</span>
-                        <span className="text-red-500">
-                          -{invoice.discount?.toLocaleString("vi-VN")}đ
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Phí ship:</span>
-                        <span>
-                          {invoice.shippingFee?.toLocaleString("vi-VN")}đ
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-bold text-lg border-t pt-2">
-                        <span>Tổng cộng:</span>
-                        <span className="text-purple-600">
-                          {invoice.totalAmount?.toLocaleString("vi-VN")}đ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Phương thức thanh toán */}
-                <div className="mt-4 text-center text-sm text-gray-600">
-                  <p>
-                    <strong>Phương thức thanh toán:</strong>{" "}
-                    {invoice.paymentMethod}
-                  </p>
-                  <p>
-                    <strong>Trạng thái:</strong> {invoice.status}
-                  </p>
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </Modal>

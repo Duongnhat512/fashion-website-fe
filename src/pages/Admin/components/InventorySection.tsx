@@ -33,10 +33,7 @@ const InventorySection: React.FC = () => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehouseLoading, setWarehouseLoading] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [updateModalVisible, setUpdateModalVisible] = useState(false);
-  const [editingStockEntry, setEditingStockEntry] = useState<StockEntry | null>(
-    null
-  );
+
   const [stockEntryForm] = Form.useForm();
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProductForItem, setSelectedProductForItem] = useState<{
@@ -248,115 +245,6 @@ const InventorySection: React.FC = () => {
       notify.error(
         error?.message || "Không thể hủy phiếu kho. Vui lòng thử lại!"
       );
-    }
-  };
-
-  const showUpdateStockEntryModal = async (stockEntry: StockEntry) => {
-    setEditingStockEntry(stockEntry);
-
-    try {
-      const itemsWithDetails = await Promise.all(
-        stockEntry.stockEntryItems.map(async (item, index) => {
-          if (item.inventory?.id) {
-            try {
-              const inventoryDetail = await inventoryService.getInventoryById(
-                item.inventory.id
-              );
-
-              const variantId = inventoryDetail.variant?.id;
-
-              if (variantId) {
-                const foundProduct = products.find((p) =>
-                  p.variants?.some((v: any) => v.id === variantId)
-                );
-
-                if (foundProduct) {
-                  setSelectedProductForItem((prev) => ({
-                    ...prev,
-                    [index]: foundProduct.id,
-                  }));
-                  setSelectedVariantForItem((prev) => ({
-                    ...prev,
-                    [index]: variantId,
-                  }));
-
-                  return {
-                    productId: foundProduct.id,
-                    variantId: variantId,
-                    inventoryId: item.inventory.id,
-                    quantity: item.quantity,
-                    rate: item.rate,
-                  };
-                }
-              }
-            } catch (error) {
-              console.error(
-                `Lỗi khi lấy thông tin inventory cho item ${index}:`,
-                error
-              );
-            }
-          }
-          return null;
-        })
-      );
-
-      const validItems = itemsWithDetails.filter((item) => item !== null);
-
-      let warehouseId = "";
-      if (stockEntry.stockEntryItems[0]?.inventory?.id) {
-        const firstInventory = await inventoryService.getInventoryById(
-          stockEntry.stockEntryItems[0].inventory.id
-        );
-        warehouseId = firstInventory.warehouse?.id || "";
-      }
-
-      stockEntryForm.setFieldsValue({
-        type: stockEntry.type,
-        supplierName: stockEntry.supplierName,
-        warehouseId: warehouseId,
-        note: stockEntry.note,
-        items: validItems,
-      });
-    } catch (error) {
-      console.error("Lỗi khi tải thông tin phiếu kho:", error);
-      notify.error("Không thể tải thông tin phiếu kho");
-    }
-
-    setUpdateModalVisible(true);
-  };
-
-  const handleUpdateStockEntry = async (values: any) => {
-    if (!editingStockEntry) return;
-
-    try {
-      const totalCost = values.items.reduce(
-        (sum: number, item: any) => sum + item.quantity * item.rate,
-        0
-      );
-
-      const updateData = {
-        type: values.type,
-        supplierName: values.supplierName,
-        stockEntryItems: values.items.map((item: any) => ({
-          inventory: { id: item.inventoryId },
-          quantity: item.quantity,
-          unitCost: item.rate,
-        })),
-        note: values.note || "",
-        totalCost: totalCost,
-      };
-
-      await warehouseService.updateStockEntry(editingStockEntry.id, updateData);
-      notify.success("Đã cập nhật số lượng và giá!");
-      setUpdateModalVisible(false);
-      stockEntryForm.resetFields();
-      setSelectedProductForItem({});
-      setSelectedVariantForItem({});
-      setEditingStockEntry(null);
-      fetchWarehouseData();
-    } catch (error) {
-      notify.error("Không thể cập nhật phiếu kho");
-      console.error(error);
     }
   };
 

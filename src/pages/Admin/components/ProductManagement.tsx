@@ -19,7 +19,6 @@ import {
 import {
   UploadOutlined,
   EditOutlined,
-  DeleteOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
@@ -62,7 +61,6 @@ const ProductManagement: React.FC = () => {
   // State cho tìm kiếm thông minh
   const [searchValue, setSearchValue] = useState("");
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
   const notify = useNotification();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -191,8 +189,6 @@ const ProductManagement: React.FC = () => {
     }
 
     try {
-      setSearching(true);
-
       // Kiểm tra xem input có phải là ID không
       const trimmed = value.trim();
 
@@ -265,7 +261,6 @@ const ProductManagement: React.FC = () => {
       console.error("Search products error:", error);
       setSearchOptions([]);
     } finally {
-      setSearching(false);
     }
   };
 
@@ -605,30 +600,30 @@ const ProductManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (productId: string, productName: string) => {
-    // Sử dụng alert để xác nhận xóa sản phẩm
-    const isConfirmed = window.confirm(
-      `Bạn có chắc chắn muốn xóa sản phẩm "${productName}"? Hành động này không thể hoàn tác.`
-    );
+  // const handleDelete = async (productId: string, productName: string) => {
+  //   // Sử dụng alert để xác nhận xóa sản phẩm
+  //   const isConfirmed = window.confirm(
+  //     `Bạn có chắc chắn muốn xóa sản phẩm "${productName}"? Hành động này không thể hoàn tác.`
+  //   );
 
-    if (isConfirmed) {
-      try {
-        const token = authService.getToken();
-        if (!token) {
-          notify.error("Vui lòng đăng nhập");
-          return;
-        }
+  //   if (isConfirmed) {
+  //     try {
+  //       const token = authService.getToken();
+  //       if (!token) {
+  //         notify.error("Vui lòng đăng nhập");
+  //         return;
+  //       }
 
-        await productService.deleteProduct(productId, token);
-        notify.success("Xóa sản phẩm thành công");
-        // Reload products
-        await fetchProducts();
-      } catch (err: any) {
-        console.error("Delete product error", err);
-        notify.error(err.message || "Lỗi khi xóa sản phẩm");
-      }
-    }
-  };
+  //       await productService.deleteProduct(productId, token);
+  //       notify.success("Xóa sản phẩm thành công");
+  //       // Reload products
+  //       await fetchProducts();
+  //     } catch (err: any) {
+  //       console.error("Delete product error", err);
+  //       notify.error(err.message || "Lỗi khi xóa sản phẩm");
+  //     }
+  //   }
+  // };
 
   // Hàm xử lý import sản phẩm từ JSON
   const handleImportProductsChange = async (

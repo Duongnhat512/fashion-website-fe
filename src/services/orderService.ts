@@ -277,7 +277,6 @@ async getInvoicesData(orderIds: string[]): Promise<Blob> {
     }
 
     const data = await response.json();
-    console.log('Single invoice API response:', data);
 
     if (data && data.success === false) {
       throw new Error(data.message || 'API request failed');

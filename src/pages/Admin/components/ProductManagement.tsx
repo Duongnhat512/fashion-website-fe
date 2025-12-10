@@ -140,8 +140,6 @@ const ProductManagement: React.FC = () => {
       else if (Array.isArray(res)) prods = res as any;
       else prods = [];
 
-      console.log("📦 Loaded products:", prods.length);
-
       // Flatten variants into rows: one row per variant with product context
       const rows: any[] = [];
       prods.forEach((p) => {
@@ -171,7 +169,6 @@ const ProductManagement: React.FC = () => {
         return dateB - dateA;
       });
 
-      console.log("📦 Flattened variant rows:", rows.length);
       setVariantRows(rows);
       setProductPage(1);
     } catch (err) {
@@ -305,16 +302,10 @@ const ProductManagement: React.FC = () => {
       formData.append("productImage", productImageFile);
 
       // QUAN TRỌNG: Phải gửi đúng số lượng ảnh = số variants
-      console.log(`Đang thêm ${variants.length} variant images...`);
       variants.forEach((variant, index) => {
         // Sử dụng ảnh riêng của variant nếu có, không thì dùng ảnh product
         const variantImage = variant.imageFile || productImageFile;
         formData.append(`variants[${index}][image]`, variantImage);
-        console.log(
-          `✓ Added variants[${index}][image] for size ${variant.size} (${
-            variant.imageFile ? "custom image" : "product image"
-          })`
-        );
       });
 
       // Tạo productData object với nhiều variants
@@ -339,54 +330,14 @@ const ProductManagement: React.FC = () => {
         })),
       };
 
-      console.log("ProductData variants count:", productData.variants.length);
-      console.log("ProductData:", JSON.stringify(productData, null, 2));
-
       // Thêm productData vào FormData
       formData.append("productData", JSON.stringify(productData));
 
-      // Gửi request với FormData
-      const response = await fetch(`/api/v1/products`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Không set Content-Type, để browser tự set multipart/form-data
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        // Kiểm tra response có phải JSON không
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Lỗi khi tạo sản phẩm");
-        } else {
-          const errorText = await response.text();
-          throw new Error(errorText || "Lỗi khi tạo sản phẩm");
-        }
-      }
-
-      // Kiểm tra response có phải JSON không trước khi parse
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server trả về response không phải JSON");
-      }
-
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || "Lỗi khi tạo sản phẩm");
-      }
-
-      console.log("✅ Product created successfully!");
-      console.log("Created product:", result.data);
-      console.log(
-        "Number of variants created:",
-        result.data?.variants?.length || 0
-      );
+      // Sử dụng productService thay vì gọi fetch trực tiếp
+      const result = await productService.createProduct(formData, token);
 
       // IMPORTANT: Alert to verify variant count
-      const variantCount = result.data?.variants?.length || 0;
+      const variantCount = result?.variants?.length || 0;
       console.warn(
         `⚠️ KIỂM TRA: Đã tạo ${variantCount} variants (mong đợi ${variants.length})`
       );
@@ -552,38 +503,8 @@ const ProductManagement: React.FC = () => {
       // Luôn luôn thêm productData vào FormData
       formData.append("productData", JSON.stringify(payload));
 
-      const response = await fetch(`/api/v1/products`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Không set Content-Type, để browser tự set multipart/form-data với boundary
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        // Kiểm tra response có phải JSON không
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Lỗi khi cập nhật sản phẩm");
-        } else {
-          const errorText = await response.text();
-          throw new Error(errorText || "Lỗi khi cập nhật sản phẩm");
-        }
-      }
-
-      // Kiểm tra response có phải JSON không trước khi parse
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server trả về response không phải JSON");
-      }
-
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || "Lỗi khi cập nhật sản phẩm");
-      }
-
+      // Sử dụng productService thay vì gọi fetch trực tiếp
+      await productService.updateProduct(formData, token);
       notify.success("Cập nhật sản phẩm thành công");
 
       // Reset form và đóng modal
@@ -646,8 +567,6 @@ const ProductManagement: React.FC = () => {
         return;
       }
 
-      console.log("🚀 Starting import products...", file.name);
-
       // Tạo FormData để gửi file
       const formData = new FormData();
       formData.append("file", file);
@@ -664,15 +583,12 @@ const ProductManagement: React.FC = () => {
         }
       );
 
-      console.log("📡 Response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || "Lỗi khi import sản phẩm");
       }
 
       const result = await response.json();
-      console.log("✅ Import result:", result);
 
       notify.success(result.message || "Import sản phẩm thành công");
       await fetchProducts();

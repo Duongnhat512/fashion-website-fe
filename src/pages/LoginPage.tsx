@@ -80,9 +80,6 @@ export default function LoginPage() {
         password: formData.password,
       });
 
-      console.log("Login response:", response);
-      console.log("Access token:", response.accessToken);
-
       // Use AuthContext to update global state
       login(response.user, response.accessToken);
 

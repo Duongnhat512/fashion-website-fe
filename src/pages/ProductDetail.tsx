@@ -100,7 +100,6 @@ export default function ProductDetail() {
           stateProduct.id,
           token || ""
         );
-        console.log("✅ Load product đầy đủ từ API:", fullProduct);
 
         setProduct(fullProduct);
         if (fullProduct.variants?.length > 0) {
@@ -231,7 +230,7 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-300">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-8 py-10">
         <Breadcrumb
           className="mb-6"
@@ -313,12 +312,6 @@ export default function ProductDetail() {
                                   await productService.getProductById(
                                     product.id,
                                     token
-                                  );
-                                  console.log(
-                                    "✅ Đã ghi nhận lượt xem variant:",
-                                    variant.id,
-                                    "của sản phẩm:",
-                                    product.id
                                   );
                                 } catch (error) {
                                   console.error(

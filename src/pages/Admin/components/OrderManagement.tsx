@@ -137,7 +137,6 @@ const OrderManagement: React.FC = () => {
       setInvoiceLoading(true);
 
       const blob = await orderService.getInvoicesData(selectedOrders);
-      console.log(blob);
       const url = URL.createObjectURL(blob);
 
       window.open(url, "_blank"); // mở tab mới xem PDF

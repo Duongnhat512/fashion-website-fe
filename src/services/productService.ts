@@ -91,7 +91,7 @@ class ProductService {
   /**
    * ➕ Tạo sản phẩm mới
    */
-  async createProduct(productData: any, token: string): Promise<Product> {
+  async createProduct(formData: FormData, token: string): Promise<Product> {
     const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.CREATE;
     
     if (!endpoint) {
@@ -99,16 +99,40 @@ class ProductService {
       throw new Error('API endpoint not configured');
     }
     
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+          Authorization: `Bearer ${token}`,
+          // Don't set Content-Type, let browser set it with boundary
+        },
+        body: formData,
+      });
 
-    
-    return this.makeRequest<Product>(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(productData),
-    });
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Lỗi khi tạo sản phẩm");
+        } else {
+          const errorText = await response.text();
+          throw new Error(errorText || "Lỗi khi tạo sản phẩm");
+        }
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server trả về response không phải JSON");
+      }
+
+      const data: ApiResponse<Product> = await response.json();
+      if (!data.success) throw new Error(data.message || "API request failed");
+      return data.data;
+    } catch (error) {
+      console.error("❌ Create product failed:", error);
+      throw error;
+    }
   }
 
   /**
@@ -116,8 +140,6 @@ class ProductService {
    */
   async deleteProduct(productId: string, token: string): Promise<any> {
     const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.DELETE.replace(':id', productId);
-    
-    console.log('🗑️ Delete Product Endpoint:', endpoint);
     
     return this.makeRequest<any>(endpoint, {
       method: "POST",
@@ -131,20 +153,43 @@ class ProductService {
   /**
    * ✏️ Cập nhật sản phẩm
    */
-  async updateProduct(productData: any, token: string): Promise<Product> {
+  async updateProduct(formData: FormData, token: string): Promise<Product> {
     const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.UPDATE;
     
-    console.log('✏️ Update Product Endpoint:', endpoint);
-    console.log('✏️ Update Data:', productData);
-    
-    return this.makeRequest<Product>(endpoint, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(productData),
-    });
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+        method: "PUT",
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+          Authorization: `Bearer ${token}`,
+          // Don't set Content-Type, let browser set it with boundary
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Lỗi khi cập nhật sản phẩm");
+        } else {
+          const errorText = await response.text();
+          throw new Error(errorText || "Lỗi khi cập nhật sản phẩm");
+        }
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server trả về response không phải JSON");
+      }
+
+      const data: ApiResponse<Product> = await response.json();
+      if (!data.success) throw new Error(data.message || "API request failed");
+      return data.data;
+    } catch (error) {
+      console.error("❌ Update product failed:", error);
+      throw error;
+    }
   }
   
 }

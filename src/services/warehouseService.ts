@@ -196,8 +196,6 @@ export const warehouseService = {
       status: data.status, // giữ nguyên: active/inactive
     };
 
-    console.log("Update warehouse request:", requestData);
-
     const response = await fetch(`${API_BASE_URL}${url}`, {
       method: "PUT",
       headers: {

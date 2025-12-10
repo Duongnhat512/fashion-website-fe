@@ -124,7 +124,7 @@ class ConversationService {
     }
   }
 
-  async getConversationMessages(id: string, limit: number = 50): Promise<ChatMessage[]> {
+  async getConversationMessages(id: string, limit: number = 9999): Promise<ChatMessage[]> {
     try {
       const response = await fetch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONVERSATIONS.GET_MESSAGES.replace(':id', id)}?limit=${limit}`,

@@ -21,6 +21,7 @@ import {
   type ConversationUpdate,
   type TypingData,
 } from "../services/webSocketService";
+import LoginDialog from "./LoginDialog";
 
 interface Message {
   id: string;
@@ -64,6 +65,7 @@ export default function ChatBot() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState<{
     [productId: string]: number;
   }>({});
@@ -73,6 +75,7 @@ export default function ChatBot() {
     useState<Conversation | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,13 +85,14 @@ export default function ChatBot() {
 
   const loadChatHistory = async (
     conversationId: string,
-    limit: number = 50
+    limit: number = 9999
   ) => {
     try {
       const messages = await conversationService.getConversationMessages(
         conversationId,
         limit
       );
+
       const formattedMessages: Message[] = messages.map((msg) => ({
         id: msg.id,
         type: msg.isFromBot
@@ -103,18 +107,22 @@ export default function ChatBot() {
         metadata: msg.metadata,
         products: (msg.metadata?.products as Product[]) || [],
       }));
+
       if (formattedMessages.length === 0) {
         setMessages([]);
       } else {
+        // Replace all messages instead of merging to avoid duplicates
         setMessages(formattedMessages);
       }
     } catch (error) {
-      console.error("Error loading chat history:", error);
+      console.error("❌ Error loading chat history:", error);
+      // Don't set messages to empty on error to preserve existing messages
     }
   };
 
   const loadActiveConversation = async () => {
     try {
+      setIsLoadingConversation(true);
       // Get all user conversations
       const userConversations = await conversationService.getConversations();
 
@@ -125,17 +133,21 @@ export default function ChatBot() {
           userConversations[0];
 
         setCurrentConversation(activeConversation);
+
         // Load conversation messages using the dedicated function
         await loadChatHistory(activeConversation.id);
 
-        // Join WebSocket room
+        // Join WebSocket room AFTER loading history
         if (isConnected) {
           webSocketService.joinConversation(activeConversation.id);
         }
+      } else {
+        console.log("📝 No existing conversations found");
       }
-      // If no conversations exist, don't create one - wait for user to send first message
     } catch (error) {
-      console.error("Error loading active conversation:", error);
+      console.error("❌ Error loading active conversation:", error);
+    } finally {
+      setIsLoadingConversation(false);
     }
   };
 
@@ -158,19 +170,23 @@ export default function ChatBot() {
     scrollToBottom();
   }, [messages]);
 
-  // WebSocket connection management
+  // WebSocket connection management - FIX TIMING ISSUES
   useEffect(() => {
     if (isAuthenticated && isOpen) {
       webSocketService.connect();
 
       const unsubscribeConnect = webSocketService.onConnect(() => {
+        console.log("✅ WebSocket connected");
         setIsConnected(true);
-        console.log("WebSocket connected");
+        // Load conversation after WebSocket connects
+        if (!currentConversation) {
+          loadActiveConversation();
+        }
       });
 
       const unsubscribeDisconnect = webSocketService.onDisconnect(() => {
+        console.log("❌ WebSocket disconnected");
         setIsConnected(false);
-        console.log("WebSocket disconnected");
       });
 
       const unsubscribeMessage = webSocketService.onMessage(
@@ -180,7 +196,6 @@ export default function ChatBot() {
             currentConversation?.conversationType === "human" &&
             socketMessage.isFromBot
           ) {
-            console.log("Skipping bot message in human mode:", socketMessage);
             setIsTyping(false);
             return;
           }
@@ -205,10 +220,6 @@ export default function ChatBot() {
               (msg) => msg.id === socketMessage.id
             );
             if (messageExists) {
-              console.log(
-                "Message already exists, skipping:",
-                socketMessage.id
-              );
               return prev;
             }
             return [...prev, newMessage];
@@ -219,7 +230,6 @@ export default function ChatBot() {
 
       const unsubscribeConversationUpdate =
         webSocketService.onConversationUpdate((update: ConversationUpdate) => {
-          console.log("Conversation update received:", update);
           setCurrentConversation((prev) =>
             prev ? { ...prev, ...update } : null
           );
@@ -252,19 +262,20 @@ export default function ChatBot() {
         unsubscribeConversationUpdate();
         unsubscribeTyping();
         webSocketService.disconnect();
+        setIsConnected(false);
       };
     } else {
       webSocketService.disconnect();
       setIsConnected(false);
     }
-  }, [isAuthenticated, isOpen, user?.id]);
+  }, [isAuthenticated, isOpen, user?.id]); // Removed currentConversation from deps
 
-  // Load conversation when opening chat
+  // Load conversation when opening chat - FIX TIMING
   useEffect(() => {
-    if (isAuthenticated && isOpen && !currentConversation) {
+    if (isAuthenticated && isOpen && isConnected && !currentConversation) {
       loadActiveConversation();
     }
-  }, [isAuthenticated, isOpen, currentConversation, loadActiveConversation]);
+  }, [isAuthenticated, isOpen, isConnected, currentConversation]); // Added isConnected dependency
 
   // Periodic refresh of conversation status when waiting for agent
   useEffect(() => {
@@ -323,9 +334,6 @@ export default function ChatBot() {
         webSocketService.sendMessage(conversation.id, messageContent);
       } else if (conversation.conversationType === "human") {
         // **TRONG HUMAN MODE, KHÔNG BAO GIỜ GỌI BOT API** - chỉ hiển thị thông báo chờ
-        console.log(
-          "In human mode without WebSocket connection - showing waiting message"
-        );
         const waitingMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: "bot",
@@ -337,7 +345,6 @@ export default function ChatBot() {
         setMessages((prev) => [...prev, waitingMessage]);
       } else {
         // **CHỈ GỌI BOT API KHI ĐANG Ở BOT MODE**
-        console.log("In bot mode - calling chatbot API");
 
         // Thêm user message locally khi dùng HTTP API
         const userMessage: Message = {
@@ -399,10 +406,6 @@ export default function ChatBot() {
   const handleSwitchToHuman = async () => {
     if (!currentConversation) return;
 
-    console.log(
-      "Switching to human mode for conversation:",
-      currentConversation.id
-    );
     try {
       // **CẬP NHẬT STATE NGAY LẬP TỨC** để tránh race condition
       setCurrentConversation((prev) =>
@@ -647,15 +650,20 @@ export default function ChatBot() {
               type="primary"
               onClick={() => {
                 setShowLoginPrompt(false);
-                window.location.href = "/login";
+                setShowLoginDialog(true);
               }}
               className="px-8 py-2 h-auto bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 border-none hover:from-purple-700 hover:via-blue-700 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             >
-              🚀 Đăng nhập ngay
+              Đăng nhập ngay
             </Button>
           </div>
         </div>
       </Modal>
+
+      <LoginDialog
+        open={showLoginDialog}
+        onClose={() => setShowLoginDialog(false)}
+      />
 
       {/* Cửa sổ chat */}
       {isOpen && isAuthenticated && (
@@ -749,7 +757,26 @@ export default function ChatBot() {
           {/* Messages */}
           <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-gradient-to-b from-purple-50/30 via-blue-50/20 to-cyan-50/30 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100 hover:scrollbar-thumb-purple-400">
             <div className="space-y-4">
-              {messages.length === 0 && (
+              {isLoadingConversation && (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center gap-3 text-purple-600">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
+                    <span className="text-sm">Đang tải tin nhắn...</span>
+                  </div>
+                </div>
+              )}
+
+              {messages.length === 0 && !isLoadingConversation && (
                 <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
                   <div className="bg-white text-gray-800 shadow-lg rounded-2xl px-5 py-4 border border-purple-100">
                     {/* Sender indicator for bot welcome message */}

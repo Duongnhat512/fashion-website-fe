@@ -68,7 +68,6 @@ class VoucherService {
     if (includeExpired !== undefined) params.append("includeExpired", includeExpired.toString());
 
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VOUCHERS.GET_ALL}?${params.toString()}`;
-    console.log("Fetching vouchers from:", url);
 
     const response = await fetch(url, {
       method: "GET",
@@ -99,7 +98,6 @@ class VoucherService {
     if (includeExpired !== undefined) params.append("includeExpired", includeExpired.toString());
 
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VOUCHERS.GET_ALL}?${params.toString()}`;
-    console.log("Fetching all vouchers from:", url);
 
     const response = await fetch(url, {
       method: "GET",

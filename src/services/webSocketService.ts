@@ -53,7 +53,7 @@ class WebSocketService {
       return;
     }
 
-    this.socket = io('http://localhost:3636', {
+    this.socket = io(import.meta.env.VITE_WEBSOCKET_URL, {
       auth: {
         token: token,
       },
@@ -75,13 +75,12 @@ class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('WebSocket connected');
       this.reconnectAttempts = 0;
       this.connectListeners.forEach(listener => listener());
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('WebSocket disconnected:', reason);
+      console.log('WebSocket disconnected, reason:', reason);
       this.disconnectListeners.forEach(listener => listener());
 
       if (reason === 'io server disconnect') {
@@ -91,7 +90,7 @@ class WebSocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      console.error('❌ WebSocket connection error:', error);
       this.errorListeners.forEach(listener => listener(error));
       this.attemptReconnect();
     });
@@ -113,6 +112,10 @@ class WebSocketService {
       this.waitingConversationListeners.forEach(listener => listener(data));
     });
 
+    this.socket.on('pong', () => {
+      console.log('🏓 WebSocket pong received');
+    });
+
     this.socket.on('error', (error) => {
       console.error('WebSocket error:', error);
       this.errorListeners.forEach(listener => listener(error));
@@ -129,7 +132,6 @@ class WebSocketService {
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
     setTimeout(() => {
-      console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
       this.connect();
     }, delay);
   }
@@ -222,6 +224,13 @@ class WebSocketService {
   // Get connection status
   get isConnected(): boolean {
     return this.socket?.connected ?? false;
+  }
+
+  // Ping server to check connection health
+  ping(): void {
+    if (this.socket?.connected) {
+      this.socket.emit('ping');
+    }
   }
 
   // Get socket instance (for advanced usage)

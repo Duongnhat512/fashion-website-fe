@@ -11,6 +11,7 @@ import {
   Upload,
   Pagination,
 } from "antd";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
 import orderService from "../services/orderService";
 import paymentService from "../services/paymentService";
 import { useNotification } from "../components/NotificationProvider";
@@ -88,6 +89,21 @@ const OrdersPage = () => {
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
 
+  // Cancel order modal states
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
+    null
+  );
+  const [cancellingOrder, setCancellingOrder] = useState(false);
+
+  // Confirm completed modal states
+  const [confirmCompletedModalOpen, setConfirmCompletedModalOpen] =
+    useState(false);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(
+    null
+  );
+  const [confirmingCompleted, setConfirmingCompleted] = useState(false);
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -163,31 +179,60 @@ const OrdersPage = () => {
   };
 
   const handleCancel = async (orderId: string) => {
-    if (!window.confirm("Bạn có chắc muốn hủy đơn hàng này không?")) return;
-    try {
-      console.log("Đã hủy đơn hàng", orderId);
-      await orderService.cancelOrder(orderId);
+    setCancellingOrderId(orderId);
+    setCancelModalOpen(true);
+  };
 
+  const confirmCancelOrder = async () => {
+    if (!cancellingOrderId) return;
+
+    try {
+      setCancellingOrder(true);
+      await orderService.cancelOrder(cancellingOrderId);
       notify.success("Đã hủy đơn hàng!");
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    } catch {
-      notify.error("Hủy đơn thất bại, vui lòng thử lại!");
+      // Cập nhật trạng thái đơn hàng thành cancelled thay vì xóa
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === cancellingOrderId
+            ? { ...o, status: OrderStatus.CANCELLED }
+            : o
+        )
+      );
+      setCancelModalOpen(false);
+      setCancellingOrderId(null);
+    } catch (error: any) {
+      notify.error(error.message || "Hủy đơn thất bại, vui lòng thử lại!");
+    } finally {
+      setCancellingOrder(false);
     }
   };
 
   const handleConfirmCompleted = async (orderId: string) => {
-    if (!window.confirm("Bạn xác nhận đã nhận được hàng?")) return;
+    setConfirmingOrderId(orderId);
+    setConfirmCompletedModalOpen(true);
+  };
+
+  const confirmCompletedOrder = async () => {
+    if (!confirmingOrderId) return;
+
     try {
-      await orderService.confirmOrderAsCompleted(orderId);
+      setConfirmingCompleted(true);
+      await orderService.confirmOrderAsCompleted(confirmingOrderId);
       notify.success("Đã xác nhận nhận hàng thành công!");
       // Cập nhật trạng thái đơn hàng trong danh sách
       setOrders((prev) =>
         prev.map((o) =>
-          o.id === orderId ? { ...o, status: OrderStatus.COMPLETED } : o
+          o.id === confirmingOrderId
+            ? { ...o, status: OrderStatus.COMPLETED }
+            : o
         )
       );
-    } catch {
-      notify.error("Xác nhận thất bại, vui lòng thử lại!");
+      setConfirmCompletedModalOpen(false);
+      setConfirmingOrderId(null);
+    } catch (error: any) {
+      notify.error(error.message || "Xác nhận thất bại, vui lòng thử lại!");
+    } finally {
+      setConfirmingCompleted(false);
     }
   };
 
@@ -336,7 +381,7 @@ const OrdersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-300 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-[1600px] mx-auto bg-white rounded-3xl shadow-xl p-8">
         <h1 className="text-3xl font-extrabold text-gray-800 mb-8 text-center">
           🧾 Quản lý đơn hàng
@@ -365,8 +410,9 @@ const OrdersPage = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Spin size="large" tip="Đang tải đơn hàng..." />
+          <div className="flex flex-col justify-center items-center py-20 gap-4">
+            <Spin size="large" />
+            <p className="text-gray-500">Đang tải đơn hàng...</p>
           </div>
         ) : orders.length === 0 ? (
           <Empty
@@ -844,6 +890,94 @@ const OrdersPage = () => {
             <p className="mt-4 text-gray-500">Đang tải hóa đơn...</p>
           </div>
         )}
+      </Modal>
+
+      {/* Cancel Order Confirmation Modal */}
+      <Modal
+        title={
+          <div className="text-xl font-bold text-red-600 flex items-center gap-2">
+            <ExclamationCircleOutlined />
+            Xác nhận hủy đơn hàng
+          </div>
+        }
+        open={cancelModalOpen}
+        onCancel={() => {
+          setCancelModalOpen(false);
+          setCancellingOrderId(null);
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            size="large"
+            onClick={() => {
+              setCancelModalOpen(false);
+              setCancellingOrderId(null);
+            }}
+          >
+            Không
+          </Button>,
+          <Button
+            key="ok"
+            type="primary"
+            danger
+            size="large"
+            loading={cancellingOrder}
+            onClick={confirmCancelOrder}
+          >
+            Hủy đơn hàng
+          </Button>,
+        ]}
+      >
+        <p className="text-lg py-4">
+          Bạn có chắc chắn muốn hủy đơn hàng này không?
+        </p>
+        <p className="text-sm text-gray-500">
+          Hành động này không thể hoàn tác.
+        </p>
+      </Modal>
+
+      {/* Confirm Completed Order Modal */}
+      <Modal
+        title={
+          <div className="text-xl font-bold text-green-600 flex items-center gap-2">
+            <ExclamationCircleOutlined />
+            Xác nhận đã nhận hàng
+          </div>
+        }
+        open={confirmCompletedModalOpen}
+        onCancel={() => {
+          setConfirmCompletedModalOpen(false);
+          setConfirmingOrderId(null);
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            size="large"
+            onClick={() => {
+              setConfirmCompletedModalOpen(false);
+              setConfirmingOrderId(null);
+            }}
+          >
+            Chưa
+          </Button>,
+          <Button
+            key="ok"
+            type="primary"
+            size="large"
+            loading={confirmingCompleted}
+            onClick={confirmCompletedOrder}
+            className="bg-green-600"
+          >
+            Đã nhận hàng
+          </Button>,
+        ]}
+      >
+        <p className="text-lg py-4">
+          Bạn xác nhận đã nhận được hàng và hài lòng với sản phẩm?
+        </p>
+        <p className="text-sm text-gray-500">
+          Sau khi xác nhận, đơn hàng sẽ được chuyển sang trạng thái hoàn tất.
+        </p>
       </Modal>
     </div>
   );

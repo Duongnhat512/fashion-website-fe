@@ -13,8 +13,6 @@ const Products = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
-  console.log("Products component render - user:", user);
-
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -93,31 +91,24 @@ const Products = () => {
 
       // ⬇️ Chỉ lấy recommend nếu user login + không filter
       if (user && !isFilter) {
-        console.log("User logged in:", user);
         const token = authService.getToken();
-        console.log("Token:", token);
 
         if (token) {
           try {
             recommendedProducts = await productService.getRecommendations(
               token
             );
-            console.log("Raw recommendations:", recommendedProducts);
 
             // bỏ sp trùng nhau khỏi normalProducts
             normalProducts = normalProducts.filter(
               (p) => !recommendedProducts.some((rec) => rec.id === p.id)
             );
-
-            console.log("Recommended Products:", recommendedProducts);
           } catch (err) {
             console.error("Lỗi recommend:", err);
           }
         } else {
-          console.log("No token");
         }
       } else {
-        console.log("No user");
       }
 
       // 🚀 GHÉP GỢI Ý + SẢN PHẨM BÌNH THƯỜNG
@@ -180,7 +171,7 @@ const Products = () => {
     totalFiltered > itemsPerPage && totalFiltered > 0;
 
   return (
-    <div className="min-h-screen bg-gray-300">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-6 py-12">
         <div className="flex gap-8">
           {/* ⬅️ SIDEBAR */}

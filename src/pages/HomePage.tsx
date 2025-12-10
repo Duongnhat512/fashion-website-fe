@@ -651,7 +651,7 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
 
   // 🖼 Render
   return (
-    <div className="min-h-screen bg-gray-300">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-6 py-12">
         {/* 🖼 Carousel Banner */}
         <div className="mb-12 relative p-[4px] rounded-[28px] bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500">
@@ -842,13 +842,43 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
         {/* ✨ NEW PRODUCTS Section */}
         {newProducts.length > 0 && (
           <div className="mb-16">
-            <div className="flex items-center justify-center mb-8">
-              <div className="flex items-center gap-3">
-                <span className="text-5xl">✨</span>
-                <h2 className="text-4xl font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                  SẢN PHẨM MỚI
-                </h2>
-                <span className="text-5xl">✨</span>
+            <div className="relative mb-8 p-8 rounded-3xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 overflow-hidden">
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+                <div className="absolute top-0 right-0 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+                <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-cyan-200 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
+              </div>
+
+              <style>{`
+                @keyframes blob {
+                  0%, 100% { transform: translate(0px, 0px) scale(1); }
+                  33% { transform: translate(30px, -50px) scale(1.1); }
+                  66% { transform: translate(-20px, 20px) scale(0.9); }
+                }
+                .animate-blob {
+                  animation: blob 7s infinite;
+                }
+                .animation-delay-2000 {
+                  animation-delay: 2s;
+                }
+                .animation-delay-4000 {
+                  animation-delay: 4s;
+                }
+              `}</style>
+
+              <div className="relative flex items-center justify-center">
+                <div className="flex items-center gap-4">
+                  <div className="text-6xl animate-bounce">✨</div>
+                  <div className="text-center">
+                    <h2 className="text-4xl font-black text-white drop-shadow-lg">
+                      SẢN PHẨM MỚI
+                    </h2>
+                    <p className="text-white/90 font-semibold mt-1">
+                      Thời trang mới nhất - Cập nhật hàng ngày!
+                    </p>
+                  </div>
+                  <div className="text-6xl animate-bounce">✨</div>
+                </div>
               </div>
             </div>
 
@@ -865,10 +895,25 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
 
           return (
             <div key={category.id} className="mb-16">
-              <div className="flex items-center justify-center mb-8">
-                <h2 className="text-4xl font-extrabold bg-gradient-to-r from-purple-700 via-blue-700 to-cyan-700 bg-clip-text text-transparent text-center py-4">
-                  Thời Trang {category.name}
-                </h2>
+              <div className="relative mb-8 p-8 rounded-3xl bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 overflow-hidden">
+                <div className="absolute inset-0 opacity-30">
+                  <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+                  <div className="absolute top-0 right-0 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+                  <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-cyan-200 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
+                </div>
+
+                <div className="relative flex items-center justify-center">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <h2 className="text-4xl font-black text-white drop-shadow-lg">
+                        Thời Trang {category.name}
+                      </h2>
+                      <p className="text-white/90 font-semibold mt-1">
+                        Khám phá phong cách độc đáo!
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">

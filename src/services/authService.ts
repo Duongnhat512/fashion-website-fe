@@ -101,7 +101,6 @@ export interface ResetPasswordRequest {
 class AuthService {
   private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
   try {
-    console.log('API Request:', { url, method: options?.method, body: options?.body });
     const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
       ...options,
       headers: {
@@ -177,8 +176,6 @@ class AuthService {
     if (userData.gender) cleanData.gender = userData.gender;
     if (userData.avt?.trim()) cleanData.avt = userData.avt.trim();
 
-    console.log("FE gửi update:", cleanData);
-
     return this.makeRequest<UpdateUserResponse>(API_CONFIG.ENDPOINTS.USERS.UPDATE, {
         method: 'PUT',
         headers: {
@@ -211,8 +208,6 @@ class AuthService {
 
     const form = new FormData();
     form.append('avt', file);
-
-    console.log('Uploading avatar...', file.name);
 
     // When sending FormData, do NOT set Content-Type header so the browser can set boundary
     try {
@@ -257,7 +252,6 @@ class AuthService {
   }
 
   async resetPassword(request: ResetPasswordRequest): Promise<void> {
-    console.log('Reset password request:', request);
     return this.makeRequest<void>(API_CONFIG.ENDPOINTS.USERS.RESET_PASSWORD, {
       method: 'POST',
       body: JSON.stringify(request),

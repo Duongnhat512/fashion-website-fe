@@ -130,8 +130,6 @@ export default function LoginDialog({
         email: forgotEmail,
         otp: parseInt(otp), // Chuyển string sang number
       });
-      console.log("Verify OTP Response:", response);
-      console.log("Reset Token received:", response.resetToken);
 
       if (!response.resetToken) {
         notify.error("Không nhận được resetToken từ server");
@@ -162,12 +160,6 @@ export default function LoginDialog({
       notify.error("Mật khẩu xác nhận không khớp");
       return;
     }
-
-    console.log("Reset Password Data:", {
-      token: resetToken,
-      password: newPassword,
-      confirmPassword: confirmPassword,
-    });
 
     if (!resetToken) {
       notify.error("Token không hợp lệ. Vui lòng thử lại từ đầu.");

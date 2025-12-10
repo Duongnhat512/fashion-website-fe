@@ -93,16 +93,34 @@ export default function ChatManagement() {
 
   // Load data on component mount
   useEffect(() => {
-    loadAllConversations();
-
-    // WebSocket connection for admin
+    // WebSocket connection for admin - FIX TIMING
     webSocketService.connect();
 
     const unsubscribeConnect = webSocketService.onConnect(() => {
+      console.log("✅ Admin WebSocket connected");
       setIsConnected(true);
+      // Load conversations after WebSocket connects
+      loadAllConversations();
+
+      // **RECONNECT: Nếu đang chọn conversation, load lại messages và join lại**
+      if (selectedConversation) {
+        console.log(
+          "🔄 Reconnecting - reloading messages for selected conversation"
+        );
+        conversationService
+          .getConversationMessages(selectedConversation.id)
+          .then((messages) => {
+            setMessages(messages);
+            webSocketService.joinConversation(selectedConversation.id);
+          })
+          .catch((error) => {
+            console.error("Failed to reload messages on reconnect:", error);
+          });
+      }
     });
 
     const unsubscribeDisconnect = webSocketService.onDisconnect(() => {
+      console.log("Admin WebSocket disconnected");
       setIsConnected(false);
     });
 
@@ -115,6 +133,7 @@ export default function ChatManagement() {
 
     const unsubscribeMessage = webSocketService.onMessage(
       (socketMessage: SocketMessage) => {
+        console.log("Admin received WebSocket message:", socketMessage);
         // Reload conversation list to update latest messages
         loadAllConversations();
 
@@ -140,6 +159,10 @@ export default function ChatManagement() {
           if (socketMessage.senderId !== user?.id) {
             setShouldScrollToBottom(true);
           }
+        } else {
+          console.log(
+            "Message for another conversation, not updating messages state"
+          );
         }
       }
     );
@@ -168,7 +191,20 @@ export default function ChatManagement() {
       unsubscribeConversationUpdate();
       webSocketService.disconnect();
     };
-  }, [selectedConversation]);
+  }, [selectedConversation]); // Removed loadAllConversations from deps
+
+  // **PING SERVER ĐỊNH KỲ ĐỂ DETECT CONNECTION ISSUES**
+  useEffect(() => {
+    const pingInterval = setInterval(() => {
+      if (isConnected) {
+        webSocketService.ping();
+      }
+    }, 30000); // Ping every 30 seconds
+
+    return () => {
+      clearInterval(pingInterval);
+    };
+  }, [isConnected]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -196,6 +232,19 @@ export default function ChatManagement() {
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
       setAllConversations(sortedConversations);
+
+      // **JOIN TẤT CẢ ACTIVE CONVERSATIONS SAU KHI LOAD**
+      if (isConnected) {
+        sortedConversations.forEach((conversation) => {
+          if (
+            conversation.status === "active" ||
+            conversation.status === "waiting"
+          ) {
+            webSocketService.joinConversation(conversation.id);
+            console.log("🔗 Admin joined conversation:", conversation.id);
+          }
+        });
+      }
     } catch (error) {
       message.error("Không thể tải tất cả conversations");
     }
@@ -211,9 +260,10 @@ export default function ChatManagement() {
     try {
       const conversationMessages =
         await conversationService.getConversationMessages(conversation.id);
+      // Replace all messages instead of merging to avoid duplicates
       setMessages(conversationMessages);
 
-      // Join WebSocket room
+      // Join WebSocket room AFTER loading messages
       if (isConnected) {
         webSocketService.joinConversation(conversation.id);
       }

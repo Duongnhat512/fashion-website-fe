@@ -131,7 +131,6 @@ const InventorySection: React.FC = () => {
   };
 
   const handleUpdateWarehouse = async (values: any) => {
-    console.log("Cập nhật kho với values:", values);
     if (!editingWarehouse) return;
     try {
       await warehouseService.updateWarehouse({
@@ -236,7 +235,6 @@ const InventorySection: React.FC = () => {
 
   const handleCancelStockEntry = async (stockEntryId: string) => {
     try {
-      console.log("Đang hủy phiếu kho:", stockEntryId);
       await warehouseService.cancelStockEntry(stockEntryId);
       notify.success("Đã hủy phiếu kho thành công!");
       await fetchWarehouseData();

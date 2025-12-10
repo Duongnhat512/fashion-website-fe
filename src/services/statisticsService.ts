@@ -139,7 +139,6 @@ class StatisticsService {
         method: 'GET',
         headers: {
           ...this.getAuthHeaders(),
-          "ngrok-skip-browser-warning": "true",
         },
       });
 

@@ -20,14 +20,13 @@ import {
   UploadOutlined,
   EditOutlined,
   SearchOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useNotification } from "../../../components/NotificationProvider";
 import type { Product } from "../../../types/product.types";
 
-// Hàm chuyển đổi tiếng Việt có dấu sang slug
 const slugify = (str: string): string => {
-  // Bảng chuyển đổi ký tự tiếng Việt
   const from =
     "àáãảạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệđùúủũụưừứửữựòóỏõọôồốổỗộơờớởỡợìíỉĩịäëïîöüûñçýỳỹỵỷ";
   const to =
@@ -35,17 +34,15 @@ const slugify = (str: string): string => {
 
   let slug = str.toLowerCase().trim();
 
-  // Thay thế ký tự tiếng Việt
   for (let i = 0; i < from.length; i++) {
     slug = slug.replace(new RegExp(from[i], "g"), to[i]);
   }
 
-  // Xóa ký tự đặc biệt, chỉ giữ chữ, số và dấu gạch ngang
   slug = slug
-    .replace(/[^a-z0-9\s-]/g, "") // Xóa ký tự đặc biệt
-    .replace(/\s+/g, "-") // Thay khoảng trắng bằng dấu gạch ngang
-    .replace(/-+/g, "-") // Xóa dấu gạch ngang thừa
-    .replace(/^-+|-+$/g, ""); // Xóa dấu gạch ngang ở đầu/cuối
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
   return slug;
 };
@@ -53,12 +50,10 @@ const slugify = (str: string): string => {
 const ProductManagement: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
-  // products list kept server-side but not stored as top-level state anymore; variants are flattened into variantRows
   const [productLoading, setProductLoading] = useState(false);
   const [productPage, setProductPage] = useState(1);
   const [productPageSize] = useState(10);
   const [variantRows, setVariantRows] = useState<any[]>([]);
-  // State cho tìm kiếm thông minh
   const [searchValue, setSearchValue] = useState("");
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
   const notify = useNotification();
@@ -67,7 +62,6 @@ const ProductManagement: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Form state
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [shortDescription, setShortDescription] = useState("");
@@ -76,10 +70,8 @@ const ProductManagement: React.FC = () => {
   const [tags, setTags] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
 
-  // State cho giá bán khi edit
   const [editingPrice, setEditingPrice] = useState<number>(0);
 
-  // Variant list state - cho phép thêm nhiều variants
   const [variants, setVariants] = useState<any[]>([]);
   const [currentVariant, setCurrentVariant] = useState({
     size: "M",
@@ -88,20 +80,16 @@ const ProductManagement: React.FC = () => {
     colorId: null as string | null,
   });
 
-  // File upload state
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
   const [productImageFileList, setProductImageFileList] = useState<
     UploadFile[]
   >([]);
 
-  // File upload state cho variant hiện tại
   const [currentVariantImageFile, setCurrentVariantImageFile] =
     useState<File | null>(null);
   const [currentVariantImageFileList, setCurrentVariantImageFileList] =
     useState<UploadFile[]>([]);
 
-  // Import state
-  // Import state
   const [importingProducts, setImportingProducts] = useState(false);
   const [importingVariants, setImportingVariants] = useState(false);
   const productImportRef = React.useRef<HTMLInputElement>(null);
@@ -122,7 +110,6 @@ const ProductManagement: React.FC = () => {
       } catch (e) {
         console.error("Load colors failed", e);
       }
-      // load products
       fetchProducts();
     })();
   }, []);
@@ -130,17 +117,13 @@ const ProductManagement: React.FC = () => {
   const fetchProducts = async () => {
     try {
       setProductLoading(true);
-      // Load tất cả sản phẩm với limit lớn để hiển thị hết
       const res = await productService.getAllProducts(1, 1000);
-      // res expected to be { products, pagination } or similar depending on API
-      // try common shapes
       let prods: Product[] = [];
       if ((res as any).products) prods = (res as any).products || [];
       else if ((res as any).items) prods = (res as any).items || [];
       else if (Array.isArray(res)) prods = res as any;
       else prods = [];
 
-      // Flatten variants into rows: one row per variant with product context
       const rows: any[] = [];
       prods.forEach((p) => {
         (p.variants || []).forEach((v) => {
@@ -158,7 +141,7 @@ const ProductManagement: React.FC = () => {
             color: v.color,
             status: p.status === "active" ? "Hoạt động" : "Không hoạt động",
             categoryId: (p as any).categoryId || (p as any).category?.id,
-            createdAt: p.createdAt, // Thêm ngày tạo từ product
+            createdAt: p.createdAt,
           });
         });
       });
@@ -186,29 +169,23 @@ const ProductManagement: React.FC = () => {
     }
 
     try {
-      // Kiểm tra xem input có phải là ID không
       const trimmed = value.trim();
 
-      // Regex cho Product ID (PRO-XXXXXX-XXXX)
       const isProductId = /^PRO-\d{6,20}-[A-Z0-9]{4,10}$/i.test(trimmed);
 
-      // UUID
       const isUUID =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
           trimmed
         );
 
-      // Mongo ObjectId
       const isObjectId = /^[0-9a-f]{24}$/i.test(trimmed);
 
-      // Variant ID (có thể là UUID hoặc ObjectId)
       const isIdSearch =
         (isProductId || isUUID || isObjectId) && trimmed.length >= 12;
 
       let products: any[] = [];
 
       if (isIdSearch) {
-        // Tìm kiếm trực tiếp theo ID
         try {
           const token = authService.getToken();
           if (!token) {
@@ -217,11 +194,9 @@ const ProductManagement: React.FC = () => {
           const product = await productService.getProductById(trimmed, token);
           products = [product];
         } catch (error) {
-          // Nếu không tìm thấy, products sẽ là mảng rỗng
           products = [];
         }
       } else {
-        // Tìm kiếm theo tên
         const response = await productService.searchProducts({
           search: value,
           limit: 10,
@@ -262,7 +237,6 @@ const ProductManagement: React.FC = () => {
   };
 
   const handleSelectProduct = (_value: string, option: any) => {
-    // Khi chọn sản phẩm từ dropdown, set searchValue thành ID để filter
     setSearchValue(option.product.id);
     setSearchOptions([]);
   };
@@ -295,20 +269,15 @@ const ProductManagement: React.FC = () => {
         return;
       }
 
-      // Tạo FormData để gửi file
       const formData = new FormData();
 
-      // Thêm product image file
       formData.append("productImage", productImageFile);
 
-      // QUAN TRỌNG: Phải gửi đúng số lượng ảnh = số variants
       variants.forEach((variant, index) => {
-        // Sử dụng ảnh riêng của variant nếu có, không thì dùng ảnh product
         const variantImage = variant.imageFile || productImageFile;
         formData.append(`variants[${index}][image]`, variantImage);
       });
 
-      // Tạo productData object với nhiều variants
       const productData = {
         name,
         slug,
@@ -330,13 +299,10 @@ const ProductManagement: React.FC = () => {
         })),
       };
 
-      // Thêm productData vào FormData
       formData.append("productData", JSON.stringify(productData));
 
-      // Sử dụng productService thay vì gọi fetch trực tiếp
       const result = await productService.createProduct(formData, token);
 
-      // IMPORTANT: Alert to verify variant count
       const variantCount = result?.variants?.length || 0;
       console.warn(
         `⚠️ KIỂM TRA: Đã tạo ${variantCount} variants (mong đợi ${variants.length})`
@@ -349,7 +315,6 @@ const ProductManagement: React.FC = () => {
 
       notify.success(`Tạo sản phẩm thành công với ${variantCount} variants`);
 
-      // reset form
       setName("");
       setSlug("");
       setShortDescription("");
@@ -368,7 +333,6 @@ const ProductManagement: React.FC = () => {
       setCurrentVariantImageFile(null);
       setCurrentVariantImageFileList([]);
 
-      // Close modal and reload products
       setCreateModalVisible(false);
       await fetchProducts();
     } catch (err: any) {
@@ -380,7 +344,6 @@ const ProductManagement: React.FC = () => {
   };
 
   const handleEdit = async (record: any) => {
-    // Load full product data
     try {
       const token = authService.getToken();
       if (!token) {
@@ -393,22 +356,18 @@ const ProductManagement: React.FC = () => {
         token
       );
 
-      // Lọc chỉ variant được chọn từ row (record.id là variant id)
       const selectedVariant = productData.variants?.find(
         (v: any) => v.id === record.id
       );
 
-      // Chỉ lưu variant được chọn
       setEditingProduct({
         ...productData,
-        selectedVariant: selectedVariant, // Thêm thông tin variant được chọn
+        selectedVariant: selectedVariant,
       });
 
-      // Reset file upload state
       setProductImageFile(null);
       setProductImageFileList([]);
 
-      // Fill form với data hiện tại
       setName(productData.name || "");
       setSlug(productData.slug || "");
       setShortDescription(productData.shortDescription || "");
@@ -420,7 +379,6 @@ const ProductManagement: React.FC = () => {
           null
       );
 
-      // Set giá bán từ variant được chọn
       setEditingPrice(selectedVariant?.price || 0);
 
       setEditModalVisible(true);
@@ -447,18 +405,17 @@ const ProductManagement: React.FC = () => {
         return;
       }
 
-      // Payload theo UpdateProductRequestDto
       const payload = {
         id: editingProduct.id,
         name,
         slug,
         shortDescription,
-        imageUrl: editingProduct.imageUrl, // Giữ imageUrl cũ
+        imageUrl: editingProduct.imageUrl,
         brand,
         status,
         tags,
         category: { id: categoryId },
-        // Cập nhật giá cho variant được chọn
+
         variants:
           editingProduct.variants?.map((v: any) => {
             const isSelectedVariant =
@@ -467,12 +424,10 @@ const ProductManagement: React.FC = () => {
               id: v.id,
               sku: v.sku,
               size: v.size,
-              // Chỉ cập nhật price của variant được chọn
               price: isSelectedVariant ? editingPrice : v.price,
-              // Giữ nguyên discountPrice
               discountPrice: v.discountPrice,
               discountPercent: v.discountPercent,
-              imageUrl: v.imageUrl, // Giữ imageUrl cũ của variant
+              imageUrl: v.imageUrl,
               onSales: v.onSales,
               saleNote: v.saleNote,
               color: { id: v.color?.id },
@@ -480,34 +435,27 @@ const ProductManagement: React.FC = () => {
           }) || [],
       };
 
-      // Backend luôn dùng FormData (uploadProductWithVariants middleware)
       const formData = new FormData();
 
-      // Tìm index của variant được chọn
       const selectedVariantIndex =
         editingProduct.variants?.findIndex(
           (v: any) =>
             String(v.id) === String(editingProduct.selectedVariant?.id)
         ) ?? 0;
 
-      // Thêm file nếu có upload mới
       if (productImageFile) {
         formData.append("productImage", productImageFile);
-        // Append vào đúng variant được chọn
         formData.append(
           `variants[${selectedVariantIndex}][image]`,
           productImageFile
         );
       }
 
-      // Luôn luôn thêm productData vào FormData
       formData.append("productData", JSON.stringify(payload));
 
-      // Sử dụng productService thay vì gọi fetch trực tiếp
       await productService.updateProduct(formData, token);
       notify.success("Cập nhật sản phẩm thành công");
 
-      // Reset form và đóng modal
       setEditModalVisible(false);
       setEditingProduct(null);
       setProductImageFile(null);
@@ -521,32 +469,6 @@ const ProductManagement: React.FC = () => {
     }
   };
 
-  // const handleDelete = async (productId: string, productName: string) => {
-  //   // Sử dụng alert để xác nhận xóa sản phẩm
-  //   const isConfirmed = window.confirm(
-  //     `Bạn có chắc chắn muốn xóa sản phẩm "${productName}"? Hành động này không thể hoàn tác.`
-  //   );
-
-  //   if (isConfirmed) {
-  //     try {
-  //       const token = authService.getToken();
-  //       if (!token) {
-  //         notify.error("Vui lòng đăng nhập");
-  //         return;
-  //       }
-
-  //       await productService.deleteProduct(productId, token);
-  //       notify.success("Xóa sản phẩm thành công");
-  //       // Reload products
-  //       await fetchProducts();
-  //     } catch (err: any) {
-  //       console.error("Delete product error", err);
-  //       notify.error(err.message || "Lỗi khi xóa sản phẩm");
-  //     }
-  //   }
-  // };
-
-  // Hàm xử lý import sản phẩm từ JSON
   const handleImportProductsChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -554,7 +476,6 @@ const ProductManagement: React.FC = () => {
     if (!file) return;
 
     await handleImportProducts(file);
-    // Reset input để có thể chọn lại cùng file
     e.target.value = "";
   };
 
@@ -567,11 +488,9 @@ const ProductManagement: React.FC = () => {
         return;
       }
 
-      // Tạo FormData để gửi file
       const formData = new FormData();
       formData.append("file", file);
 
-      // Gửi request đến API import
       const response = await fetch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCTS.IMPORT}`,
         {
@@ -600,7 +519,6 @@ const ProductManagement: React.FC = () => {
     }
   };
 
-  // Hàm xử lý import thuộc tính (variants) từ JSON
   const handleImportVariantsChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -608,7 +526,6 @@ const ProductManagement: React.FC = () => {
     if (!file) return;
 
     await handleImportVariants(file);
-    // Reset input để có thể chọn lại cùng file
     e.target.value = "";
   };
 
@@ -621,11 +538,9 @@ const ProductManagement: React.FC = () => {
         return;
       }
 
-      // Tạo FormData để gửi file
       const formData = new FormData();
       formData.append("file", file);
 
-      // Gửi request đến API import variants
       const response = await fetch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCTS.IMPORT_VARIANTS}`,
         {
@@ -644,7 +559,6 @@ const ProductManagement: React.FC = () => {
 
       const result = await response.json();
 
-      // Nếu API trả về danh sách variants, set vào form
       if (result.data && Array.isArray(result.data)) {
         const validVariants = result.data.map((v: any) => ({
           size: v.size,
@@ -686,7 +600,7 @@ const ProductManagement: React.FC = () => {
       render: (v: string) => <span className="font-semibold">{v}</span>,
     },
     {
-      title: "ID sản phẩm",
+      title: "Mã SP",
       dataIndex: "productId",
       key: "productId",
       render: (v: string) => (
@@ -694,7 +608,7 @@ const ProductManagement: React.FC = () => {
       ),
     },
     {
-      title: "ID variant",
+      title: "Mã thuộc tính",
       dataIndex: "id",
       key: "id",
       render: (v: string) => (
@@ -705,7 +619,6 @@ const ProductManagement: React.FC = () => {
       title: "Giá bán",
       key: "price",
       sorter: (a: any, b: any) => {
-        // Sắp xếp theo giá sau giảm (discountPrice), nếu không có thì lấy price
         const priceA = a.discountPrice < a.price ? a.discountPrice : a.price;
         const priceB = b.discountPrice < b.price ? b.discountPrice : b.price;
         return priceA - priceB;
@@ -740,7 +653,6 @@ const ProductManagement: React.FC = () => {
       dataIndex: "createdAt",
       key: "createdAt",
       sorter: (a: any, b: any) => {
-        // Sắp xếp theo thời gian (mới nhất trước)
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateA - dateB;
@@ -757,7 +669,7 @@ const ProductManagement: React.FC = () => {
       },
     },
     {
-      title: "Hành động",
+      title: "Thao tác",
       key: "actions",
       render: (_: any, record: any) => (
         <Space direction="vertical" size="small">
@@ -768,7 +680,7 @@ const ProductManagement: React.FC = () => {
             onClick={() => handleEdit(record)}
             block
           >
-            Sửa
+            Cập nhật
           </Button>
           {/* <Button
             danger
@@ -787,24 +699,19 @@ const ProductManagement: React.FC = () => {
   const startIndex = (productPage - 1) * productPageSize;
   const endIndex = startIndex + productPageSize;
 
-  // Filter variant rows by search value (ưu tiên ID trước, sau đó tên)
   const filteredVariantRows = variantRows.filter((r) => {
     if (!searchValue) return true;
 
     const searchTerm = searchValue.toLowerCase();
 
-    // Ưu tiên tìm theo ID (productId hoặc variantId)
     const idMatch =
       (r.productId || "").toLowerCase().includes(searchTerm) ||
       (r.id || "").toLowerCase().includes(searchTerm);
 
-    // Nếu tìm thấy theo ID thì trả về true
     if (idMatch) return true;
 
-    // Nếu không tìm thấy theo ID thì tìm theo tên sản phẩm
     return (r.productName || "").toLowerCase().includes(searchTerm);
   });
-  // products is kept for context; table displays flattened variantRows instead
 
   return (
     <div>
@@ -812,6 +719,13 @@ const ProductManagement: React.FC = () => {
         <div className="flex gap-3 items-center">
           {/* Thanh tìm kiếm thông minh */}
           <div className="p-3">
+            <Button
+              type="primary"
+              onClick={() => setCreateModalVisible(true)}
+              icon={<PlusOutlined />}
+            >
+              Tạo sản phẩm
+            </Button>
             <AutoComplete
               value={searchValue}
               options={searchOptions}
@@ -820,7 +734,7 @@ const ProductManagement: React.FC = () => {
               onChange={(value) => setSearchValue(value)}
               allowClear
               onClear={handleClearSearch}
-              style={{ width: 300 }}
+              style={{ width: 300, marginLeft: 16 }}
             >
               <Input
                 prefix={<SearchOutlined />}
@@ -830,9 +744,7 @@ const ProductManagement: React.FC = () => {
           </div>
 
           <Button onClick={() => fetchProducts()}>Làm mới</Button>
-          <Button type="primary" onClick={() => setCreateModalVisible(true)}>
-            Thêm sản phẩm
-          </Button>
+
           <input
             ref={productImportRef}
             type="file"
@@ -844,6 +756,7 @@ const ProductManagement: React.FC = () => {
             type="default"
             onClick={() => productImportRef.current?.click()}
             icon={<UploadOutlined />}
+            hidden={true}
             loading={importingProducts}
             disabled={importingProducts}
           >
@@ -861,6 +774,7 @@ const ProductManagement: React.FC = () => {
             onClick={() => variantImportRef.current?.click()}
             icon={<UploadOutlined />}
             loading={importingVariants}
+            hidden={true}
             disabled={importingVariants}
           >
             {importingVariants ? "Đang import..." : "Import thuộc tính"}
@@ -890,7 +804,6 @@ const ProductManagement: React.FC = () => {
             pageSize={productPageSize}
             onChange={(p) => {
               setProductPage(p);
-              // Phân trang client-side, không cần gọi lại API
             }}
             showSizeChanger={false}
             showQuickJumper
@@ -920,7 +833,6 @@ const ProductManagement: React.FC = () => {
                 onChange={(e) => {
                   const newName = e.target.value;
                   setName(newName);
-                  // Tự động tạo slug từ tên sản phẩm
                   setSlug(slugify(newName));
                 }}
                 placeholder="Nhập tên sản phẩm"
@@ -1051,7 +963,6 @@ const ProductManagement: React.FC = () => {
                           danger
                           size="small"
                           onClick={() => {
-                            // Revoke object URL để tránh memory leak
                             if (v.imagePreview) {
                               URL.revokeObjectURL(v.imagePreview);
                             }
@@ -1179,19 +1090,17 @@ const ProductManagement: React.FC = () => {
                     return;
                   }
 
-                  // Thêm variant vào danh sách (kèm theo file ảnh)
                   setVariants([
                     ...variants,
                     {
                       ...currentVariant,
-                      imageFile: currentVariantImageFile, // Lưu file ảnh
+                      imageFile: currentVariantImageFile,
                       imagePreview: currentVariantImageFile
                         ? URL.createObjectURL(currentVariantImageFile)
                         : null,
                     },
                   ]);
 
-                  // Reset current variant và ảnh
                   setCurrentVariant({
                     size: "M",
                     price: 0,
@@ -1212,7 +1121,7 @@ const ProductManagement: React.FC = () => {
           <div className="flex justify-end gap-3 pt-4">
             <Button onClick={() => setCreateModalVisible(false)}>Hủy</Button>
             <Button type="primary" htmlType="submit" loading={isLoading}>
-              Tạo sản phẩm
+              Tạo
             </Button>
           </div>
         </form>
@@ -1220,7 +1129,7 @@ const ProductManagement: React.FC = () => {
 
       {/* Modal Sửa sản phẩm */}
       <Modal
-        title="Sửa sản phẩm"
+        title="Cập nhật sản phẩm"
         open={editModalVisible}
         onCancel={() => {
           setEditModalVisible(false);

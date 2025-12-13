@@ -71,7 +71,6 @@ const OverviewSection = () => {
     dayjs(),
   ]);
 
-  // States for statistics
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
     null
   );
@@ -110,7 +109,6 @@ const OverviewSection = () => {
       setLoading(true);
       const [startDate, endDate] = dateRange;
 
-      // Fetch all statistics in parallel
       const [
         dashboard,
         revByStatus,
@@ -158,7 +156,6 @@ const OverviewSection = () => {
       setRevenueComparison(comparison);
       setProfitTimeSeries(profit);
 
-      // Calculate order stats
       const ordersByStatus = revByStatus.map((item) => ({
         status: item.status,
         count: parseInt(item.count),
@@ -1035,10 +1032,10 @@ const OverviewSection = () => {
                 >
                   <Table
                     columns={topProductsColumns}
-                    dataSource={topProducts.slice(0, 3)} // 👉 Lấy đúng 3 sản phẩm
+                    dataSource={topProducts.slice(0, 10)}
                     rowKey="productId"
                     size="small"
-                    pagination={false} // 👉 Tắt phân trang
+                    pagination={false}
                   />
                 </Card>
               </motion.div>

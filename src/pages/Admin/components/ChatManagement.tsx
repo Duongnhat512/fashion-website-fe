@@ -91,18 +91,14 @@ export default function ChatManagement() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const allConversationsListRef = useRef<HTMLDivElement>(null);
 
-  // Load data on component mount
   useEffect(() => {
-    // WebSocket connection for admin - FIX TIMING
     webSocketService.connect();
 
     const unsubscribeConnect = webSocketService.onConnect(() => {
       console.log("✅ Admin WebSocket connected");
       setIsConnected(true);
-      // Load conversations after WebSocket connects
       loadAllConversations();
 
-      // **RECONNECT: Nếu đang chọn conversation, load lại messages và join lại**
       if (selectedConversation) {
         console.log(
           "🔄 Reconnecting - reloading messages for selected conversation"
@@ -134,7 +130,6 @@ export default function ChatManagement() {
     const unsubscribeMessage = webSocketService.onMessage(
       (socketMessage: SocketMessage) => {
         console.log("Admin received WebSocket message:", socketMessage);
-        // Reload conversation list to update latest messages
         loadAllConversations();
 
         if (
@@ -155,7 +150,6 @@ export default function ChatManagement() {
           };
           setMessages((prev) => [...prev, newMessage]);
 
-          // Only scroll to bottom for incoming messages (from user/bot), not when admin sends
           if (socketMessage.senderId !== user?.id) {
             setShouldScrollToBottom(true);
           }
@@ -169,7 +163,6 @@ export default function ChatManagement() {
 
     const unsubscribeConversationUpdate = webSocketService.onConversationUpdate(
       (update: ConversationUpdate) => {
-        // Refresh data when conversation status changes
         loadAllConversations();
 
         if (
@@ -191,22 +184,20 @@ export default function ChatManagement() {
       unsubscribeConversationUpdate();
       webSocketService.disconnect();
     };
-  }, [selectedConversation]); // Removed loadAllConversations from deps
+  }, [selectedConversation]);
 
-  // **PING SERVER ĐỊNH KỲ ĐỂ DETECT CONNECTION ISSUES**
   useEffect(() => {
     const pingInterval = setInterval(() => {
       if (isConnected) {
         webSocketService.ping();
       }
-    }, 30000); // Ping every 30 seconds
+    }, 30000);
 
     return () => {
       clearInterval(pingInterval);
     };
   }, [isConnected]);
 
-  // Auto scroll to bottom when new messages arrive
   useEffect(() => {
     if (shouldScrollToBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -214,7 +205,6 @@ export default function ChatManagement() {
     }
   }, [shouldScrollToBottom]);
 
-  // Restore scroll position after selecting conversation
   useEffect(() => {
     if (savedScroll && allConversationsListRef.current) {
       allConversationsListRef.current.scrollTop = savedScroll;
@@ -226,14 +216,12 @@ export default function ChatManagement() {
     try {
       const conversations =
         await conversationService.getAllConversationsWithStats();
-      // Sort by updatedAt descending (newest first)
       const sortedConversations = conversations.sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
       setAllConversations(sortedConversations);
 
-      // **JOIN TẤT CẢ ACTIVE CONVERSATIONS SAU KHI LOAD**
       if (isConnected) {
         sortedConversations.forEach((conversation) => {
           if (
@@ -251,7 +239,6 @@ export default function ChatManagement() {
   };
 
   const selectConversation = async (conversation: Conversation) => {
-    // Save current scroll position
     const currentScroll = allConversationsListRef.current?.scrollTop || 0;
     setSavedScroll(currentScroll);
 
@@ -260,18 +247,14 @@ export default function ChatManagement() {
     try {
       const conversationMessages =
         await conversationService.getConversationMessages(conversation.id);
-      // Replace all messages instead of merging to avoid duplicates
       setMessages(conversationMessages);
 
-      // Join WebSocket room AFTER loading messages
       if (isConnected) {
         webSocketService.joinConversation(conversation.id);
       }
 
-      // Mark as read
       await conversationService.markAsRead(conversation.id);
 
-      // Scroll to bottom after loading messages
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
@@ -288,7 +271,6 @@ export default function ChatManagement() {
       if (isConnected) {
         webSocketService.sendMessage(selectedConversation.id, inputValue);
         setInputValue("");
-        // Scroll to bottom after sending message
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);

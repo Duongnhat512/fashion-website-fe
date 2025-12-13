@@ -15,7 +15,6 @@ interface Category {
 const HomePage = () => {
   const navigate = useNavigate();
 
-  // � STATE
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryProducts, setCategoryProducts] = useState<{
@@ -33,7 +32,6 @@ const HomePage = () => {
     navigate(`/products/${p.slug}`, { state: { product: p } });
   };
 
-  // ⏰ Countdown timer - đếm ngược về 0h
   useEffect(() => {
     const calculateTimeLeft = () => {
       const now = new Date();
@@ -59,24 +57,21 @@ const HomePage = () => {
       try {
         setLoading(true);
 
-        // Lấy danh sách danh mục cha
         const categoryRes = await categoryService.getTree();
         const parentCategories = categoryRes.data || [];
         setCategories(parentCategories);
 
-        // Load 4 sản phẩm mới nhất từ TẤT CẢ sản phẩm
         try {
           const newProductsRes = await productService.searchProducts({
-            limit: 100, // Lấy nhiều để có thể sắp xếp
+            limit: 100,
             page: 1,
           });
           const allProducts = newProductsRes.products || [];
 
-          // Sắp xếp theo createdAt giảm dần và lấy 4 sản phẩm mới nhất
           const sortedByDate = [...allProducts].sort((a, b) => {
             const dateA = new Date(a.createdAt || 0).getTime();
             const dateB = new Date(b.createdAt || 0).getTime();
-            return dateB - dateA; // Mới nhất trước
+            return dateB - dateA;
           });
           const newProds = sortedByDate.slice(0, 4);
           setNewProducts(newProds);
@@ -84,15 +79,13 @@ const HomePage = () => {
           console.error("❌ Lỗi tải sản phẩm mới:", error);
         }
 
-        // Load sản phẩm cho Flash Sales - lấy sản phẩm giảm giá > 40%
         try {
-          // Lấy tất cả sản phẩm từ tất cả danh mục
           const allProductsPromises = parentCategories.map(
             async (cat: Category) => {
               try {
                 const res = await productService.searchProducts({
                   categoryId: cat.id,
-                  limit: 1000, // Lấy nhiều sản phẩm để có đủ lựa chọn
+                  limit: 1000,
                   page: 1,
                 });
                 return res.products || [];
@@ -106,12 +99,10 @@ const HomePage = () => {
           const allProductsArrays = await Promise.all(allProductsPromises);
           const allProducts = allProductsArrays.flat();
 
-          // Lọc sản phẩm có giảm giá > 40%
           const highDiscountProducts = allProducts.filter((product) => {
             const variant = product.variants?.[0];
             if (!variant) return false;
 
-            // Chỉ kiểm tra discountPercent từ API
             const hasHighDiscount =
               variant.discountPercent && variant.discountPercent > 40;
 
@@ -121,16 +112,12 @@ const HomePage = () => {
           let flashProducts: Product[] = [];
 
           if (highDiscountProducts.length >= 5) {
-            // Nếu có đủ 5 sản phẩm giảm giá > 40%, lấy 5 cái đầu
             flashProducts = highDiscountProducts.slice(0, 5);
           } else {
-            // Nếu không đủ, lấy tất cả sản phẩm giảm giá > 40%
             flashProducts = [...highDiscountProducts];
 
-            // Tính số sản phẩm còn thiếu
             const remainingCount = 5 - flashProducts.length;
 
-            // Lấy các sản phẩm không có trong danh sách giảm giá > 40%
             const otherProducts = allProducts.filter(
               (product) =>
                 !highDiscountProducts.some(
@@ -138,7 +125,6 @@ const HomePage = () => {
                 )
             );
 
-            // Xáo trộn và lấy ngẫu nhiên số sản phẩm còn thiếu
             const shuffledOtherProducts = otherProducts.sort(
               () => 0.5 - Math.random()
             );
@@ -147,7 +133,6 @@ const HomePage = () => {
               remainingCount
             );
 
-            // Thêm vào danh sách flash sales
             flashProducts = [...flashProducts, ...additionalProducts];
           }
 
@@ -156,7 +141,6 @@ const HomePage = () => {
           console.error("❌ Lỗi tải Flash Sales:", error);
         }
 
-        // Load 4 sản phẩm cuối cho mỗi danh mục cha
         const productPromises = parentCategories.map(async (cat: Category) => {
           try {
             const res = await productService.searchProducts({
@@ -192,7 +176,6 @@ const HomePage = () => {
     loadData();
   }, []);
 
-  // 🎨 Render Product Card (HOT)
   const renderProductCard = (p: Product) => {
     const v = p.variants?.[0];
     const hasDiscount = v?.discountPrice && v?.discountPrice < v?.price;
@@ -344,7 +327,6 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
     );
   };
 
-  // ⚡ Render Flash Sale Card (SIÊU HOT)
   const renderFlashSaleCard = (p: Product) => {
     const v = p.variants?.[0];
     const hasDiscount = v?.discountPrice && v?.discountPrice < v?.price;
@@ -487,7 +469,6 @@ rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.35)]
     );
   };
 
-  // ✨ Render New Product Card (NEW)
   const renderNewProductCard = (p: Product) => {
     const v = p.variants?.[0];
     const hasDiscount = v?.discountPrice && v?.discountPrice < v?.price;
@@ -638,7 +619,6 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
     );
   };
 
-  // ⏳ Loading
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -649,7 +629,6 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
       </div>
     );
 
-  // 🖼 Render
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-6 py-12">

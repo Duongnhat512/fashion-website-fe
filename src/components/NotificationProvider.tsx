@@ -24,7 +24,6 @@ export const NotificationProvider: React.FC<{
   const [api, contextHolder] = message.useMessage();
 
   useEffect(() => {
-    // global default configuration for message
     message.config({
       top: config?.top ?? 80,
       duration: config?.duration ?? 3,

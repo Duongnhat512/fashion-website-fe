@@ -5,8 +5,8 @@ export interface CartItem {
   cartKey: string;
   name: string;
   price: number;
-  originalPrice: number; // Giá gốc trước khi giảm
-  discountPercent: number; // Phần trăm giảm giá
+  originalPrice: number; 
+  discountPercent: number; 
   qty: number;
   image: string;
   productId: string;
@@ -33,12 +33,10 @@ const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    // Load cart data (for future persistence if needed)
     loadCart: (state, action: PayloadAction<CartItem[]>) => {
       state.items = action.payload;
     },
     
-    // Thêm sản phẩm vào giỏ hàng
     addToCart: (state, action: PayloadAction<CartItem>) => {
       const existingItem = state.items.find(item => item.cartKey === action.payload.cartKey);
       if (existingItem) {
@@ -48,7 +46,6 @@ const cartSlice = createSlice({
       }
     },
     
-    // Cập nhật số lượng sản phẩm
     updateQuantity: (state, action: PayloadAction<{ cartKey: string; qty: number }>) => {
       const item = state.items.find(item => item.cartKey === action.payload.cartKey);
       if (item) {
@@ -56,28 +53,23 @@ const cartSlice = createSlice({
       }
     },
     
-    // Xóa sản phẩm khỏi giỏ hàng
     removeFromCart: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter(item => item.cartKey !== action.payload);
     },
     
-    // Xóa nhiều sản phẩm (sau khi đặt hàng)
     removeMultipleItems: (state, action: PayloadAction<string[]>) => {
       state.items = state.items.filter(item => !action.payload.includes(item.cartKey));
     },
     
-    // Clear toàn bộ giỏ hàng
     clearCart: (state) => {
       state.items = [];
       state.selectedItems = [];
     },
     
-    // Set selected items cho payment
     setSelectedItems: (state, action: PayloadAction<CartItem[]>) => {
       state.selectedItems = action.payload;
     },
     
-    // Clear selected items
     clearSelectedItems: (state) => {
       state.selectedItems = [];
     },

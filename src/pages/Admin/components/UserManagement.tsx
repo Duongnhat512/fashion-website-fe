@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  Tag,
-  Button,
-  // Modal,
-  Pagination,
-  // Form,
-  Input,
-  // Select,
-  Switch,
-  // DatePicker,
-} from "antd";
-// import dayjs from "dayjs";
+import { Table, Tag, Button, Pagination, Input, Switch } from "antd";
 import { userService } from "../../../services/userService";
 import type { User } from "../../../services/userService";
 import { useNotification } from "../../../components/NotificationProvider";
@@ -20,12 +8,9 @@ const UserManagement: React.FC = () => {
   const notify = useNotification();
   const [users, setUsers] = useState<User[]>([]);
   const [userLoading, setUserLoading] = useState(false);
-  // const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  // const [userModalVisible, setUserModalVisible] = useState(false);
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const [userPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
-  // const [form] = Form.useForm();
 
   useEffect(() => {
     fetchUsers();
@@ -47,40 +32,6 @@ const UserManagement: React.FC = () => {
       setUserLoading(false);
     }
   };
-
-  // const showUserEditModal = (user: User) => {
-  //   setSelectedUser(user);
-  //   form.setFieldsValue({
-  //     fullname: user.fullname,
-  //     email: user.email,
-  //     phone: user.phone,
-  //     dob: user.dob ? dayjs(user.dob) : null,
-  //     gender: user.gender,
-  //     role: user.role,
-  //     status: user.status,
-  //   });
-  //   setUserModalVisible(true);
-  // };
-
-  // const handleUpdateUser = async (values: any) => {
-  //   if (!selectedUser) return;
-  //   try {
-  //     await userService.updateUser(selectedUser.id, {
-  //       fullname: values.fullname,
-  //       phone: values.phone,
-  //       dob: values.dob ? values.dob.format("YYYY-MM-DD") : undefined,
-  //       gender: values.gender as "male" | "female" | "other",
-  //       role: values.role,
-  //       status: values.status,
-  //     });
-  //     notify.success("Cập nhật người dùng thành công!");
-  //     setUserModalVisible(false);
-  //     fetchUsers();
-  //   } catch (error) {
-  //     notify.error("Không thể cập nhật người dùng");
-  //     console.error(error);
-  //   }
-  // };
 
   const handleToggleUserStatus = async (
     userId: string,
@@ -175,28 +126,15 @@ const UserManagement: React.FC = () => {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+      sorter: (a: User, b: User) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend" as const,
     },
-    // {
-    //   title: "Hành động",
-    //   key: "actions",
-    //   render: (_: any, record: User) => (
-    //     <Button
-    //       type="primary"
-    //       icon={<EditOutlined />}
-    //       onClick={() => showUserEditModal(record)}
-    //       size="small"
-    //       block
-    //     >
-    //       Sửa
-    //     </Button>
-    //   ),
-    // },
   ];
 
   const userStartIndex = (userCurrentPage - 1) * userPageSize;
   const userEndIndex = userStartIndex + userPageSize;
 
-  // Filter users by search term (email)
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredUsers = normalizedSearch
     ? users.filter((user) =>

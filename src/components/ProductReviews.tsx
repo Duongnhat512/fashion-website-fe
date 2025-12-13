@@ -38,25 +38,21 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const { user } = useAuth();
   const notify = useNotification();
 
-  // Review states
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewPage, setReviewPage] = useState(1);
   const [reviewTotal, setReviewTotal] = useState(0);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
-  // Edit review states
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [editReviewRating, setEditReviewRating] = useState(5);
   const [editReviewComment, setEditReviewComment] = useState("");
   const [editReviewImages, setEditReviewImages] = useState<any[]>([]);
 
-  // Image viewer states
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [viewerImages, setViewerImages] = useState<string[]>([]);
 
-  // Load reviews
   const loadReviews = async (page: number = 1) => {
     try {
       setReviewsLoading(true);
@@ -72,12 +68,10 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     }
   };
 
-  // Load reviews khi component mount
   useEffect(() => {
     loadReviews();
   }, [productId]);
 
-  // Start editing review
   const startEditReview = (review: Review) => {
     setEditingReviewId(review.id);
     setEditReviewRating(review.rating);
@@ -92,7 +86,6 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     );
   };
 
-  // Cancel editing
   const cancelEditReview = () => {
     setEditingReviewId(null);
     setEditReviewRating(5);
@@ -100,7 +93,6 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     setEditReviewImages([]);
   };
 
-  // Update review
   const handleUpdateReview = async (reviewId: string) => {
     const token = authService.getToken();
     if (!token) {
@@ -131,14 +123,12 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       notify.success("Cập nhật đánh giá thành công!");
       cancelEditReview();
 
-      // Reload reviews
       loadReviews(reviewPage);
     } catch (error: any) {
       notify.error(error.message || "Không thể cập nhật đánh giá!");
     }
   };
 
-  // Delete review
   const handleDeleteReview = async (reviewId: string) => {
     const token = authService.getToken();
     if (!token) {
@@ -150,21 +140,18 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       await reviewService.deleteReview(reviewId, token);
       notify.success("Xóa đánh giá thành công!");
 
-      // Reload reviews
       loadReviews(reviewPage);
     } catch (error: any) {
       notify.error(error.message || "Không thể xóa đánh giá!");
     }
   };
 
-  // Open image viewer
   const openImageViewer = (images: string[], startIndex: number = 0) => {
     setViewerImages(images);
     setCurrentImageIndex(startIndex);
     setImageViewerOpen(true);
   };
 
-  // Close image viewer
   const closeImageViewer = () => {
     setImageViewerOpen(false);
     setViewerImages([]);

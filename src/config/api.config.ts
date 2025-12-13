@@ -18,6 +18,10 @@ export const API_CONFIG = {
     CATEGORIES: {
       TREE: '/categories/tree',
       GET_ALL: '/categories',
+      CREATE: '/categories',
+      UPDATE: '/categories',
+      DELETE: '/categories/delete/:id',
+      GET_BY_ID: '/categories/get-by-id',
     },
 
     AUTH: {

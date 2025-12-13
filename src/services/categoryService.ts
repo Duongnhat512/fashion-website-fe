@@ -29,7 +29,7 @@ export const categoryService = {
   },
 
   async getById(id: string): Promise<ApiResponse<any>> {
-    const res = await fetch(`${API_CONFIG.BASE_URL}/categories/get-by-id?id=${id}`, {
+    const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORIES.GET_BY_ID}?id=${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -41,8 +41,11 @@ export const categoryService = {
     return res.json();
   },
 
-  async create(data: { name: string; slug: string; description?: string; iconUrl?: string; parent_id?: string | null }): Promise<ApiResponse<any>> {
-    const token = localStorage.getItem('token');
+  async create(data: { name: string; slug: string; description?: string; iconUrl?: string; parent_id?: string | null; iconFile?: File }): Promise<ApiResponse<any>> {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Bạn chưa đăng nhập');
+    }
     
     const payload: any = {
       name: data.name,
@@ -57,23 +60,44 @@ export const categoryService = {
     if (data.parent_id) {
       payload.parent = { id: data.parent_id };
     }
-    
-    const res = await fetch(`${API_CONFIG.BASE_URL}/categories`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        "ngrok-skip-browser-warning": "true"
-      },
-      body: JSON.stringify(payload),
-    });
 
-    if (!res.ok) throw new Error('Không thể tạo danh mục');
-    return res.json();
+    if (data.iconFile) {
+      const formData = new FormData();
+      formData.append('categoryData', JSON.stringify(payload));
+      formData.append('iconImage', data.iconFile);
+
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORIES.CREATE}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Không thể tạo danh mục');
+      return res.json();
+    } else {
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORIES.CREATE}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify(payload),
+      });
+      console.log((`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORIES.CREATE}`));
+      if (!res.ok) throw new Error('Không thể tạo danh mục');
+      return res.json();
+    }
   },
 
-  async update(data: { id: string; name: string; slug: string; description?: string; iconUrl?: string; parent_id?: string | null }): Promise<ApiResponse<any>> {
-    const token = localStorage.getItem('token');
+  async update(data: { id: string; name: string; slug: string; description?: string; iconUrl?: string; parent_id?: string | null; iconFile?: File }): Promise<ApiResponse<any>> {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Bạn chưa đăng nhập');
+    }
     
     const payload: any = {
       id: data.id,
@@ -89,24 +113,45 @@ export const categoryService = {
     if (data.parent_id) {
       payload.parent = { id: data.parent_id };
     }
-    
-    const res = await fetch(`${API_CONFIG.BASE_URL}/categories`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        "ngrok-skip-browser-warning": "true"
-      },
-      body: JSON.stringify(payload),
-    });
 
-    if (!res.ok) throw new Error('Không thể cập nhật danh mục');
-    return res.json();
+    if (data.iconFile) {
+      const formData = new FormData();
+      formData.append('categoryData', JSON.stringify(payload));
+      formData.append('iconImage', data.iconFile);
+
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORIES.UPDATE}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Không thể cập nhật danh mục');
+      return res.json();
+    } else {
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORIES.UPDATE}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Không thể cập nhật danh mục');
+      return res.json();
+    }
   },
 
   async delete(id: string): Promise<ApiResponse<any>> {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_CONFIG.BASE_URL}/categories/delete/${id}`, {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Bạn chưa đăng nhập');
+    }
+    const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORIES.DELETE.replace(':id', id)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -40,7 +40,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check if user is logged in on app start
     const token = authService.getToken();
     const userData = authService.getUser();
 
@@ -70,12 +69,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      // Nếu chỉ cập nhật avatar (không có các field khác), update local state thôi
       const isOnlyAvatar =
         Object.keys(userData).length === 1 && "avt" in userData;
 
       if (isOnlyAvatar) {
-        // Chỉ cập nhật local state và localStorage, không gọi API
         const updatedUser: User = {
           id: user.id,
           fullname: user.fullname,
@@ -84,23 +81,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           phone: user.phone,
           dob: user.dob,
           gender: user.gender,
-          avt: userData.avt, // Gán avatar URL từ response
+          avt: userData.avt,
         };
         authService.saveUser(updatedUser);
-        setUser(updatedUser); // React sẽ detect object mới và re-render
+        setUser(updatedUser);
         return;
       }
 
-      // Các trường khác: gọi API cập nhật
       const updateRequest: UpdateUserRequest = {
         id: user.id,
         ...userData,
       };
 
-      // Call API to update user
       const updatedUserData = await authService.updateUser(updateRequest);
 
-      // QUAN TRỌNG: Tạo object hoàn toàn mới với TẤT CẢ các field rõ ràng
       const updatedUser: User = {
         id: updatedUserData.id,
         fullname: updatedUserData.fullname,
@@ -109,11 +103,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         phone: updatedUserData.phone,
         dob: updatedUserData.dob,
         gender: updatedUserData.gender,
-        avt: updatedUserData.avt || user.avt, // Giữ avatar cũ nếu API không trả về
+        avt: updatedUserData.avt || user.avt,
       };
 
       authService.saveUser(updatedUser);
-      setUser(updatedUser); // React sẽ detect object mới và re-render
+      setUser(updatedUser);
     } catch (error) {
       console.error("❌ AuthContext: Update failed:", error);
       throw error;

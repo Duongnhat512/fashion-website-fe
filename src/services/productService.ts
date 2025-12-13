@@ -32,17 +32,13 @@ class ProductService {
     }
   }
 
-  /**
-   * 🧩 Lấy danh sách sản phẩm (có phân trang)
-   */
+
   async getAllProducts(page: number = API_CONFIG.DEFAULT_PAGINATION.PAGE, limit: number = API_CONFIG.DEFAULT_PAGINATION.LIMIT): Promise<PaginatedProductsResponse> {
     const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_ALL}?page=${page}&limit=${limit}`;
     return this.makeRequest<PaginatedProductsResponse>(url);
   }
 
-  /**
-   * 🔍 Tìm kiếm sản phẩm (có hỗ trợ categoryId, slug, sort, sortBy)
-   */
+
   async searchProducts(params: SearchParams): Promise<PaginatedProductsResponse> {
     const query = new URLSearchParams();
 
@@ -58,9 +54,7 @@ class ProductService {
     return this.makeRequest<PaginatedProductsResponse>(url);
   }
 
-  /**
-   * 🧩 Lấy chi tiết sản phẩm theo ID
-   */
+
  async getProductById(id: string, token: string): Promise<Product> {
   const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.GET_BY_ID.replace(':id', id)}`;
   const res = await this.makeRequest<any>(url, {
@@ -72,13 +66,10 @@ class ProductService {
     },
   });
 
-  // 🔥 FIX: API trả về data: [product]
   return res[0]; 
 }
 
-  /**
-   * 🎯 Lấy sản phẩm gợi ý cho người dùng
-   */
+
   async getRecommendations(token: string): Promise<Product[]> {
     return this.makeRequest<Product[]>(API_CONFIG.ENDPOINTS.PRODUCTS.RECOMMENDATIONS, {
       headers: {
@@ -88,9 +79,7 @@ class ProductService {
     });
   }
 
-  /**
-   * ➕ Tạo sản phẩm mới
-   */
+
   async createProduct(formData: FormData, token: string): Promise<Product> {
     const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.CREATE;
     
@@ -105,7 +94,7 @@ class ProductService {
         headers: {
           "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
-          // Don't set Content-Type, let browser set it with boundary
+        
         },
         body: formData,
       });
@@ -135,9 +124,7 @@ class ProductService {
     }
   }
 
-  /**
-   * 🗑️ Xóa sản phẩm theo ID
-   */
+
   async deleteProduct(productId: string, token: string): Promise<any> {
     const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.DELETE.replace(':id', productId);
     
@@ -150,9 +137,7 @@ class ProductService {
     });
   }
 
-  /**
-   * ✏️ Cập nhật sản phẩm
-   */
+ 
   async updateProduct(formData: FormData, token: string): Promise<Product> {
     const endpoint = API_CONFIG.ENDPOINTS.PRODUCTS.UPDATE;
     
@@ -162,7 +147,7 @@ class ProductService {
         headers: {
           "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
-          // Don't set Content-Type, let browser set it with boundary
+        
         },
         body: formData,
       });

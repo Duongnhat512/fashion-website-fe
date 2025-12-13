@@ -46,7 +46,6 @@ export interface InventoryDetail {
 }
 
 export const inventoryService = {
-  // Lấy tất cả inventory
   getAllInventories: async (): Promise<InventoryDetail[]> => {
     const token = localStorage.getItem("authToken");
     const response = await fetch(
@@ -69,7 +68,6 @@ export const inventoryService = {
     return result.data;
   },
 
-  // Lấy thông tin inventory theo ID (bao gồm variant và product)
   getInventoryById: async (inventoryId: string): Promise<InventoryDetail> => {
     const token = localStorage.getItem("authToken");
     const url = API_CONFIG.ENDPOINTS.INVENTORIES.GET_BY_ID.replace(
@@ -93,7 +91,6 @@ export const inventoryService = {
     return result.data;
   },
 
-  // Lấy inventory theo warehouse ID
   getInventoryByWarehouse: async (
     warehouseId: string
   ): Promise<InventoryDetail[]> => {
@@ -119,7 +116,6 @@ export const inventoryService = {
     return result.data;
   },
 
-  // Lấy inventory theo variant ID
   getInventoryByVariant: async (
     variantId: string
   ): Promise<InventoryDetail[]> => {

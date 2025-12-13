@@ -114,7 +114,7 @@ class VoucherService {
       throw new Error(data.message || "Lấy danh sách voucher thất bại");
     }
 
-    return data.data.data; // Trả về mảng Voucher[]
+    return data.data.data; 
   }
 
   async getById(id: string): Promise<Voucher> {

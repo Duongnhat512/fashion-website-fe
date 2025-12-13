@@ -50,7 +50,6 @@ export default function UserProfilePage() {
     avt: null,
   });
 
-  // Load user profile
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -90,7 +89,6 @@ export default function UserProfilePage() {
     loadUserProfile();
   }, [navigate, isAuthenticated, authUser]);
 
-  // Handle input change
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -101,73 +99,15 @@ export default function UserProfilePage() {
     }
   };
 
-  // Handle avatar change
-  // Trong handleImageChange, sau khi avatar được update thành công từ API, cần gọi updateUser
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({ ...prev, avt: file }));
       const blobUrl = URL.createObjectURL(file);
       setPreviewImage(blobUrl);
-      // Nếu đang chỉnh sửa, upload ảnh ngay lập tức
-      if (isEditing) {
-        (async () => {
-          try {
-            setIsLoading(true);
-            const updated = await authService.updateAvatar(file);
-
-            let avatarUrl = updated.avt;
-
-            // Nếu API không trả về avatar URL, gọi getUserProfile để lấy
-            if (!avatarUrl && user?.id) {
-              try {
-                const freshUserProfile = await authService.getUserProfile(
-                  user.id
-                );
-                avatarUrl = freshUserProfile.avt;
-              } catch (profileError) {
-                console.error(
-                  "❌ Không thể lấy avatar từ getUserProfile:",
-                  profileError
-                );
-              }
-            }
-
-            // Cập nhật thông tin người dùng tại local state và AuthContext
-            const newUser = { ...(user || {}), ...updated } as UserProfile;
-            setUser(newUser); // Cập nhật local state
-
-            // CẬP NHẬT AuthContext NGAY LẬP TỨC - KHÔNG CHỜ ASYNC
-            if (avatarUrl) {
-              updateUser({ avt: avatarUrl }).catch((err) => {
-                console.error("AuthContext update failed:", err);
-              });
-            } else {
-              console.warn("⚠️ Không có avatar URL để cập nhật AuthContext");
-            }
-
-            // Đặt preview thành URL thật từ server
-            setPreviewImage(avatarUrl || blobUrl);
-            // Giải phóng URL blob để không chiếm dụng bộ nhớ
-            URL.revokeObjectURL(blobUrl);
-            notify.success("Cập nhật ảnh đại diện thành công");
-          } catch (err: any) {
-            console.error("Upload avatar error", err);
-            notify.error(
-              err?.message || "Không thể tải ảnh lên. Vui lòng thử lại."
-            );
-            // Fallback: revert preview to previous
-            setPreviewImage(user?.avt || null);
-            URL.revokeObjectURL(blobUrl);
-          } finally {
-            setIsLoading(false);
-          }
-        })();
-      }
     }
   };
 
-  // Validate form
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     if (!formData.fullname.trim()) newErrors.fullname = "Họ tên là bắt buộc";
@@ -188,7 +128,6 @@ export default function UserProfilePage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Save changes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -202,26 +141,58 @@ export default function UserProfilePage() {
     setErrors({});
 
     try {
-      // Tạo payload - KHÔNG gửi avatar vì đã upload riêng
+      let avatarUrl = user.avt;
+      if (formData.avt) {
+        try {
+          const updated = await authService.updateAvatar(formData.avt);
+          avatarUrl = updated.avt;
+
+          if (!avatarUrl && user.id) {
+            try {
+              const freshUserProfile = await authService.getUserProfile(
+                user.id
+              );
+              avatarUrl = freshUserProfile.avt;
+            } catch (profileError) {
+              console.error(
+                "❌ Không thể lấy avatar từ getUserProfile:",
+                profileError
+              );
+            }
+          }
+        } catch (err: any) {
+          console.error("Upload avatar error", err);
+          notify.error(
+            err?.message || "Không thể tải ảnh lên. Vui lòng thử lại."
+          );
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const payload: Partial<UserProfile> = {
         id: user.id,
         fullname: formData.fullname,
         phone: formData.phone || undefined,
         dob: formData.dob || undefined,
         gender: formData.gender || undefined,
-        // Không gửi avt - avatar được update riêng qua updateAvatar
       };
 
       await updateUser(payload);
 
-      // Update local state
       const updatedUser: UserProfile = {
         ...user,
         ...payload,
+        avt: avatarUrl,
       };
       setUser(updatedUser);
 
-      // Đồng bộ formData với dữ liệu mới
+      if (avatarUrl && avatarUrl !== user.avt) {
+        updateUser({ avt: avatarUrl }).catch((err) => {
+          console.error("AuthContext update failed:", err);
+        });
+      }
+
       setFormData({
         fullname: updatedUser.fullname || "",
         phone: updatedUser.phone || "",
@@ -230,9 +201,10 @@ export default function UserProfilePage() {
         avt: null,
       });
 
+      setPreviewImage(avatarUrl || null);
+
       setIsEditing(false);
-      setErrors({ general: "Cập nhật thông tin thành công!" });
-      setTimeout(() => setErrors({}), 3000);
+      notify.success("Cập nhật thông tin thành công!");
     } catch (error) {
       console.error("❌ Lỗi cập nhật:", error);
       setErrors({
@@ -246,7 +218,6 @@ export default function UserProfilePage() {
     }
   };
 
-  // Cancel editing
   const handleCancel = () => {
     if (user) {
       setFormData({

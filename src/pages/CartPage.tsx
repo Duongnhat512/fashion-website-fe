@@ -22,7 +22,6 @@ export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, loading } = useCart();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-  // Toggle chọn từng sản phẩm
   const toggleSelect = (cartKey: string) => {
     setSelectedItems((prev) =>
       prev.includes(cartKey)
@@ -31,7 +30,6 @@ export default function CartPage() {
     );
   };
 
-  // Toggle chọn tất cả
   const toggleSelectAll = () => {
     if (selectedItems.length === cart.length) {
       setSelectedItems([]);
@@ -87,7 +85,6 @@ export default function CartPage() {
     );
   }
 
-  // Tính tổng dựa trên sản phẩm được chọn
   const selectedProducts = cart.filter((item) =>
     selectedItems.includes(item.cartKey)
   );

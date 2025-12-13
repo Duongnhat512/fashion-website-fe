@@ -85,17 +85,17 @@ export interface ForgotPasswordRequest {
 
 export interface VerifyResetOtpRequest {
   email: string;
-  otp: number; // Đổi từ string sang number
+  otp: number; 
 }
 
 export interface VerifyResetOtpResponse {
-  resetToken: string; // API trả về resetToken, nhưng sẽ gửi lại dưới tên token
+  resetToken: string; 
 }
 
 export interface ResetPasswordRequest {
-  token: string; // Đổi từ resetToken sang token
+  token: string; 
   password: string;
-  confirmPassword: string; // Thêm confirmPassword
+  confirmPassword: string; 
 }
 
 class AuthService {
@@ -104,7 +104,7 @@ class AuthService {
     const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json', // luôn ưu tiên JSON
+        'Content-Type': 'application/json',
         "ngrok-skip-browser-warning": "true",
         ...(options?.headers || {}),
       },
@@ -131,8 +131,7 @@ class AuthService {
 
 
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    // Backend route is GET but controller expects req.body
-    // Try POST method instead
+
     return this.makeRequest<LoginResponse>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -166,7 +165,6 @@ class AuthService {
         throw new Error('Chưa đăng nhập');
     }
 
-    // Filter data tránh gửi rỗng
     const cleanData: any = { id: userData.id };
 
     if (userData.fullname?.trim()) cleanData.fullname = userData.fullname.trim();
@@ -201,7 +199,6 @@ class AuthService {
     });
   }
 
-  // Upload avatar (multipart/form-data) to UPDATE_AVATAR endpoint
   async updateAvatar(file: File): Promise<UpdateUserResponse> {
     const token = this.getToken();
     if (!token) throw new Error('Chưa đăng nhập');
@@ -209,7 +206,6 @@ class AuthService {
     const form = new FormData();
     form.append('avt', file);
 
-    // When sending FormData, do NOT set Content-Type header so the browser can set boundary
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USERS.UPDATE_AVATAR}`, {
         method: 'PUT',
@@ -236,7 +232,6 @@ class AuthService {
     }
   }
 
-  // Forgot Password Flow
   async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
     return this.makeRequest<void>(API_CONFIG.ENDPOINTS.USERS.FORGOT_PASSWORD, {
       method: 'POST',
@@ -258,7 +253,6 @@ class AuthService {
     });
   }
 
-  // Local storage helpers
   saveToken(token: string): void {
     localStorage.setItem('authToken', token);
   }

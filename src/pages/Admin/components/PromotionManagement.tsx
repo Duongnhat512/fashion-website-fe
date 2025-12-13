@@ -49,20 +49,16 @@ export default function PromotionManagement() {
   );
   const [form] = Form.useForm();
 
-  // Pagination
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // Products
   const [products, setProducts] = useState<any[]>([]);
 
-  // Drawer view
   const [viewingPromotion, setViewingPromotion] = useState<Promotion | null>(
     null
   );
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
-  // Filters
   const [dateRange, setDateRange] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -75,7 +71,6 @@ export default function PromotionManagement() {
     loadProducts();
   }, []);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [dateRange, statusFilter, activeFilter]);
@@ -105,7 +100,6 @@ export default function PromotionManagement() {
   const getFilteredPromotions = () => {
     let filtered = [...promotions];
 
-    // Filter by date range
     if (dateRange && dateRange.length === 2) {
       const [start, end] = dateRange;
       filtered = filtered.filter((promo) => {
@@ -115,12 +109,10 @@ export default function PromotionManagement() {
       });
     }
 
-    // Filter by status
     if (statusFilter !== "all") {
       filtered = filtered.filter((promo) => promo.status === statusFilter);
     }
 
-    // Filter by active status
     if (activeFilter !== "all") {
       if (activeFilter === "active") {
         filtered = filtered.filter((promo) => promo.active);
@@ -136,12 +128,9 @@ export default function PromotionManagement() {
     setDateRange(null);
     setStatusFilter("all");
     setActiveFilter("all");
-    setPage(1); // Reset to first page
+    setPage(1);
   };
 
-  // --------------------------
-  // SUBMIT (GỬI DUYỆT)
-  // --------------------------
   const handleSubmitPromotion = async (id: string) => {
     try {
       await promotionService.submit(id);
@@ -158,7 +147,6 @@ export default function PromotionManagement() {
     setIsModalVisible(true);
   };
 
-  // Create & Update
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -438,7 +426,7 @@ export default function PromotionManagement() {
               form.resetFields();
             }}
             width={700}
-            okText={editingPromotion ? "Cập nhật" : "Tạo mới"}
+            okText={editingPromotion ? "Cập nhật" : "Tạo"}
             cancelText="Hủy"
           >
             <Form form={form} layout="vertical" className="mt-4">

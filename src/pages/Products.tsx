@@ -22,7 +22,6 @@ const Products = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   const [sortBy, setSortBy] = useState<string>("default");
 
-  // 🔍 Lấy search query và category từ URL
   useEffect(() => {
     const query = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
@@ -32,16 +31,14 @@ const Products = () => {
       setSelectedCategoryId(null);
     } else if (category) {
       setSelectedCategoryId(category);
-      // Có thể cần load category name từ API hoặc local
     } else {
       setSelectedCategoryId(null);
     }
   }, [searchParams]);
 
-  // 📄 Phân trang
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 16, // Giới hạn số sản phẩm hiển thị mỗi trang (16)
+    limit: 16,
     total: 0,
     totalPages: 1,
   });
@@ -56,17 +53,15 @@ const Products = () => {
 
       const params: any = {
         page,
-        limit: 1000, // lấy tối đa để tự phân trang client
+        limit: 1000,
       };
 
-      // Nếu có search hoặc category -> bỏ gợi ý
       const isFilter =
         searchQuery || selectedCategoryId || sortBy !== "default";
 
       if (searchQuery) params.search = searchQuery;
       if (selectedCategoryId) params.categoryId = selectedCategoryId;
 
-      // sort
       if (sortBy !== "default") {
         if (sortBy === "price-asc") {
           params.sortBy = "price";
@@ -83,13 +78,11 @@ const Products = () => {
         }
       }
 
-      // ⬇️ API lấy toàn bộ danh sách
       const res = await productService.searchProducts(params);
       let normalProducts = res.products;
 
       let recommendedProducts: Product[] = [];
 
-      // ⬇️ Chỉ lấy recommend nếu user login + không filter
       if (user && !isFilter) {
         const token = authService.getToken();
 
@@ -99,7 +92,6 @@ const Products = () => {
               token
             );
 
-            // bỏ sp trùng nhau khỏi normalProducts
             normalProducts = normalProducts.filter(
               (p) => !recommendedProducts.some((rec) => rec.id === p.id)
             );
@@ -111,12 +103,10 @@ const Products = () => {
       } else {
       }
 
-      // 🚀 GHÉP GỢI Ý + SẢN PHẨM BÌNH THƯỜNG
       const finalList = [...recommendedProducts, ...normalProducts];
 
       setProducts(finalList);
 
-      // update phân trang
       const total = finalList.length;
 
       setPagination({
@@ -132,19 +122,16 @@ const Products = () => {
     }
   };
 
-  // 💰 Lọc sản phẩm theo giá (client-side)
   const filteredProducts = products.filter((p) => {
     const price = p.variants?.[0]?.price || 0;
     return price >= priceRange[0] && price <= priceRange[1];
   });
 
-  // 📄 Phân trang client-side: Hiển thị 16 sản phẩm mỗi trang
   const paginatedProducts = filteredProducts.slice(
     (pagination.page - 1) * pagination.limit,
     pagination.page * pagination.limit
   );
 
-  // Cập nhật số lượng sản phẩm sau khi lọc
   const totalFiltered = filteredProducts.length;
   const itemsPerPage = pagination.limit;
 
@@ -166,7 +153,6 @@ const Products = () => {
       </div>
     );
 
-  // Kiểm tra nếu không có kết quả lọc theo giá, thì không hiển thị phân trang
   const shouldShowPagination =
     totalFiltered > itemsPerPage && totalFiltered > 0;
 
@@ -367,7 +353,7 @@ const Products = () => {
                   </p>
                   <button
                     onClick={() => {
-                      navigate("/products", { replace: true }); // Clear search từ URL
+                      navigate("/products", { replace: true });
                       setPriceRange([0, 10000000]);
                       setSortBy("default");
                       setSelectedCategoryId(null);

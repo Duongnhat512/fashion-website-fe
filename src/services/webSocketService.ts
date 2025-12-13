@@ -33,7 +33,6 @@ class WebSocketService {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
 
-  // Event listeners
   private messageListeners: ((message: SocketMessage) => void)[] = [];
   private conversationUpdateListeners: ((update: ConversationUpdate) => void)[] = [];
   private typingListeners: ((data: TypingData) => void)[] = [];
@@ -84,7 +83,6 @@ class WebSocketService {
       this.disconnectListeners.forEach(listener => listener());
 
       if (reason === 'io server disconnect') {
-        // Server disconnected, try to reconnect
         this.attemptReconnect();
       }
     });
@@ -95,7 +93,6 @@ class WebSocketService {
       this.attemptReconnect();
     });
 
-    // Message events
     this.socket.on('new_message', (message: SocketMessage) => {
       this.messageListeners.forEach(listener => listener(message));
     });
@@ -136,42 +133,36 @@ class WebSocketService {
     }, delay);
   }
 
-  // Join a conversation room
   joinConversation(conversationId: string): void {
     if (this.socket?.connected) {
       this.socket.emit('join_conversation', { conversationId });
     }
   }
 
-  // Send a message
   sendMessage(conversationId: string, message: string): void {
     if (this.socket?.connected) {
       this.socket.emit('send_message', { conversationId, message });
     }
   }
 
-  // Switch to human chat
   switchToHuman(conversationId: string): void {
     if (this.socket?.connected) {
       this.socket.emit('switch_to_human', { conversationId });
     }
   }
 
-  // Switch to bot chat
   switchToBot(conversationId: string): void {
     if (this.socket?.connected) {
       this.socket.emit('switch_to_bot', { conversationId });
     }
   }
 
-  // Mark messages as read
   markAsRead(conversationId: string): void {
     if (this.socket?.connected) {
       this.socket.emit('mark_as_read', { conversationId });
     }
   }
 
-  // Event listener management
   onMessage(listener: (message: SocketMessage) => void): () => void {
     this.messageListeners.push(listener);
     return () => {
@@ -221,19 +212,16 @@ class WebSocketService {
     };
   }
 
-  // Get connection status
   get isConnected(): boolean {
     return this.socket?.connected ?? false;
   }
 
-  // Ping server to check connection health
   ping(): void {
     if (this.socket?.connected) {
       this.socket.emit('ping');
     }
   }
 
-  // Get socket instance (for advanced usage)
   getSocket(): Socket | null {
     return this.socket;
   }

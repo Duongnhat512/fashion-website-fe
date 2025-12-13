@@ -70,7 +70,6 @@ export default function ChatBot() {
     [productId: string]: number;
   }>({});
 
-  // New state for realtime chat
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -111,33 +110,27 @@ export default function ChatBot() {
       if (formattedMessages.length === 0) {
         setMessages([]);
       } else {
-        // Replace all messages instead of merging to avoid duplicates
         setMessages(formattedMessages);
       }
     } catch (error) {
       console.error("❌ Error loading chat history:", error);
-      // Don't set messages to empty on error to preserve existing messages
     }
   };
 
   const loadActiveConversation = async () => {
     try {
       setIsLoadingConversation(true);
-      // Get all user conversations
       const userConversations = await conversationService.getConversations();
 
       if (userConversations && userConversations.length > 0) {
-        // Find the most recent active conversation, or fallback to the first one
         const activeConversation =
           userConversations.find((conv) => conv.status === "active") ||
           userConversations[0];
 
         setCurrentConversation(activeConversation);
 
-        // Load conversation messages using the dedicated function
         await loadChatHistory(activeConversation.id);
 
-        // Join WebSocket room AFTER loading history
         if (isConnected) {
           webSocketService.joinConversation(activeConversation.id);
         }
@@ -170,7 +163,6 @@ export default function ChatBot() {
     scrollToBottom();
   }, [messages]);
 
-  // WebSocket connection management - FIX TIMING ISSUES
   useEffect(() => {
     if (isAuthenticated && isOpen) {
       webSocketService.connect();
@@ -178,7 +170,6 @@ export default function ChatBot() {
       const unsubscribeConnect = webSocketService.onConnect(() => {
         console.log("✅ WebSocket connected");
         setIsConnected(true);
-        // Load conversation after WebSocket connects
         if (!currentConversation) {
           loadActiveConversation();
         }
@@ -191,7 +182,6 @@ export default function ChatBot() {
 
       const unsubscribeMessage = webSocketService.onMessage(
         (socketMessage: SocketMessage) => {
-          // Skip bot messages if conversation is in human mode
           if (
             currentConversation?.conversationType === "human" &&
             socketMessage.isFromBot
@@ -215,7 +205,6 @@ export default function ChatBot() {
             products: (socketMessage.metadata?.products as Product[]) || [],
           };
           setMessages((prev) => {
-            // Check if message already exists to prevent duplicates
             const messageExists = prev.some(
               (msg) => msg.id === socketMessage.id
             );
@@ -237,7 +226,6 @@ export default function ChatBot() {
             update.conversationType === "human" &&
             update.status === "waiting"
           ) {
-            // Show waiting message
             const systemMessage: Message = {
               id: `system-${Date.now()}`,
               type: "bot",
@@ -270,14 +258,12 @@ export default function ChatBot() {
     }
   }, [isAuthenticated, isOpen, user?.id]); // Removed currentConversation from deps
 
-  // Load conversation when opening chat - FIX TIMING
   useEffect(() => {
     if (isAuthenticated && isOpen && isConnected && !currentConversation) {
       loadActiveConversation();
     }
   }, [isAuthenticated, isOpen, isConnected, currentConversation]); // Added isConnected dependency
 
-  // Periodic refresh of conversation status when waiting for agent
   useEffect(() => {
     if (
       currentConversation?.conversationType === "human" &&
@@ -297,7 +283,6 @@ export default function ChatBot() {
       return;
     }
     setIsOpen(true);
-    // Don't set welcome message here - it will be loaded from conversation history
   };
 
   const handleSendMessage = async () => {
@@ -308,15 +293,12 @@ export default function ChatBot() {
     setIsLoading(true);
 
     try {
-      // Create conversation if none exists
       let conversation = currentConversation;
       if (!conversation) {
         conversation = await conversationService.getActiveConversation();
         if (conversation) {
           setCurrentConversation(conversation);
-          // Load conversation messages
           await loadChatHistory(conversation.id);
-          // Join WebSocket room
           if (isConnected) {
             webSocketService.joinConversation(conversation.id);
           }
@@ -328,12 +310,9 @@ export default function ChatBot() {
         return;
       }
 
-      // **LUÔN ƯU TIÊN GỬI QUA WEBSOCKET** nếu có kết nối
       if (isConnected && conversation) {
-        // **KHÔNG THÊM MESSAGE LOCALLY** - để WebSocket listener xử lý
         webSocketService.sendMessage(conversation.id, messageContent);
       } else if (conversation.conversationType === "human") {
-        // **TRONG HUMAN MODE, KHÔNG BAO GIỜ GỌI BOT API** - chỉ hiển thị thông báo chờ
         const waitingMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: "bot",
@@ -344,9 +323,7 @@ export default function ChatBot() {
         };
         setMessages((prev) => [...prev, waitingMessage]);
       } else {
-        // **CHỈ GỌI BOT API KHI ĐANG Ở BOT MODE**
 
-        // Thêm user message locally khi dùng HTTP API
         const userMessage: Message = {
           id: `temp-${Date.now()}`,
           type: "user",

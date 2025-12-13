@@ -40,11 +40,9 @@ export default function VoucherManagement() {
   const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null);
   const [form] = Form.useForm();
 
-  // Pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
 
-  // Filters
   const [search, setSearch] = useState("");
   const [isActiveFilter, setIsActiveFilter] = useState<string>("all");
 
@@ -194,7 +192,7 @@ export default function VoucherManagement() {
       render: (date) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
-      title: "Hành động",
+      title: "Thao tác",
       key: "actions",
       render: (_, record) => (
         <Space>
@@ -230,6 +228,9 @@ export default function VoucherManagement() {
         }}
       >
         <div>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Tạo Voucher
+          </Button>
           <Input
             placeholder="Tìm kiếm voucher..."
             value={search}
@@ -237,7 +238,7 @@ export default function VoucherManagement() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            style={{ width: 200, marginRight: 16 }}
+            style={{ width: 200, marginRight: 16, marginLeft: 16 }}
           />
           <Select
             value={isActiveFilter}
@@ -252,9 +253,6 @@ export default function VoucherManagement() {
             <Select.Option value="inactive">Không hoạt động</Select.Option>
           </Select>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Thêm Voucher
-        </Button>
       </div>
 
       <Table
@@ -283,7 +281,7 @@ export default function VoucherManagement() {
       )}
 
       <Modal
-        title={editingVoucher ? "Chỉnh sửa Voucher" : "Thêm Voucher"}
+        title={editingVoucher ? "Cập nhật Voucher" : "Tạo Voucher mới"}
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}

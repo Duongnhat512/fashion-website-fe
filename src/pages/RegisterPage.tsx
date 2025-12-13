@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { authService } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../components/NotificationProvider";
+import { EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 interface FormData {
   fullName: string;
   email: string;
@@ -48,9 +49,10 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const notify = useNotification();
 
-  // Nếu đã đăng nhập thì quay lại home
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate("/", { replace: true });
@@ -127,7 +129,6 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Gửi OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -150,7 +151,6 @@ export default function RegisterPage() {
     }
   };
 
-  // Xác minh OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp.trim()) {
@@ -179,7 +179,6 @@ export default function RegisterPage() {
     }
   };
 
-  // Đăng ký tài khoản sau khi verify OTP
   const handleFinalRegister = async (token: string) => {
     setIsLoading(true);
     try {
@@ -229,7 +228,6 @@ export default function RegisterPage() {
     }
   };
 
-  // === UI render ===
   const renderRegistrationForm = () => (
     <motion.form
       initial={{ opacity: 0 }}
@@ -350,16 +348,25 @@ export default function RegisterPage() {
         <label className="block text-sm font-medium text-gray-700">
           Mật khẩu <span className="text-red-500">*</span>
         </label>
-        <input
-          name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-3 border ${
-            errors.password ? "border-red-500" : "border-gray-300"
-          } rounded-lg`}
-          placeholder="Tạo mật khẩu"
-        />
+        <div className="relative">
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={handleInputChange}
+            className={`mt-1 block w-full px-3 py-3 pr-10 border ${
+              errors.password ? "border-red-500" : "border-gray-300"
+            } rounded-lg`}
+            placeholder="Tạo mật khẩu"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+          >
+            {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+          </button>
+        </div>
         {errors.password && (
           <p className="mt-1 text-sm text-red-600">{errors.password}</p>
         )}
@@ -370,16 +377,25 @@ export default function RegisterPage() {
         <label className="block text-sm font-medium text-gray-700">
           Xác nhận mật khẩu <span className="text-red-500">*</span>
         </label>
-        <input
-          name="confirmPassword"
-          type="password"
-          value={formData.confirmPassword}
-          onChange={handleInputChange}
-          className={`mt-1 block w-full px-3 py-3 border ${
-            errors.confirmPassword ? "border-red-500" : "border-gray-300"
-          } rounded-lg`}
-          placeholder="Nhập lại mật khẩu"
-        />
+        <div className="relative">
+          <input
+            name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            className={`mt-1 block w-full px-3 py-3 pr-10 border ${
+              errors.confirmPassword ? "border-red-500" : "border-gray-300"
+            } rounded-lg`}
+            placeholder="Nhập lại mật khẩu"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+          >
+            {showConfirmPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+          </button>
+        </div>
         {errors.confirmPassword && (
           <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
         )}

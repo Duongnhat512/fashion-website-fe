@@ -43,11 +43,9 @@ export default function ReviewManagement() {
 
   const [ratingFilter, setRatingFilter] = useState<string>("all");
 
-  // Search states
   const [searchValue, setSearchValue] = useState("");
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
 
-  // Reply states
   const [replyModalVisible, setReplyModalVisible] = useState(false);
   const [replyingToReview, setReplyingToReview] = useState<Review | null>(null);
   const [replyComment, setReplyComment] = useState("");
@@ -67,11 +65,10 @@ export default function ReviewManagement() {
 
       const productIds = [...new Set(reviewsData.map((r) => r.productId))];
 
-      const productPromises = productIds.map(
-        (id) =>
-          productService
-            .getProductById(id, localStorage.getItem("authToken") || "")
-            .catch(() => undefined) // 🔥 chỉ dùng undefined → hợp type
+      const productPromises = productIds.map((id) =>
+        productService
+          .getProductById(id, localStorage.getItem("authToken") || "")
+          .catch(() => undefined)
       );
 
       const products = await Promise.all(productPromises);
@@ -82,7 +79,7 @@ export default function ReviewManagement() {
 
       const reviewsWithProducts = reviewsData.map((review) => ({
         ...review,
-        product: productMap.get(review.productId), // 🔥 không bao giờ là null
+        product: productMap.get(review.productId),
       }));
 
       setReviews(reviewsWithProducts);
@@ -103,7 +100,6 @@ export default function ReviewManagement() {
       );
       const reviewsData = response.reviews;
 
-      // Get product info
       const product = await productService.getProductById(
         productId,
         localStorage.getItem("authToken") || ""
@@ -129,30 +125,23 @@ export default function ReviewManagement() {
     }
 
     try {
-      // Kiểm tra xem input có phải là ID không
-      // Có thể là: UUID, dài > 20 ký tự, hoặc có format như PRO-XXXX, SKU-XXXX, etc.
       const trimmed = value.trim();
 
-      // Regex chính xác cho ID hoàn chỉnh
       const isProductId = /^PRO-\d{6,20}-[A-Z0-9]{4,10}$/i.test(trimmed);
 
-      // UUID
       const isUUID =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
           trimmed
         );
 
-      // Mongo ObjectId
       const isObjectId = /^[0-9a-f]{24}$/i.test(trimmed);
 
-      // 🚫 Không cho nhận ID khi độ dài < 12 (PRO-1, PRO-12, PRO-123)
       let isIdSearch =
         (isProductId || isUUID || isObjectId) && trimmed.length >= 12;
 
       let products: any[] = [];
 
       if (isIdSearch) {
-        // Tìm kiếm trực tiếp theo ID
         try {
           const product = await productService.getProductById(
             value.trim(),
@@ -160,11 +149,9 @@ export default function ReviewManagement() {
           );
           products = [product];
         } catch (error) {
-          // Nếu không tìm thấy, products sẽ là mảng rỗng
           products = [];
         }
       } else {
-        // Tìm kiếm theo tên
         const response = await productService.searchProducts({
           search: value,
           limit: 10,
@@ -222,7 +209,7 @@ export default function ReviewManagement() {
       );
       setViewingProduct(productData);
     } catch {
-      setViewingProduct(review.product); // luôn undefined hoặc Product
+      setViewingProduct(review.product);
     } finally {
     }
   };
@@ -270,7 +257,7 @@ export default function ReviewManagement() {
       setReplyingToReview(null);
       setReplyComment("");
       setReplyImages([]);
-      loadReviews(); // Reload để hiển thị reply mới
+      loadReviews();
     } catch (error: any) {
       notify.error(error.message || "Lỗi khi trả lời đánh giá");
     } finally {
@@ -335,6 +322,9 @@ export default function ReviewManagement() {
       title: "Thời gian",
       dataIndex: "createdAt",
       render: (date) => dayjs(date).format("DD/MM/YYYY HH:mm"),
+      sorter: (a: Review, b: Review) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend" as const,
     },
     {
       title: "Thao tác",
@@ -366,33 +356,24 @@ export default function ReviewManagement() {
   return (
     <div>
       {/* 🔍 THANH TÌM KIẾM SẢN PHẨM */}
-      {/* 🔍 THANH TÌM KIẾM + NÚT XEM TẤT CẢ TRÊN CÙNG MỘT HÀNG */}
       <div className="mb-6 flex items-center gap-4">
-        {/* SEARCH INPUT – chiếm tối đa */}
-        <div className="flex-1">
-          <AutoComplete
-            value={searchValue}
-            options={searchOptions}
-            onSearch={handleSearchProducts}
-            onSelect={handleSelectProduct}
-            onChange={(value) => setSearchValue(value)}
-            allowClear
-            onClear={handleClearSearch}
-            className="w-full"
-          >
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm sản phẩm theo tên hoặc ID để xem đánh giá..."
-            />
-          </AutoComplete>
-        </div>
-
-        {/* BUTTON – chỉ hiển thị khi đang xem 1 sản phẩm */}
-        <Button
-          type="primary"
-          onClick={handleClearSearch}
-          className="flex-shrink-0"
+        <AutoComplete
+          value={searchValue}
+          options={searchOptions}
+          onSearch={handleSearchProducts}
+          onSelect={handleSelectProduct}
+          onChange={(value) => setSearchValue(value)}
+          allowClear
+          onClear={handleClearSearch}
+          style={{ width: 300 }}
         >
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Tìm kiếm sản phẩm..."
+          />
+        </AutoComplete>
+
+        <Button type="primary" onClick={handleClearSearch}>
           Xem tất cả
         </Button>
       </div>

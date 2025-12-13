@@ -20,7 +20,6 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        {/* ✅ Bọc SearchProvider ở đây để Header & Products dùng chung */}
         <Router>
           <ScrollToTop />
           <Layout>

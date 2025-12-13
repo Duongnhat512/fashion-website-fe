@@ -35,22 +35,27 @@ const PaymentPage = () => {
     note: "",
     paymentMethod: "cod",
   });
-  // const [loadingProfile, setLoadingProfile] = useState(false);
+
+  const [allProvinces, setAllProvinces] = useState<any[]>([]);
+  const [provinceSuggestions, setProvinceSuggestions] = useState<any[]>([]);
+  const [wardSuggestions, setWardSuggestions] = useState<any[]>([]);
+  const [showProvinceSuggestions, setShowProvinceSuggestions] = useState(false);
+  const [showWardSuggestions, setShowWardSuggestions] = useState(false);
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<
+    number | null
+  >(null);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
 
-  // Voucher states
   const [voucherModalVisible, setVoucherModalVisible] = useState(false);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [voucherDiscount, setVoucherDiscount] = useState(0);
 
-  // ✅ Lấy thông tin người dùng từ API
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.id) {
         try {
-          // setLoadingProfile(true);
           const profile = await authService.getUserProfile(user.id);
           setForm((prev) => ({
             ...prev,
@@ -65,14 +70,77 @@ const PaymentPage = () => {
             phone: user.phone || "",
           }));
         } finally {
-          // setLoadingProfile(false);
         }
       }
     };
     fetchUserProfile();
   }, [user]);
 
-  // ✅ Nhận dữ liệu từ CartPage
+  useEffect(() => {
+    const fetchAllProvinces = async () => {
+      try {
+        const response = await fetch("https://provinces.open-api.vn/api/v2/p/");
+        const data = await response.json();
+        setAllProvinces(data);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách tỉnh thành:", error);
+      }
+    };
+    fetchAllProvinces();
+  }, []);
+
+  useEffect(() => {
+    const searchProvinces = async () => {
+      if (form.city.length > 0) {
+        try {
+          const response = await fetch(
+            `https://provinces.open-api.vn/api/v2/p/?search=${encodeURIComponent(
+              form.city
+            )}`
+          );
+          const data = await response.json();
+          setProvinceSuggestions(data || []);
+        } catch (error) {
+          console.error("Lỗi khi tìm kiếm tỉnh thành:", error);
+        }
+      } else {
+        setProvinceSuggestions(allProvinces);
+      }
+    };
+
+    const timer = setTimeout(searchProvinces, 300);
+    return () => clearTimeout(timer);
+  }, [form.city, allProvinces]);
+
+  useEffect(() => {
+    const searchWards = async () => {
+      if (selectedProvinceCode) {
+        try {
+          if (form.ward.length > 0) {
+            const response = await fetch(
+              `https://provinces.open-api.vn/api/v2/w/?search=${encodeURIComponent(
+                form.ward
+              )}&province=${selectedProvinceCode}`
+            );
+            const data = await response.json();
+            setWardSuggestions(data || []);
+          } else {
+            const response = await fetch(
+              `https://provinces.open-api.vn/api/v2/p/${selectedProvinceCode}?depth=2`
+            );
+            const data = await response.json();
+            setWardSuggestions(data.wards || []);
+          }
+        } catch (error) {
+          console.error("Lỗi khi tìm kiếm phường/xã:", error);
+        }
+      }
+    };
+
+    const timer = setTimeout(searchWards, 300);
+    return () => clearTimeout(timer);
+  }, [form.ward, selectedProvinceCode]);
+
   useEffect(() => {
     if (location.state) {
       if (location.state.selectedItem) {
@@ -113,11 +181,10 @@ const PaymentPage = () => {
     });
   };
 
-  // Voucher functions
   const loadVouchers = async () => {
     try {
       setLoadingVouchers(true);
-      const response = await voucherService.getAll(1, 50, undefined, true); // Load active vouchers
+      const response = await voucherService.getAll(1, 50, undefined, true);
       setVouchers(response.data);
     } catch (error) {
       console.error("Lỗi khi tải danh sách voucher:", error);
@@ -132,19 +199,16 @@ const PaymentPage = () => {
   };
 
   const handleSelectVoucher = (voucher: Voucher) => {
-    // Check if voucher is expired
     if (new Date(voucher.endDate) < new Date()) {
       notify.error("Voucher đã hết hạn");
       return;
     }
 
-    // Check if voucher usage limit reached
     if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit) {
       notify.error("Voucher đã hết lượt sử dụng");
       return;
     }
 
-    // Check minimum order value
     if (total < (voucher.minOrderValue || 0)) {
       notify.error(
         `Đơn hàng phải có giá trị tối thiểu ${formatCurrency(
@@ -170,6 +234,37 @@ const PaymentPage = () => {
     if (!user || !user.id || !user.fullname || !user.email) {
       notify.error("Vui lòng đăng nhập trước khi đặt hàng!");
       navigate("/login");
+      return;
+    }
+
+    if (!form.name.trim()) {
+      notify.error("Vui lòng nhập họ tên!");
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      notify.error("Vui lòng nhập số điện thoại!");
+      return;
+    }
+
+    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+    if (!phoneRegex.test(form.phone.trim())) {
+      notify.error("Số điện thoại không hợp lệ!");
+      return;
+    }
+
+    if (!form.city.trim()) {
+      notify.error("Vui lòng nhập tỉnh/thành phố!");
+      return;
+    }
+
+    if (!form.ward.trim()) {
+      notify.error("Vui lòng nhập phường/xã!");
+      return;
+    }
+
+    if (!form.address.trim()) {
+      notify.error("Vui lòng nhập địa chỉ!");
       return;
     }
 
@@ -457,62 +552,159 @@ const PaymentPage = () => {
 
           {/* --- Form thông tin --- */}
           <div>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleFormChange}
-              placeholder="Họ tên"
-              className="w-full p-3 border rounded-md mb-4"
-            />
-            <input
-              type="text"
-              name="phone"
-              value={form.phone}
-              onChange={handleFormChange}
-              placeholder="Số điện thoại"
-              className="w-full p-3 border rounded-md mb-4"
-            />
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Họ tên <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleFormChange}
+                placeholder="Nhập họ tên"
+                className="w-full p-3 border rounded-md"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Số điện thoại <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="phone"
+                value={form.phone}
+                onChange={handleFormChange}
+                placeholder="Nhập số điện thoại"
+                className="w-full p-3 border rounded-md"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tỉnh/Thành phố <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  name="city"
+                  value={form.city}
+                  onChange={handleFormChange}
+                  onFocus={() => {
+                    if (form.city.length === 0) {
+                      setProvinceSuggestions(allProvinces);
+                    }
+                    setShowProvinceSuggestions(true);
+                  }}
+                  onBlur={() =>
+                    setTimeout(() => setShowProvinceSuggestions(false), 200)
+                  }
+                  placeholder="Chọn tỉnh/thành phố"
+                  className="w-full p-3 border rounded-md"
+                  autoComplete="off"
+                />
+                {showProvinceSuggestions && provinceSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {provinceSuggestions.map((province) => (
+                      <div
+                        key={province.code}
+                        className="p-3 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setForm({
+                            ...form,
+                            city: province.name,
+                            district: "",
+                            ward: "",
+                          });
+                          setSelectedProvinceCode(province.code);
+                          setShowProvinceSuggestions(false);
+                        }}
+                      >
+                        {province.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <input
               type="text"
-              name="city"
-              value={form.city}
-              onChange={handleFormChange}
-              placeholder="Tỉnh/Thành phố"
-              className="w-full p-3 border rounded-md mb-4"
-            />
-            <input
-              type="text"
               name="district"
+              hidden={true}
               value={form.district}
               onChange={handleFormChange}
               placeholder="Quận/Huyện"
               className="w-full p-3 border rounded-md mb-4"
             />
-            <input
-              type="text"
-              name="ward"
-              value={form.ward}
-              onChange={handleFormChange}
-              placeholder="Phường/Xã"
-              className="w-full p-3 border rounded-md mb-4"
-            />
-            <input
-              type="text"
-              name="address"
-              value={form.address}
-              onChange={handleFormChange}
-              placeholder="Địa chỉ"
-              className="w-full p-3 border rounded-md mb-4"
-            />
-            <textarea
-              name="note"
-              value={form.note}
-              onChange={handleFormChange}
-              placeholder="Ghi chú"
-              className="w-full p-3 border rounded-md mb-4"
-            />
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phường/Xã <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  name="ward"
+                  value={form.ward}
+                  onChange={handleFormChange}
+                  onFocus={() => setShowWardSuggestions(true)}
+                  onBlur={() =>
+                    setTimeout(() => setShowWardSuggestions(false), 200)
+                  }
+                  placeholder="Chọn phường/xã"
+                  disabled={!selectedProvinceCode}
+                  className="w-full p-3 border rounded-md disabled:bg-gray-100"
+                  autoComplete="off"
+                />
+                {showWardSuggestions && wardSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {wardSuggestions.map((ward) => (
+                      <div
+                        key={ward.code}
+                        className="p-3 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setForm({
+                            ...form,
+                            ward: ward.name,
+                          });
+                          setShowWardSuggestions(false);
+                        }}
+                      >
+                        {ward.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Địa chỉ <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="address"
+                value={form.address}
+                onChange={handleFormChange}
+                placeholder="Nhập địa chỉ cụ thể"
+                className="w-full p-3 border rounded-md"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ghi chú
+              </label>
+              <textarea
+                name="note"
+                value={form.note}
+                onChange={handleFormChange}
+                placeholder="Ghi chú (tùy chọn)"
+                className="w-full p-3 border rounded-md"
+              />
+            </div>
 
             <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
               <input

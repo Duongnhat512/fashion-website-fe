@@ -89,7 +89,7 @@ class ReviewService {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true', // thêm header này để bỏ cảnh báo ngrok
+        'ngrok-skip-browser-warning': 'true', 
       },
     });
 
@@ -106,13 +106,10 @@ class ReviewService {
 }
 
 
-  /**
-   * Tạo review mới
-   */
+
   async createReview(data: CreateReviewDto | FormData, token: string): Promise<Review> {
     try {
       if (data instanceof FormData) {
-        // Handle FormData for reviews with images
         const response = await fetch(
           `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.CREATE}`,
           {
@@ -132,7 +129,6 @@ class ReviewService {
         const result = await response.json();
         return result.data;
       } else {
-        // Handle JSON data
         const response = await fetch(
           `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REVIEWS.CREATE}`,
           {
@@ -159,9 +155,7 @@ class ReviewService {
     }
   }
 
-  /**
-   * Cập nhật review
-   */
+
   async updateReview(
     reviewId: string,
     data: { rating?: number; comment?: string; images?: File[] },
@@ -209,9 +203,7 @@ class ReviewService {
     }
   }
 
-  /**
-   * Xóa review
-   */
+
   async deleteReview(reviewId: string, token: string): Promise<void> {
     try {
       const response = await fetch(

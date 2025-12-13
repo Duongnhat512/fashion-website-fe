@@ -109,7 +109,6 @@ export default function TaxReport() {
         throw new Error("Invalid report type");
       }
 
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -133,7 +132,6 @@ export default function TaxReport() {
     try {
       const blob = await taxService.exportCITReport(selectedYear);
 
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -151,7 +149,6 @@ export default function TaxReport() {
     try {
       const blob = await taxService.exportFinancialReport(selectedYear);
 
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

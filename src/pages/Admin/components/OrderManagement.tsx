@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Button, Space, Modal, Pagination, Checkbox } from "antd";
+import {
+  Table,
+  Tag,
+  Button,
+  Space,
+  Modal,
+  Pagination,
+  Checkbox,
+  Input,
+} from "antd";
 import {
   EyeOutlined,
   CheckCircleOutlined,
   CarOutlined,
   FileTextOutlined,
   PrinterOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import { orderService } from "../../../services/orderService";
 import type { OrderResponse } from "../../../services/orderService";
@@ -20,6 +30,7 @@ const OrderManagement: React.FC = () => {
   );
   const [modalVisible, setModalVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchText, setSearchText] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -31,23 +42,28 @@ const OrderManagement: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Filter orders based on statusFilter
-    const filtered =
+    let filtered =
       statusFilter === "all"
         ? allOrders
         : allOrders.filter((order) => order.status === statusFilter);
 
+    // Lọc theo tìm kiếm mã đơn hàng
+    if (searchText.trim()) {
+      filtered = filtered.filter((order) =>
+        order.id.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+
     setOrders(filtered);
     setTotalOrders(filtered.length);
-    setCurrentPage(1); // Reset to first page when filter changes
-    setSelectedOrders([]); // Reset selected orders when filter changes
-  }, [statusFilter, allOrders]);
+    setCurrentPage(1);
+    setSelectedOrders([]);
+  }, [statusFilter, allOrders, searchText]);
 
   const fetchAllOrders = async () => {
     try {
       setLoading(true);
-      // Fetch all orders without pagination for client-side filtering
-      const data = await orderService.getAllOrders(1000, 1); // Large limit to get all orders
+      const data = await orderService.getAllOrders(1000, 1);
       setAllOrders(data.orders);
     } catch (error) {
       notify.error("Không thể tải danh sách đơn hàng");
@@ -83,7 +99,7 @@ const OrderManagement: React.FC = () => {
     try {
       await orderService.markOrderAsReadyToShip(orderId);
       notify.success("Đã đánh dấu đơn hàng sẵn sàng giao!");
-      fetchAllOrders(); // Refresh all orders
+      fetchAllOrders();
     } catch (error) {
       notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
@@ -94,7 +110,7 @@ const OrderManagement: React.FC = () => {
     try {
       await orderService.markOrderAsDelivered(orderId);
       notify.success("Đã xác nhận đơn hàng đã giao!");
-      fetchAllOrders(); // Refresh all orders
+      fetchAllOrders();
     } catch (error) {
       notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
@@ -105,7 +121,7 @@ const OrderManagement: React.FC = () => {
     try {
       await orderService.markOrderAsShipping(orderId);
       notify.success("Đã xác nhận đơn hàng đang giao!");
-      fetchAllOrders(); // Refresh all orders
+      fetchAllOrders();
     } catch (error) {
       notify.error("Không thể cập nhật trạng thái đơn hàng");
       console.error(error);
@@ -139,7 +155,7 @@ const OrderManagement: React.FC = () => {
       const blob = await orderService.getInvoicesData(selectedOrders);
       const url = URL.createObjectURL(blob);
 
-      window.open(url, "_blank"); // mở tab mới xem PDF
+      window.open(url, "_blank");
     } catch (err) {
       notify.error("Không thể xem hóa đơn");
     } finally {
@@ -157,7 +173,6 @@ const OrderManagement: React.FC = () => {
       setInvoiceLoading(true);
       const blob = await orderService.downloadInvoicesBatch(selectedOrders);
 
-      // Tạo URL cho blob và tải xuống
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -239,9 +254,8 @@ const OrderManagement: React.FC = () => {
       title: "Mã đơn hàng",
       dataIndex: "id",
       key: "id",
-      render: (id: string) => (
-        <span className="font-mono text-xs">{id.slice(0, 8)}...</span>
-      ),
+      width: 200,
+      render: (id: string) => <span className="font-mono text-xs">{id}</span>,
     },
     {
       title: "Khách hàng",
@@ -283,12 +297,16 @@ const OrderManagement: React.FC = () => {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+      sorter: (a: OrderResponse, b: OrderResponse) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend" as const,
     },
     {
       title: "Hành động",
       key: "actions",
+      width: 150,
       render: (_: any, record: OrderResponse) => (
-        <Space direction="vertical" size="small">
+        <Space direction="vertical" size="small" style={{ width: "100%" }}>
           <Button
             type="primary"
             icon={<EyeOutlined />}
@@ -344,8 +362,16 @@ const OrderManagement: React.FC = () => {
 
   return (
     <div>
-      {/* Bộ lọc trạng thái */}
-      <div className="mb-6 flex gap-3 flex-wrap">
+      {/* Thanh tìm kiếm */}
+      <div className="mb-4 flex items-center gap-4">
+        <Input
+          placeholder="Tìm kiếm theo mã đơn hàng..."
+          prefix={<SearchOutlined className="text-gray-400" />}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          allowClear
+          style={{ width: 300 }}
+        />
         <Button
           type="primary"
           onClick={() => fetchAllOrders()}
@@ -353,6 +379,10 @@ const OrderManagement: React.FC = () => {
         >
           Làm mới
         </Button>
+      </div>
+
+      {/* Bộ lọc trạng thái */}
+      <div className="mb-6 flex gap-3 flex-wrap">
         {(() => {
           const counts = getStatusCounts();
           return (
@@ -507,10 +537,6 @@ const OrderManagement: React.FC = () => {
               <p>
                 <strong>Phường/Xã:</strong>{" "}
                 {selectedOrder.shippingAddress?.ward || "N/A"}
-              </p>
-              <p>
-                <strong>Quận/Huyện:</strong>{" "}
-                {selectedOrder.shippingAddress?.district || "N/A"}
               </p>
               <p>
                 <strong>Tỉnh/TP:</strong>{" "}

@@ -69,7 +69,6 @@ class UserService {
     }
   }
 
-  // Lấy danh sách tất cả người dùng
   async getAllUsers(): Promise<User[]> {
     return this.makeRequest<User[]>('/users', {
       method: 'GET',
@@ -80,16 +79,13 @@ class UserService {
     });
   }
 
-  // Cập nhật thông tin người dùng (sử dụng authService)
   async updateUser(userId: string, data: UpdateUserRequest): Promise<void> {
-    // Sử dụng hàm updateUser từ authService
     await authService.updateUser({
       id: userId,
       ...data,
     });
   }
 
-  // Vô hiệu hóa/kích hoạt người dùng
   async toggleUserStatus(userId: string, status: boolean): Promise<void> {
     await this.makeRequest<void>(`/users/${userId}`, {
       method: 'PUT',

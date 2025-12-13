@@ -3,10 +3,9 @@ import { API_CONFIG } from "../config/api.config";
 export interface CreatePaymentRequest {
   orderId: string;
   amount: number;
-  // bankCode?: string;
   orderDescription?: string;
   orderType?: string;
-  language?: string; // 'vn' | 'en'
+  language?: string;
 }
 
 export interface CreatePaymentResponse {
@@ -32,7 +31,6 @@ class PaymentService {
         throw new Error(json.message || `HTTP error ${response.status}`);
       }
 
-      // 🧠 Backend trả về: { success, message, data: { response: "<paymentUrl>" } }
       const paymentUrl = json?.data?.response || json?.data?.paymentUrl;
       if (!paymentUrl) {
         throw new Error("Không tìm thấy link thanh toán trong phản hồi từ server");
@@ -45,7 +43,6 @@ class PaymentService {
     }
   }
 
-  // 🟢 Gọi API tạo link thanh toán
   async createPaymentUrl(data: CreatePaymentRequest): Promise<CreatePaymentResponse> {
     const token = localStorage.getItem("authToken");
 

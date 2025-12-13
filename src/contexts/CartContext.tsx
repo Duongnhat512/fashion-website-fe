@@ -100,7 +100,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  // 🧩 Cập nhật số lượng sản phẩm
   const handleUpdateQuantity = async (cartKey: string, qty: number) => {
     if (!user) return;
 
@@ -109,7 +108,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     const updatedItem = {
       productId: item.productId,
-      variantId: item.variantId ?? "", // ✅ fix type
+      variantId: item.variantId ?? "",
       quantity: qty,
     };
 
@@ -123,7 +122,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  // 🗑️ Xóa sản phẩm khỏi giỏ hàng
   const handleRemoveFromCart = async (cartKey: string) => {
     if (!user) return;
 
@@ -132,26 +130,24 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     const itemToRemove = {
       productId: item.productId,
-      variantId: item.variantId ?? "", // ✅ fix type
+      variantId: item.variantId ?? "",
       quantity: item.qty,
     };
 
     try {
       const response = await cartService.removeItemFromCart(itemToRemove);
       if (response.success) {
-        dispatch(removeFromCart(cartKey)); // Cập nhật Redux local
+        dispatch(removeFromCart(cartKey));
       }
     } catch (error) {
       console.error("Lỗi khi xóa sản phẩm:", error);
     }
   };
 
-  // 🧹 Xóa toàn bộ giỏ hàng
   const handleClearCart = async () => {
     if (!user) return;
 
     try {
-      // Xóa từng item trong giỏ hàng
       for (const item of cart) {
         await cartService.removeItemFromCart({
           productId: item.productId,
@@ -165,7 +161,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  // 🛒 Thêm sản phẩm vào giỏ hàng
   const addToCart = async (product: any, qty: number = 1) => {
     if (!user) {
       notify.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
@@ -192,7 +187,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       qty,
       image: variant?.imageUrl || product.imageUrl,
       productId: product.id,
-      variantId: variant?.id ?? "", // ✅ fix type
+      variantId: variant?.id ?? "",
       variant: variant
         ? {
             id: variant.id,
@@ -206,7 +201,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       const response = await cartService.addItemToCart({
         productId: cartItem.productId,
-        variantId: cartItem.variantId ?? "", // ✅ fix undefined
+        variantId: cartItem.variantId ?? "",
         quantity: cartItem.qty,
       });
 

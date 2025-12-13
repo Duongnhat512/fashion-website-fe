@@ -25,7 +25,6 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate("/", { replace: true });
@@ -38,7 +37,6 @@ export default function LoginPage() {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({
         ...prev,
@@ -80,10 +78,8 @@ export default function LoginPage() {
         password: formData.password,
       });
 
-      // Use AuthContext to update global state
       login(response.user, response.accessToken);
 
-      // Navigate to home page
       navigate("/");
     } catch (error) {
       console.error("Login error:", error);

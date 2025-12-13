@@ -70,13 +70,11 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalOrders, setTotalOrders] = useState(0);
   const [paginationInfo, setPaginationInfo] = useState<any>(null);
 
-  // Review modal states
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewingProduct, setReviewingProduct] = useState<any>(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -84,19 +82,16 @@ const OrdersPage = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewImages, setReviewImages] = useState<any[]>([]);
 
-  // Invoice modal states
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
 
-  // Cancel order modal states
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
     null
   );
   const [cancellingOrder, setCancellingOrder] = useState(false);
 
-  // Confirm completed modal states
   const [confirmCompletedModalOpen, setConfirmCompletedModalOpen] =
     useState(false);
   const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(
@@ -110,7 +105,6 @@ const OrdersPage = () => {
         setLoading(true);
 
         if (activeTab === "all") {
-          // Use pagination for "all" tab
           const result = await orderService.getUserOrders(
             user.id,
             pageSize,
@@ -126,7 +120,6 @@ const OrdersPage = () => {
             setPaginationInfo(null);
           }
         } else {
-          // For status tabs, fetch all and filter (no pagination for simplicity)
           const result = await orderService.getUserOrders(user.id);
           if (result && result.orders && Array.isArray(result.orders)) {
             const filteredOrders = result.orders.filter(
@@ -164,7 +157,6 @@ const OrdersPage = () => {
         amount,
         orderDescription: `Thanh toán cho đơn hàng ${orderId}`,
         orderType: "billpayment",
-        // bankCode: "NCB",
         language: "vn",
       });
       const paymentUrl =
@@ -190,7 +182,6 @@ const OrdersPage = () => {
       setCancellingOrder(true);
       await orderService.cancelOrder(cancellingOrderId);
       notify.success("Đã hủy đơn hàng!");
-      // Cập nhật trạng thái đơn hàng thành cancelled thay vì xóa
       setOrders((prev) =>
         prev.map((o) =>
           o.id === cancellingOrderId
@@ -219,7 +210,6 @@ const OrdersPage = () => {
       setConfirmingCompleted(true);
       await orderService.confirmOrderAsCompleted(confirmingOrderId);
       notify.success("Đã xác nhận nhận hàng thành công!");
-      // Cập nhật trạng thái đơn hàng trong danh sách
       setOrders((prev) =>
         prev.map((o) =>
           o.id === confirmingOrderId
@@ -236,13 +226,10 @@ const OrdersPage = () => {
     }
   };
 
-  // Open review modal - fetch order details first
   const openReviewModal = async (orderId: string, product: any) => {
     try {
-      // Gọi API để lấy chi tiết đơn hàng
       const orderDetail = await orderService.getOrderById(orderId);
 
-      // Tìm sản phẩm trong đơn hàng để có đầy đủ thông tin
       const productInOrder = orderDetail.items.find(
         (item: any) => item.product?.id === product.id
       );
@@ -270,7 +257,6 @@ const OrdersPage = () => {
     }
   };
 
-  // Close review modal
   const closeReviewModal = () => {
     setReviewModalOpen(false);
     setReviewingProduct(null);
@@ -279,7 +265,6 @@ const OrdersPage = () => {
     setReviewImages([]);
   };
 
-  // Submit review
   const handleSubmitReview = async () => {
     if (!reviewingProduct) return;
 
@@ -348,7 +333,6 @@ const OrdersPage = () => {
     }
   };
 
-  // Download invoice
   const handleDownloadInvoice = async (orderId: string) => {
     try {
       setLoadingInvoice(true);
@@ -374,7 +358,6 @@ const OrdersPage = () => {
     }
   };
 
-  // Close invoice modal
   const closeInvoiceModal = () => {
     setInvoiceModalOpen(false);
     setInvoiceData(null);
@@ -396,7 +379,7 @@ const OrdersPage = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 setActiveTab(tab.value);
-                setCurrentPage(1); // Reset to page 1 when changing tabs
+                setCurrentPage(1);
               }}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                 activeTab === tab.value

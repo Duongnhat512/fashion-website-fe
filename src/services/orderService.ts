@@ -72,7 +72,6 @@ class OrderService {
     }
   }
 
-  // 🟢 Tạo đơn hàng
   async createOrder(orderData: CreateOrderRequest): Promise<OrderResponse> {
     const token = localStorage.getItem('authToken');
     const body = {
@@ -92,7 +91,6 @@ class OrderService {
     });
   }
 
-  // 🟢 Lấy tất cả đơn hàng (Admin)
   async getAllOrders(limit?: number, page?: number): Promise<{orders: OrderResponse[], pagination?: any}> {
     const token = localStorage.getItem('authToken');
     let url = API_CONFIG.ENDPOINTS.ORDERS.GET_ALL;
@@ -110,11 +108,10 @@ class OrderService {
       headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
     });
 
-    // API trả về {orders: OrderResponse[], pagination: {...}}
+
     return result;
   }
 
-  // 🟢 Lấy danh sách đơn hàng của user (đã sửa đúng)
   async getUserOrders(userId: string, limit?: number, page?: number): Promise<{orders: OrderResponse[], pagination?: any}> {
     const token = localStorage.getItem('authToken');
     let url = API_CONFIG.ENDPOINTS.ORDERS.GET_USER_ORDERS.replace(':userId', userId);
@@ -132,11 +129,9 @@ class OrderService {
       headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
     });
 
-    // API trả về {orders: OrderResponse[], pagination: {...}}
     return result;
   }
 
-  // 🟢 Lấy chi tiết đơn hàng
   async getOrderById(orderId: string): Promise<OrderResponse> {
     const token = localStorage.getItem('authToken');
     const url = API_CONFIG.ENDPOINTS.ORDERS.GET_BY_ID.replace(':id', orderId);
@@ -147,7 +142,6 @@ class OrderService {
     });
   }
 
-  // 🟢 Cập nhật đơn hàng
   async updateOrder(orderData: CreateOrderRequest): Promise<OrderResponse> {
     const token = localStorage.getItem('authToken');
 
@@ -158,7 +152,6 @@ class OrderService {
     });
   }
 
-  // 🟢 Xóa đơn hàng
   async deleteOrder(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
     const url = API_CONFIG.ENDPOINTS.ORDERS.DELETE.replace(':id', orderId);
@@ -169,7 +162,6 @@ class OrderService {
     });
   }
 
-  // 🟢 Hủy đơn hàng
 async cancelOrder(orderId: string): Promise<void> {
   const token = localStorage.getItem('authToken');
   const url = API_CONFIG.ENDPOINTS.ORDERS.CANCEL.replace(':id', orderId);
@@ -177,12 +169,11 @@ async cancelOrder(orderId: string): Promise<void> {
   return this.makeRequest<void>(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ reason: 'User cancelled the order' }), // ✅ gửi body JSON
+    body: JSON.stringify({ reason: 'User cancelled the order' }),
   });
 }
 
 
-  // 🟢 Đánh dấu đã giao
   async markOrderAsDelivered(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
     const url = API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_DELIVERED.replace(':id', orderId);
@@ -190,11 +181,10 @@ async cancelOrder(orderId: string): Promise<void> {
     return this.makeRequest<void>(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
+      body: JSON.stringify({}),
     });
   }
 
-  // 🟢 Sẵn sàng giao hàng
   async markOrderAsReadyToShip(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
     const url = API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_READY_TO_SHIP.replace(':id', orderId);
@@ -202,11 +192,10 @@ async cancelOrder(orderId: string): Promise<void> {
     return this.makeRequest<void>(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
+      body: JSON.stringify({}),
     });
   }
 
-  // 🟢 Xác nhận hoàn thành đơn hàng
   async confirmOrderAsCompleted(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
     const url = API_CONFIG.ENDPOINTS.ORDERS.CONFIRM_AS_COMPLETED.replace(':id', orderId);
@@ -214,10 +203,9 @@ async cancelOrder(orderId: string): Promise<void> {
     return this.makeRequest<void>(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
+      body: JSON.stringify({}),
     });
   }
-  // 🟢 Đánh dấu đơn hàng đang giao
   async markOrderAsShipping(orderId: string): Promise<void> {
     const token = localStorage.getItem('authToken');
     const endpoint = API_CONFIG.ENDPOINTS.ORDERS.MARK_AS_SHIPPING;
@@ -229,11 +217,10 @@ async cancelOrder(orderId: string): Promise<void> {
     return this.makeRequest<void>(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}), // ✅ Thêm body JSON rỗng
+      body: JSON.stringify({}),
     });
   }
 
-  // 🟢 Lấy thông tin hóa đơn hàng loạt (JSON)
 async getInvoicesData(orderIds: string[]): Promise<Blob> {
   const token = localStorage.getItem('authToken');
 
@@ -254,11 +241,10 @@ async getInvoicesData(orderIds: string[]): Promise<Blob> {
     throw new Error("API failed");
   }
 
-  return await response.blob(); // ❗ Trả về BLOB chứ không parse JSON
+  return await response.blob();
 }
 
 
-  // 🟢 Lấy thông tin hóa đơn cho một đơn hàng
   async getInvoice(orderId: string): Promise<any> {
     const token = localStorage.getItem('authToken');
 
@@ -286,7 +272,6 @@ async getInvoicesData(orderIds: string[]): Promise<Blob> {
     return Array.isArray(result) ? result[0] : result;
   }
 
-  // 🟢 Tải xuống hóa đơn hàng loạt
   async downloadInvoicesBatch(orderIds: string[]): Promise<Blob> {
     const token = localStorage.getItem('authToken');
 
@@ -306,7 +291,6 @@ async getInvoicesData(orderIds: string[]): Promise<Blob> {
     return response.blob();
   }
 
-  // 🟢 Tải xuống hóa đơn cho một đơn hàng
   async downloadInvoice(orderId: string): Promise<Blob> {
     const token = localStorage.getItem('authToken');
 

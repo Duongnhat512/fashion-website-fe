@@ -20,16 +20,13 @@ export default function UserDropdown({ user }: UserDropdownProps) {
   const navigate = useNavigate();
   const [forceUpdate, setForceUpdate] = useState(0);
 
-  // Force re-render khi user object thay đổi (bao gồm avatar)
   useEffect(() => {
     setForceUpdate((prev) => prev + 1);
-  }, [user]); // Theo dõi toàn bộ user object thay vì chỉ user.avt
+  }, [user]);
 
-  // Tạo avatar URL với cache busting
   const avatarUrl = user.avt
     ? `${user.avt.split("?")[0]}?t=${Date.now()}&force=${forceUpdate}`
     : null;
-  // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (

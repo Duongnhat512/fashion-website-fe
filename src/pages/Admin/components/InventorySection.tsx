@@ -18,6 +18,7 @@ import {
   InboxOutlined,
   FileTextOutlined,
   EnvironmentOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { warehouseService } from "../../../services/warehouseService";
 import { inventoryService } from "../../../services/inventoryService";
@@ -48,28 +49,23 @@ const InventorySection: React.FC = () => {
   const [enrichedItems, setEnrichedItems] = useState<any[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Warehouse management states
   const [warehouseModalVisible, setWarehouseModalVisible] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
     null
   );
   const [warehouseForm] = Form.useForm();
 
-  // Pagination states
   const [warehouseCurrentPage, setWarehouseCurrentPage] = useState(1);
   const [stockEntryCurrentPage, setStockEntryCurrentPage] = useState(1);
   const [inventoryCurrentPage, setInventoryCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
-  // Stock entry filter state
   const [stockEntryStatusFilter, setStockEntryStatusFilter] =
     useState<string>("all");
 
-  // Inventory filter state
   const [inventoryStockFilter, setInventoryStockFilter] =
     useState<string>("all");
 
-  // Sorting states for inventory
   const [inventorySortField, setInventorySortField] =
     useState<string>("onHand");
   const [inventorySortOrder, setInventorySortOrder] = useState<
@@ -157,7 +153,7 @@ const InventorySection: React.FC = () => {
       name: warehouse.name,
       code: warehouse.code,
       address: warehouse.address,
-      status: warehouse.status || "active", // giữ nguyên status
+      status: warehouse.status || "active",
     });
     setWarehouseModalVisible(true);
   };
@@ -170,13 +166,11 @@ const InventorySection: React.FC = () => {
         productService.getAllProducts(1, 1000),
       ]);
 
-      // Enrich inventory data with product info
       const enrichedInventories = inventoriesData.map((inv: any) => {
         const product = productsData.products.find((p: any) =>
           p.variants?.some((v: any) => v.id === inv.variant?.id)
         );
 
-        // Lấy thông tin color từ product variant
         const fullVariant = product?.variants?.find(
           (v: any) => v.id === inv.variant?.id
         );
@@ -356,6 +350,8 @@ const InventorySection: React.FC = () => {
           {cost?.toLocaleString("vi-VN")}đ
         </span>
       ),
+      sorter: (a: StockEntry, b: StockEntry) =>
+        (a.totalCost || 0) - (b.totalCost || 0),
     },
     {
       title: "Số lượng",
@@ -373,6 +369,19 @@ const InventorySection: React.FC = () => {
           </Tag>
         );
       },
+      sorter: (a: StockEntry, b: StockEntry) => {
+        const qtyA =
+          a.stockEntryItems?.reduce(
+            (sum, item) => sum + (item.quantity || 0),
+            0
+          ) || 0;
+        const qtyB =
+          b.stockEntryItems?.reduce(
+            (sum, item) => sum + (item.quantity || 0),
+            0
+          ) || 0;
+        return qtyA - qtyB;
+      },
     },
     {
       title: "Ghi chú",
@@ -385,9 +394,12 @@ const InventorySection: React.FC = () => {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+      sorter: (a: StockEntry, b: StockEntry) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend" as const,
     },
     {
-      title: "Hành động",
+      title: "Thao tác",
       key: "actions",
       render: (_: any, record: StockEntry) => (
         <Space direction="vertical" size="small">
@@ -450,6 +462,16 @@ const InventorySection: React.FC = () => {
       ),
     },
     {
+      title: "Mã SP",
+      key: "productId",
+      width: 150,
+      render: (_: any, record: any) => (
+        <span className="font-mono text-xs text-gray-600">
+          {record.product?.id || "N/A"}
+        </span>
+      ),
+    },
+    {
       title: "Sản phẩm",
       key: "product",
       width: 250,
@@ -485,6 +507,8 @@ const InventorySection: React.FC = () => {
           )}
         </div>
       ),
+      sorter: (a: any, b: any) =>
+        (a.variant?.price || 0) - (b.variant?.price || 0),
     },
     {
       title: "Kho",
@@ -592,9 +616,12 @@ const InventorySection: React.FC = () => {
       key: "createdAt",
       width: 130,
       render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+      sorter: (a: Warehouse, b: Warehouse) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      defaultSortOrder: "descend" as const,
     },
     {
-      title: "Hành động",
+      title: "Thao tác",
       key: "actions",
       width: 100,
       align: "center" as const,
@@ -606,7 +633,7 @@ const InventorySection: React.FC = () => {
           onClick={() => showEditWarehouseModal(record)}
           block
         >
-          Sửa
+          Cập nhật
         </Button>
       ),
     },
@@ -636,16 +663,17 @@ const InventorySection: React.FC = () => {
             ),
             children: (
               <div>
-                <div className="mb-4 flex justify-end gap-2">
+                <div className="mb-4 flex gap-4">
                   <Button
                     type="primary"
+                    icon={<PlusOutlined />}
                     onClick={() => {
                       setEditingWarehouse(null);
                       warehouseForm.resetFields();
                       setWarehouseModalVisible(true);
                     }}
                   >
-                    Thêm chi nhánh
+                    Tạo chi nhánh
                   </Button>
                   <Button onClick={fetchWarehouses} loading={warehouseLoading}>
                     Làm mới
@@ -693,84 +721,80 @@ const InventorySection: React.FC = () => {
             ),
             children: (
               <div>
-                <div className="mb-4 flex justify-between items-center">
-                  <Space>
-                    <Button
-                      type={
-                        stockEntryStatusFilter === "all" ? "primary" : "default"
-                      }
-                      onClick={() => {
-                        setStockEntryStatusFilter("all");
-                        setStockEntryCurrentPage(1);
-                      }}
-                    >
-                      Tất cả ({stockEntries.length})
-                    </Button>
-                    <Button
-                      type={
-                        stockEntryStatusFilter === "draft"
-                          ? "primary"
-                          : "default"
-                      }
-                      onClick={() => {
-                        setStockEntryStatusFilter("draft");
-                        setStockEntryCurrentPage(1);
-                      }}
-                    >
-                      Nháp (
-                      {stockEntries.filter((e) => e.status === "draft").length})
-                    </Button>
-                    <Button
-                      type={
-                        stockEntryStatusFilter === "submitted"
-                          ? "primary"
-                          : "default"
-                      }
-                      onClick={() => {
-                        setStockEntryStatusFilter("submitted");
-                        setStockEntryCurrentPage(1);
-                      }}
-                    >
-                      Đã xác nhận (
-                      {
-                        stockEntries.filter((e) => e.status === "submitted")
-                          .length
-                      }
-                      )
-                    </Button>
-                    <Button
-                      type={
-                        stockEntryStatusFilter === "cancelled"
-                          ? "primary"
-                          : "default"
-                      }
-                      onClick={() => {
-                        setStockEntryStatusFilter("cancelled");
-                        setStockEntryCurrentPage(1);
-                      }}
-                    >
-                      Đã hủy (
-                      {
-                        stockEntries.filter((e) => e.status === "cancelled")
-                          .length
-                      }
-                      )
-                    </Button>
-                  </Space>
-                  <Space>
-                    <Button
-                      type="primary"
-                      onClick={() => setCreateModalVisible(true)}
-                    >
-                      Tạo phiếu nhập kho
-                    </Button>
-                    <Button
-                      onClick={fetchWarehouseData}
-                      loading={warehouseLoading}
-                    >
-                      Làm mới
-                    </Button>
-                  </Space>
+                <div className="mb-4 flex items-center gap-4">
+                  <Button
+                    type="primary"
+                    onClick={() => setCreateModalVisible(true)}
+                    icon={<PlusOutlined />}
+                  >
+                    Tạo phiếu nhập kho
+                  </Button>
+                  <Button
+                    type={
+                      stockEntryStatusFilter === "all" ? "primary" : "default"
+                    }
+                    onClick={() => {
+                      setStockEntryStatusFilter("all");
+                      setStockEntryCurrentPage(1);
+                    }}
+                  >
+                    Tất cả ({stockEntries.length})
+                  </Button>
+                  <Button
+                    type={
+                      stockEntryStatusFilter === "draft" ? "primary" : "default"
+                    }
+                    onClick={() => {
+                      setStockEntryStatusFilter("draft");
+                      setStockEntryCurrentPage(1);
+                    }}
+                  >
+                    Nháp (
+                    {stockEntries.filter((e) => e.status === "draft").length})
+                  </Button>
+                  <Button
+                    type={
+                      stockEntryStatusFilter === "submitted"
+                        ? "primary"
+                        : "default"
+                    }
+                    onClick={() => {
+                      setStockEntryStatusFilter("submitted");
+                      setStockEntryCurrentPage(1);
+                    }}
+                  >
+                    Đã xác nhận (
+                    {
+                      stockEntries.filter((e) => e.status === "submitted")
+                        .length
+                    }
+                    )
+                  </Button>
+                  <Button
+                    type={
+                      stockEntryStatusFilter === "cancelled"
+                        ? "primary"
+                        : "default"
+                    }
+                    onClick={() => {
+                      setStockEntryStatusFilter("cancelled");
+                      setStockEntryCurrentPage(1);
+                    }}
+                  >
+                    Đã hủy (
+                    {
+                      stockEntries.filter((e) => e.status === "cancelled")
+                        .length
+                    }
+                    )
+                  </Button>
+
+                  <Button
+                    onClick={fetchWarehouseData}
+                    loading={warehouseLoading}
+                  >
+                    Làm mới
+                  </Button>
                 </div>
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                   <Table
@@ -825,58 +849,56 @@ const InventorySection: React.FC = () => {
             ),
             children: (
               <div>
-                <div className="mb-4 flex justify-between items-center">
-                  <Space>
-                    <Button
-                      type={
-                        inventoryStockFilter === "all" ? "primary" : "default"
-                      }
-                      onClick={() => {
-                        setInventoryStockFilter("all");
-                        setInventoryCurrentPage(1);
-                      }}
-                    >
-                      Tất cả ({inventoryList.length})
-                    </Button>
-                    <Button
-                      type={
-                        inventoryStockFilter === "in_stock"
-                          ? "primary"
-                          : "default"
-                      }
-                      onClick={() => {
-                        setInventoryStockFilter("in_stock");
-                        setInventoryCurrentPage(1);
-                      }}
-                    >
-                      Còn hàng (
-                      {
-                        inventoryList.filter(
-                          (item: any) => (item.onHand || 0) > 0
-                        ).length
-                      }
-                      )
-                    </Button>
-                    <Button
-                      type={
-                        inventoryStockFilter === "out_of_stock"
-                          ? "primary"
-                          : "default"
-                      }
-                      onClick={() => {
-                        setInventoryStockFilter("out_of_stock");
-                        setInventoryCurrentPage(1);
-                      }}
-                    >
-                      Hết hàng (
-                      {
-                        inventoryList.filter(
-                          (item: any) => (item.onHand || 0) === 0
-                        ).length
-                      }
-                      )
-                    </Button>
-                  </Space>
+                <div className="mb-4 flex  items-center gap-4">
+                  <Button
+                    type={
+                      inventoryStockFilter === "all" ? "primary" : "default"
+                    }
+                    onClick={() => {
+                      setInventoryStockFilter("all");
+                      setInventoryCurrentPage(1);
+                    }}
+                  >
+                    Tất cả ({inventoryList.length})
+                  </Button>
+                  <Button
+                    type={
+                      inventoryStockFilter === "in_stock"
+                        ? "primary"
+                        : "default"
+                    }
+                    onClick={() => {
+                      setInventoryStockFilter("in_stock");
+                      setInventoryCurrentPage(1);
+                    }}
+                  >
+                    Còn hàng (
+                    {
+                      inventoryList.filter(
+                        (item: any) => (item.onHand || 0) > 0
+                      ).length
+                    }
+                    )
+                  </Button>
+                  <Button
+                    type={
+                      inventoryStockFilter === "out_of_stock"
+                        ? "primary"
+                        : "default"
+                    }
+                    onClick={() => {
+                      setInventoryStockFilter("out_of_stock");
+                      setInventoryCurrentPage(1);
+                    }}
+                  >
+                    Hết hàng (
+                    {
+                      inventoryList.filter(
+                        (item: any) => (item.onHand || 0) === 0
+                      ).length
+                    }
+                    )
+                  </Button>
                   <Button
                     onClick={fetchInventoryList}
                     loading={warehouseLoading}
@@ -1160,7 +1182,7 @@ const InventorySection: React.FC = () => {
           <div className="flex justify-end gap-3 mt-6">
             <Button onClick={() => setCreateModalVisible(false)}>Hủy</Button>
             <Button type="primary" htmlType="submit">
-              Tạo phiếu
+              Tạo
             </Button>
           </div>
         </Form>
@@ -1342,7 +1364,7 @@ const InventorySection: React.FC = () => {
 
       {/* Modal thêm/sửa chi nhánh */}
       <Modal
-        title={editingWarehouse ? "Cập nhật chi nhánh" : "Thêm chi nhánh mới"}
+        title={editingWarehouse ? "Cập nhật chi nhánh" : "Tạo chi nhánh mới"}
         open={warehouseModalVisible}
         onCancel={() => {
           setWarehouseModalVisible(false);
@@ -1414,7 +1436,7 @@ const InventorySection: React.FC = () => {
               Hủy
             </Button>
             <Button type="primary" htmlType="submit">
-              {editingWarehouse ? "Cập nhật" : "Tạo mới"}
+              {editingWarehouse ? "Cập nhật" : "Tạo"}
             </Button>
           </div>
         </Form>

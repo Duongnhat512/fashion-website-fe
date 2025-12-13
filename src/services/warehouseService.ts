@@ -87,8 +87,7 @@ export interface UpdateStockEntryRequest {
 }
 
 export const warehouseService = {
-  // ============= WAREHOUSE APIs =============
-  // Lấy danh sách kho
+
   getAllWarehouses: async (): Promise<Warehouse[]> => {
     const token = localStorage.getItem("authToken");
     const response = await fetch(
@@ -111,7 +110,6 @@ export const warehouseService = {
     return result.data;
   },
 
-  // Lấy thông tin kho theo ID
   getWarehouseById: async (warehouseId: string): Promise<Warehouse> => {
     const token = localStorage.getItem("authToken");
     const url = API_CONFIG.ENDPOINTS.WAREHOUSES.GET_BY_ID.replace(
@@ -135,7 +133,6 @@ export const warehouseService = {
     return result.data;
   },
 
-  // Tạo kho mới
   createWarehouse: async (data: {
     name: string;
     code: string;
@@ -144,12 +141,11 @@ export const warehouseService = {
   }): Promise<Warehouse> => {
     const token = localStorage.getItem("authToken");
     
-    // Giữ nguyên format status
     const requestData = {
       name: data.name,
       code: data.code,
       address: data.address,
-      status: data.status, // giữ nguyên: active/inactive
+      status: data.status, 
     };
     
     const response = await fetch(
@@ -173,7 +169,6 @@ export const warehouseService = {
     return result.data;
   },
 
-  // Cập nhật thông tin kho
   updateWarehouse: async (data: {
     id: string;
     name: string;
@@ -187,13 +182,12 @@ export const warehouseService = {
       data.id
     );
 
-    // Body chỉ cần các field cần update
     const requestData = {
       id: data.id,
       name: data.name,
       code: data.code,
       address: data.address,
-      status: data.status, // giữ nguyên: active/inactive
+      status: data.status, 
     };
 
     const response = await fetch(`${API_BASE_URL}${url}`, {
@@ -216,10 +210,7 @@ export const warehouseService = {
     return result.data;
   },
 
-  // ============= STOCK ENTRY APIs =============
 
-  // ============= STOCK ENTRY APIs =============
-  // Lấy danh sách phiếu nhập/xuất kho
   getAllStockEntries: async (): Promise<StockEntry[]> => {
     const token = localStorage.getItem("authToken");
     const response = await fetch(
@@ -268,7 +259,7 @@ export const warehouseService = {
     return result.data;
   },
 
-  // Submit phiếu kho (chuyển từ draft sang submitted)
+
   submitStockEntry: async (stockEntryId: string): Promise<void> => {
     const token = localStorage.getItem("authToken");
     const url = API_CONFIG.ENDPOINTS.STOCK_ENTRIES.SUBMIT.replace(
@@ -290,7 +281,6 @@ export const warehouseService = {
     }
   },
 
-  // Cancel phiếu kho
   cancelStockEntry: async (stockEntryId: string): Promise<void> => {
     const token = localStorage.getItem("authToken");
     const url = API_CONFIG.ENDPOINTS.STOCK_ENTRIES.CANCEL.replace(
@@ -316,7 +306,6 @@ export const warehouseService = {
     return await response.json().then((result) => result.data).catch(() => undefined);
   },
 
-  // Cập nhật phiếu kho (chỉ cho draft)
   updateStockEntry: async (
     stockEntryId: string,
     data: UpdateStockEntryRequest

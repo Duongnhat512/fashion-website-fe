@@ -34,7 +34,6 @@ export default function LoginDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Forgot Password states
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotStep, setForgotStep] = useState<ForgotPasswordStep>("email");
   const [forgotEmail, setForgotEmail] = useState("");
@@ -84,7 +83,6 @@ export default function LoginDialog({
     }
   };
 
-  // Forgot Password handlers
   const handleOpenForgotPassword = () => {
     setShowForgotPassword(true);
     setForgotStep("email");

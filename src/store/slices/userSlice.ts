@@ -24,23 +24,19 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    // setUser cập nhật data
     setUser: (state, action: PayloadAction<UserState | null>) => {
       state.data = action.payload;
     },
-    // updateUser chỉ cập nhật state.data nếu không phải null
     updateUser: (state, action: PayloadAction<Partial<UserState>>) => {
       if (state.data) {
         state.data = { ...state.data, ...action.payload };
       }
     },
-    // clearUser đặt data về null
     clearUser: (state) => {
       state.data = null;
     },
   },
 });
 
-// Export các action creators và reducer
 export const { setUser, updateUser, clearUser } = userSlice.actions;
 export default userSlice.reducer;

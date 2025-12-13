@@ -28,7 +28,6 @@ export default function Header() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
-  // Load categories
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -43,7 +42,6 @@ export default function Header() {
     loadCategories();
   }, []);
 
-  // Clear search text khi URL không có search params
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (!params.has("search")) {

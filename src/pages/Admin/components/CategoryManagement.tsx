@@ -11,11 +11,16 @@ import {
   AutoComplete,
   Pagination,
   Select,
+  Upload,
 } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 import { useNotification } from "../../../components/NotificationProvider";
 
-// Hàm chuyển đổi tiếng Việt có dấu sang slug
 const slugify = (str: string): string => {
   const from =
     "àáãảạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệđùúủũụưừứửữựòóỏõọôồốổỗộơờớởỡợìíỉĩịäëïîöüûñçýỳỹỵỷ";
@@ -63,7 +68,6 @@ const CategoryManagement: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const notify = useNotification();
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,11 +75,13 @@ const CategoryManagement: React.FC = () => {
     string | null
   >(null);
 
-  // Form state
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [iconUrl, setIconUrl] = useState("");
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string>("");
+  const [uploadFileList, setUploadFileList] = useState<any[]>([]);
   const [parentId, setParentId] = useState<string | null>(null);
   const [parentName, setParentName] = useState<string>("");
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -93,7 +99,6 @@ const CategoryManagement: React.FC = () => {
 
       if (allResponse.data) {
         console.log("Categories data:", allResponse.data);
-        // Sort by updatedAt or createdAt descending (newest first)
         const sortedData = [...allResponse.data].sort((a: any, b: any) => {
           const dateA =
             a.updatedAt || a.updated_at || a.createdAt || a.created_at;
@@ -127,15 +132,19 @@ const CategoryManagement: React.FC = () => {
       return;
     }
 
+    if (!iconFile && !iconUrl.trim()) {
+      notify.error("Vui lòng chọn ảnh cho danh mục");
+      return;
+    }
+
     setLoading(true);
     try {
       await categoryService.create({
         name: name.trim(),
         slug: slug || slugify(name),
         description: description.trim() || undefined,
-        iconUrl:
-          iconUrl.trim() ||
-          "https://png.pngtree.com/png-clipart/20250516/original/pngtree-vest-icon-with-line-style--fashion-icon-png-image_4167915.png",
+        iconUrl: iconUrl.trim() || undefined,
+        iconFile: iconFile || undefined,
         parent_id: parentId,
       });
 
@@ -157,6 +166,11 @@ const CategoryManagement: React.FC = () => {
       return;
     }
 
+    if (!iconFile && !iconUrl.trim()) {
+      notify.error("Vui lòng chọn ảnh cho danh mục");
+      return;
+    }
+
     setLoading(true);
     try {
       await categoryService.update({
@@ -164,9 +178,8 @@ const CategoryManagement: React.FC = () => {
         name: name.trim(),
         slug: slug || slugify(name),
         description: description.trim() || undefined,
-        iconUrl:
-          iconUrl.trim() ||
-          "https://png.pngtree.com/png-clipart/20250516/original/pngtree-vest-icon-with-line-style--fashion-icon-png-image_4167915.png",
+        iconUrl: iconUrl.trim() || undefined,
+        iconFile: iconFile || undefined,
         parent_id: parentId,
       });
 
@@ -202,8 +215,8 @@ const CategoryManagement: React.FC = () => {
     setSlug(category.slug);
     setDescription(category.description || "");
     setIconUrl(category.iconUrl || "");
+    setIconPreview(category.iconUrl || "");
 
-    // Xử lý parent - API trả về object parent
     if (category.parent) {
       setParentId(category.parent.id);
       setParentName(category.parent.name);
@@ -220,6 +233,9 @@ const CategoryManagement: React.FC = () => {
     setSlug("");
     setDescription("");
     setIconUrl("");
+    setIconFile(null);
+    setIconPreview("");
+    setUploadFileList([]);
     setParentId(null);
     setParentName("");
     setEditingCategory(null);
@@ -227,14 +243,35 @@ const CategoryManagement: React.FC = () => {
 
   const columns = [
     {
-      title: "ID",
+      title: "Mã Danh mục",
       dataIndex: "id",
       key: "id",
-      width: 80,
+      width: 150,
       render: (text: string) => (
         <span style={{ fontFamily: "monospace", fontSize: "12px" }}>
-          {text.substring(0, 8)}...
+          {text.substring(0, 14)}...
         </span>
+      ),
+    },
+    {
+      title: "Ảnh",
+      dataIndex: "iconUrl",
+      key: "icon",
+      width: 80,
+      render: (iconUrl: string) => (
+        <div className="flex justify-center">
+          {iconUrl ? (
+            <img
+              src={iconUrl}
+              alt="Icon"
+              className="w-10 h-10 object-cover rounded"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+              <span className="text-xs text-gray-500">No img</span>
+            </div>
+          )}
+        </div>
       ),
     },
     {
@@ -260,6 +297,22 @@ const CategoryManagement: React.FC = () => {
       },
     },
     {
+      title: "Ngày tạo",
+      key: "createdAt",
+      width: 130,
+      render: (_: any, record: Category) => {
+        const date = record.createdAt || record.created_at;
+        return date ? new Date(date).toLocaleDateString("vi-VN") : "N/A";
+      },
+      sorter: (a: Category, b: Category) => {
+        const dateA = a.createdAt || a.created_at;
+        const dateB = b.createdAt || b.created_at;
+        if (!dateA || !dateB) return 0;
+        return new Date(dateA).getTime() - new Date(dateB).getTime();
+      },
+      defaultSortOrder: "descend" as const,
+    },
+    {
       title: "Thao tác",
       key: "action",
       width: 280,
@@ -272,7 +325,7 @@ const CategoryManagement: React.FC = () => {
             onClick={() => openEditModal(record)}
             size="small"
           >
-            Sửa
+            Cập nhật
           </Button>
           <Button
             type="link"
@@ -301,14 +354,11 @@ const CategoryManagement: React.FC = () => {
     },
   ];
 
-  // Calculate pagination
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
 
-  // Get root categories (categories without parent)
   const rootCategories = allCategories.filter((cat: any) => !cat.parent);
 
-  // Filter categories by search term and selected root category
   const normalizedSearch = searchTerm.trim().toLowerCase();
   let filteredCategories = normalizedSearch
     ? categories.filter(
@@ -318,14 +368,10 @@ const CategoryManagement: React.FC = () => {
       )
     : categories;
 
-  // Further filter by selected root category
   if (selectedRootCategory) {
     filteredCategories = filteredCategories.filter((cat: any) => {
-      // Include the root category itself
       if (cat.id === selectedRootCategory) return true;
-      // Include children of the root category
       if (cat.parent && cat.parent.id === selectedRootCategory) return true;
-      // Include grandchildren (need to check if parent's parent matches)
       if (cat.parent && cat.parent.id) {
         const parentCategory = allCategories.find(
           (c: any) => c.id === cat.parent.id
@@ -342,7 +388,6 @@ const CategoryManagement: React.FC = () => {
     });
   }
 
-  // Sort filtered categories by updatedAt or createdAt descending
   filteredCategories = [...filteredCategories].sort((a: any, b: any) => {
     const dateA = a.updatedAt || a.updated_at || a.createdAt || a.created_at;
     const dateB = b.updatedAt || b.updated_at || b.createdAt || b.created_at;
@@ -356,6 +401,14 @@ const CategoryManagement: React.FC = () => {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex gap-3 items-center">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateModalVisible(true)}
+            size="middle"
+          >
+            Tạo danh mục
+          </Button>
           <Input.Search
             placeholder="Tìm theo tên hoặc slug"
             allowClear
@@ -389,14 +442,6 @@ const CategoryManagement: React.FC = () => {
             ))}
           </Select>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setCreateModalVisible(true)}
-          size="large"
-        >
-          Thêm danh mục
-        </Button>
       </div>
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -407,7 +452,7 @@ const CategoryManagement: React.FC = () => {
           loading={loading}
           childrenColumnName="___children___"
           pagination={false}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1100 }}
         />
       </div>
 
@@ -430,7 +475,7 @@ const CategoryManagement: React.FC = () => {
 
       {/* Modal tạo danh mục */}
       <Modal
-        title="Thêm danh mục mới"
+        title="Tạo danh mục mới"
         open={createModalVisible}
         onOk={handleCreate}
         onCancel={() => {
@@ -469,14 +514,43 @@ const CategoryManagement: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Icon URL
+              Ảnh danh mục <span className="text-red-500">*</span>
             </label>
-            <Input
-              placeholder="Nhập URL icon (để trống sẽ dùng icon mặc định)"
-              value={iconUrl}
-              onChange={(e) => setIconUrl(e.target.value)}
-              size="large"
-            />
+            <Upload
+              listType="picture"
+              maxCount={1}
+              fileList={uploadFileList}
+              beforeUpload={(file) => {
+                setIconFile(file);
+                setIconPreview(URL.createObjectURL(file));
+                setUploadFileList([
+                  {
+                    uid: "-1",
+                    name: file.name,
+                    status: "done",
+                    originFileObj: file,
+                  },
+                ]);
+                return false;
+              }}
+              onRemove={() => {
+                setIconFile(null);
+                setIconPreview("");
+                setUploadFileList([]);
+              }}
+              accept="image/*"
+            >
+              <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+            </Upload>
+            {iconPreview && (
+              <div className="mt-4">
+                <img
+                  src={iconPreview}
+                  alt="Icon preview"
+                  className="w-20 h-20 object-cover rounded"
+                />
+              </div>
+            )}
           </div>
 
           <div>
@@ -517,7 +591,7 @@ const CategoryManagement: React.FC = () => {
 
       {/* Modal sửa danh mục */}
       <Modal
-        title="Chỉnh sửa danh mục"
+        title="Cập nhật danh mục"
         open={editModalVisible}
         onOk={handleEdit}
         onCancel={() => {
@@ -556,14 +630,43 @@ const CategoryManagement: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Icon URL
+              Ảnh danh mục <span className="text-red-500">*</span>
             </label>
-            <Input
-              placeholder="Nhập URL icon (để trống sẽ dùng icon mặc định)"
-              value={iconUrl}
-              onChange={(e) => setIconUrl(e.target.value)}
-              size="large"
-            />
+            <Upload
+              listType="picture"
+              maxCount={1}
+              fileList={uploadFileList}
+              beforeUpload={(file) => {
+                setIconFile(file);
+                setIconPreview(URL.createObjectURL(file));
+                setUploadFileList([
+                  {
+                    uid: "-1",
+                    name: file.name,
+                    status: "done",
+                    originFileObj: file,
+                  },
+                ]);
+                return false;
+              }}
+              onRemove={() => {
+                setIconFile(null);
+                setIconPreview("");
+                setUploadFileList([]);
+              }}
+              accept="image/*"
+            >
+              <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+            </Upload>
+            {iconPreview && (
+              <div className="mt-4">
+                <img
+                  src={iconPreview}
+                  alt="Icon preview"
+                  className="w-20 h-20 object-cover rounded"
+                />
+              </div>
+            )}
           </div>
 
           <div>

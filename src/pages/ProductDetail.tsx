@@ -48,7 +48,6 @@ export default function ProductDetail() {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   useEffect(() => {
-    // Scroll to top khi vào trang
     window.scrollTo(0, 0);
 
     const loadProduct = async () => {
@@ -57,10 +56,8 @@ export default function ProductDetail() {
       setLoading(true);
 
       try {
-        // Kiểm tra xem có product được truyền qua state không
         const stateProduct = location.state?.product as Product | undefined;
 
-        // Hiển thị product từ state trước (nếu có) để tăng tốc độ
         if (stateProduct && stateProduct.slug === slug) {
           setProduct(stateProduct);
           if (stateProduct.variants?.length > 0) {
@@ -72,10 +69,8 @@ export default function ProductDetail() {
             setMainImage(stateProduct.imageUrl);
           }
 
-          // Nếu stateProduct đã đầy đủ (có variants), không cần load lại
           if (stateProduct.variants && stateProduct.categoryId) {
             loadRelatedProducts(stateProduct.name, stateProduct.id);
-            // Ghi nhận người dùng đã xem sản phẩm nếu đã đăng nhập
             if (user) {
               const token = authService.getToken();
               if (token) {
@@ -91,7 +86,6 @@ export default function ProductDetail() {
           }
         }
 
-        // Luôn load lại product đầy đủ từ API để có đầy đủ thông tin
         if (!stateProduct) {
           throw new Error("No product data available");
         }
@@ -123,9 +117,6 @@ export default function ProductDetail() {
     loadProduct();
   }, [slug, navigate]);
 
-  // Load inventory khi chọn variant - REMOVED: lấy stock trực tiếp từ variant
-
-  // Hàm tải sản phẩm liên quan
   const loadRelatedProducts = async (
     productName: string,
     currentProductId: string
@@ -133,25 +124,21 @@ export default function ProductDetail() {
     try {
       const words = productName.trim().split(" ");
 
-      // Thử tìm với 2 từ đầu tiên
       let searchKeyword = words.slice(0, 2).join(" ");
       let response = await productService.searchProducts({
         search: searchKeyword,
         limit: 20,
       });
 
-      // Lọc sản phẩm có chứa chính xác từ khóa tìm kiếm
       let filtered = response.products
         .filter((p) => {
           if (p.id === currentProductId) return false;
           const productNameLower = p.name.toLowerCase();
           const keywordLower = searchKeyword.toLowerCase();
-          // Kiểm tra từ khóa có xuất hiện chính xác trong tên sản phẩm
           return productNameLower.includes(keywordLower);
         })
         .slice(0, 4);
 
-      // Nếu không đủ 4 sản phẩm, thử tìm lại với 1 từ đầu tiên
       if (filtered.length < 4 && words.length > 0) {
         searchKeyword = words[0];
         response = await productService.searchProducts({
@@ -175,7 +162,6 @@ export default function ProductDetail() {
     }
   };
 
-  // Hiển thị loading
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -187,7 +173,6 @@ export default function ProductDetail() {
     );
   }
 
-  // Hiển thị lỗi nếu không có sản phẩm sau khi load xong
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -208,7 +193,6 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = () => {
-    // Kiểm tra đăng nhập trước
     if (!user) {
       notify.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
       setShowLoginDialog(true);
@@ -304,7 +288,6 @@ export default function ProductDetail() {
                                 variant.imageUrl || product.imageUrl
                               );
 
-                            // Ghi nhận người dùng đã xem variant này nếu đã đăng nhập
                             if (user && variant) {
                               const token = authService.getToken();
                               if (token) {
@@ -365,7 +348,6 @@ export default function ProductDetail() {
                           </div>
                         </>
                       ) : (
-                        // Nếu không giảm giá → chỉ hiển thị price
                         <div className="text-4xl font-bold text-gray-900">
                           {selectedVariant?.price.toLocaleString("vi-VN")}₫
                         </div>

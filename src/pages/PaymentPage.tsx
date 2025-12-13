@@ -247,12 +247,6 @@ const PaymentPage = () => {
       return;
     }
 
-    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
-    if (!phoneRegex.test(form.phone.trim())) {
-      notify.error("Số điện thoại không hợp lệ!");
-      return;
-    }
-
     if (!form.city.trim()) {
       notify.error("Vui lòng nhập tỉnh/thành phố!");
       return;

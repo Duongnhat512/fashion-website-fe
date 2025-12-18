@@ -14,6 +14,7 @@ import {
   Button,
   Upload,
   Pagination,
+  Select,
 } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import orderService from "@/services/order/order.service";
@@ -125,7 +126,6 @@ const OrdersPage = () => {
             pageSize,
             currentPage
           );
-          console.log("Fetched orders:", result);
           if (result && result.orders && Array.isArray(result.orders)) {
             setOrders(result.orders);
             setTotalOrders(result.pagination?.total || 0);
@@ -420,37 +420,62 @@ const OrdersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-[1600px] mx-auto bg-white rounded-3xl shadow-xl p-8">
-        <h1 className="text-3xl font-extrabold text-gray-800 mb-8 text-center">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="max-w-[1600px] mx-auto bg-white rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 md:mb-8 text-center">
           🧾 Quản lý đơn hàng
         </h1>
 
-        {/* Tabs */}
-        <div className="flex flex-wrap justify-center gap-3 mb-10">
-          {ORDER_TABS.map((tab) => (
-            <motion.button
-              key={tab.value}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setActiveTab(tab.value);
-                setCurrentPage(1);
-              }}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                activeTab === tab.value
-                  ? "bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-md"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {tab.label}
-            </motion.button>
-          ))}
+        {/* Filter - Mobile: Select, Desktop: Tabs */}
+        <div className="mb-4 md:mb-10">
+          {/* Mobile Select */}
+          <div className="block md:hidden flex justify-center">
+            <div className="w-full max-w-xs">
+              <Select
+                value={activeTab}
+                onChange={(value) => {
+                  setActiveTab(value);
+                  setCurrentPage(1);
+                }}
+                className="w-full"
+                size="large"
+                placeholder="Chọn trạng thái đơn hàng"
+              >
+                {ORDER_TABS.map((tab) => (
+                  <Select.Option key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          {/* Desktop Tabs */}
+          <div className="hidden md:flex flex-wrap justify-center gap-3">
+            {ORDER_TABS.map((tab) => (
+              <motion.button
+                key={tab.value}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setActiveTab(tab.value);
+                  setCurrentPage(1);
+                }}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  activeTab === tab.value
+                    ? "bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {tab.label}
+              </motion.button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
           <div className="flex flex-col justify-center items-center py-20 gap-4">
-            <Spin size="large" tip="Đang tải đơn hàng...">
+            <Spin size="large">
               <div style={{ minHeight: 100 }} />
             </Spin>
           </div>
@@ -460,17 +485,17 @@ const OrdersPage = () => {
             description="Không có đơn hàng nào"
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-4 md:space-y-8">
             {orders.map((order) => (
               <motion.div
                 key={order.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className="border border-gray-200 rounded-2xl p-6 hover:shadow-lg bg-gradient-to-r from-white to-slate-50 transition-all"
+                className="border border-gray-200 rounded-2xl p-4 md:p-6 hover:shadow-lg bg-gradient-to-r from-white to-slate-50 transition-all"
               >
                 {/* Header */}
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 md:mb-3 gap-2 md:gap-0">
                   <div>
                     <p className="font-semibold text-gray-800 text-lg">
                       Mã đơn:{" "}
@@ -500,7 +525,7 @@ const OrdersPage = () => {
                 </div>
                 {/* Shipping address */}
                 {order.shippingAddress && (
-                  <div className="mt-2 text-gray-700 bg-gray-50 p-3 rounded-lg">
+                  <div className="mt-2 text-gray-700 bg-gray-50 p-2 md:p-3 rounded-lg">
                     <p className="text-sm">
                       <strong>Người nhận:</strong>{" "}
                       {order.shippingAddress.fullName}
@@ -525,71 +550,116 @@ const OrdersPage = () => {
                 {/* Items */}
                 <div className="divide-y divide-gray-100">
                   {order.items.map((item: any) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between py-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={
-                            item.variant?.imageUrl ||
-                            item.product?.imageUrl ||
-                            "https://via.placeholder.com/60"
-                          }
-                          alt={item.product?.name}
-                          className="w-16 h-16 rounded-lg object-cover border border-gray-200"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-800">
-                            {item.product?.name}
-                          </p>
+                    <div key={item.id} className="py-3 md:py-4">
+                      {/* Mobile Layout */}
+                      <div className="block md:hidden">
+                        <div className="flex items-start gap-3 mb-2">
+                          <img
+                            src={
+                              item.variant?.imageUrl ||
+                              item.product?.imageUrl ||
+                              "https://via.placeholder.com/60"
+                            }
+                            alt={item.product?.name}
+                            className="w-16 h-16 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 break-words">
+                              {item.product?.name}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
                           <p className="text-sm text-gray-500">
                             SL: {item.quantity} ×{" "}
                             {formatCurrency(item.amount / item.quantity)}
                           </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-purple-600">
+                              {formatCurrency(item.amount)}
+                            </p>
+                            {/* Nút đánh giá cho sản phẩm trong đơn hàng đã hoàn thành */}
+                            {order.status === OrderStatus.COMPLETED && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() =>
+                                  openReviewModal(order.id, item.product)
+                                }
+                                className="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-sm font-semibold rounded-lg shadow hover:opacity-90 transition-all"
+                              >
+                                ⭐ Đánh giá
+                              </motion.button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <p className="font-semibold text-purple-600">
-                          {formatCurrency(item.amount)}
-                        </p>
-                        {/* Nút đánh giá cho sản phẩm trong đơn hàng đã hoàn thành */}
-                        {order.status === OrderStatus.COMPLETED && (
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() =>
-                              openReviewModal(order.id, item.product)
+
+                      {/* Desktop Layout */}
+                      <div className="hidden md:flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 w-auto">
+                          <img
+                            src={
+                              item.variant?.imageUrl ||
+                              item.product?.imageUrl ||
+                              "https://via.placeholder.com/60"
                             }
-                            className="px-4 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-sm font-semibold rounded-lg shadow hover:opacity-90 transition-all"
-                          >
-                            ⭐ Đánh giá
-                          </motion.button>
-                        )}
+                            alt={item.product?.name}
+                            className="w-16 h-16 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 break-words">
+                              {item.product?.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              SL: {item.quantity} ×{" "}
+                              {formatCurrency(item.amount / item.quantity)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 w-auto">
+                          <p className="font-semibold text-purple-600">
+                            {formatCurrency(item.amount)}
+                          </p>
+                          {/* Nút đánh giá cho sản phẩm trong đơn hàng đã hoàn thành */}
+                          {order.status === OrderStatus.COMPLETED && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() =>
+                                openReviewModal(order.id, item.product)
+                              }
+                              className="px-4 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-sm font-semibold rounded-lg shadow hover:opacity-90 transition-all"
+                            >
+                              ⭐ Đánh giá
+                            </motion.button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-gray-100 mt-4 pt-4 flex justify-between items-center">
-                  <p className="text-gray-600">
-                    Tổng cộng ({order.items.length} sản phẩm):
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <p className="text-xl font-bold text-purple-700">
+                <div className="border-t border-gray-100 mt-3 md:mt-4 pt-3 md:pt-4 flex flex-col gap-4 md:gap-0">
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-600">
+                      Tổng cộng ({order.items.length} sản phẩm):
+                    </p>
+                    <p className="text-lg md:text-xl font-bold text-purple-700">
                       {formatCurrency(order.totalAmount)}
                     </p>
-
+                  </div>
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3 w-full md:w-auto md:justify-end">
                     {order.status === OrderStatus.UNPAID && (
-                      <>
+                      <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() =>
                             handlePayNow(order.id, order.totalAmount)
                           }
-                          className="px-5 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all"
+                          className="px-4 py-2 md:px-5 md:py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all w-full md:w-auto"
                         >
                           💳 Thanh toán ngay
                         </motion.button>
@@ -598,11 +668,11 @@ const OrdersPage = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleCancel(order.id)}
-                          className="px-5 py-2 bg-red-500 text-white font-semibold rounded-xl shadow hover:bg-red-600 transition-all"
+                          className="px-4 py-2 md:px-5 md:py-2 bg-red-500 text-white font-semibold rounded-xl shadow hover:bg-red-600 transition-all w-full md:w-auto"
                         >
                           Hủy đơn
                         </motion.button>
-                      </>
+                      </div>
                     )}
 
                     {(order.status === OrderStatus.PENDING ||
@@ -611,7 +681,7 @@ const OrdersPage = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleCancel(order.id)}
-                        className="px-5 py-2 bg-red-500 text-white font-semibold rounded-xl shadow hover:bg-red-600 transition-all"
+                        className="px-4 py-2 md:px-5 md:py-2 bg-red-500 text-white font-semibold rounded-xl shadow hover:bg-red-600 transition-all w-full md:w-auto"
                       >
                         Hủy đơn
                       </motion.button>
@@ -622,7 +692,7 @@ const OrdersPage = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleConfirmCompleted(order.id)}
-                        className="px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all"
+                        className="px-4 py-2 md:px-5 md:py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all w-full md:w-auto"
                       >
                         ✅ Đã nhận hàng
                       </motion.button>
@@ -630,13 +700,13 @@ const OrdersPage = () => {
 
                     {/* Invoice buttons for completed orders */}
                     {order.status === OrderStatus.COMPLETED && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleViewInvoice(order.id)}
                           disabled={loadingInvoice}
-                          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all disabled:opacity-50"
+                          className="px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all disabled:opacity-50 w-full md:w-auto"
                         >
                           📄 Xem hóa đơn
                         </motion.button>
@@ -646,7 +716,7 @@ const OrdersPage = () => {
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleDownloadInvoice(order.id)}
                           disabled={loadingInvoice}
-                          className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all disabled:opacity-50"
+                          className="px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all disabled:opacity-50 w-full md:w-auto"
                         >
                           🖨️ In hóa đơn
                         </motion.button>
@@ -655,7 +725,7 @@ const OrdersPage = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleBuyAgain(order)}
-                          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all"
+                          className="px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all w-full md:w-auto"
                         >
                           🛒 Mua lại
                         </motion.button>
@@ -668,7 +738,7 @@ const OrdersPage = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleBuyAgain(order)}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all"
+                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-all w-full md:w-auto"
                       >
                         🛒 Mua lại
                       </motion.button>
@@ -684,20 +754,23 @@ const OrdersPage = () => {
         {activeTab === "all" &&
           paginationInfo &&
           paginationInfo.totalPages > 1 && (
-            <div className="flex justify-center mt-8">
+            <div className="flex flex-col md:flex-row justify-center items-center mt-6 md:mt-8 gap-4 md:gap-0">
               <Pagination
                 current={currentPage}
                 total={totalOrders}
                 pageSize={pageSize}
                 onChange={(page) => setCurrentPage(page)}
                 showSizeChanger={false}
-                showQuickJumper
-                locale={{ jump_to: "Đi đến trang", page: "" }}
+                showQuickJumper={false}
+                showLessItems
                 showTotal={(total, range) =>
-                  `${range[0]}-${range[1]} của ${total} đơn hàng`
+                  window.innerWidth >= 768
+                    ? `${range[0]}-${range[1]} của ${total} đơn hàng`
+                    : false
                 }
+                className="order-2 md:order-1"
               />
-              <div className="ml-4 text-sm text-gray-500 flex items-center">
+              <div className="order-1 md:order-2 text-sm text-gray-500 flex items-center md:ml-4">
                 Trang {paginationInfo.page}/{paginationInfo.totalPages}
               </div>
             </div>
@@ -947,7 +1020,7 @@ const OrdersPage = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <Spin size="large" tip="Đang tải hóa đơn...">
+            <Spin size="large">
               <div style={{ minHeight: 100 }} />
             </Spin>
           </div>

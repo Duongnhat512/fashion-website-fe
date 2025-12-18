@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { authService } from "@/services/auth/auth.service";
 import { useNotification } from "@/components/common/NotificationProvider";
+import LoginDialog from "@/components/common/LoginDialog";
 
 interface UserProfile {
   id: string;
@@ -43,18 +44,27 @@ export default function UserProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     fullname: "",
     phone: "",
     dob: "",
-    gender: "",
+    gender: "male",
     avt: null,
   });
 
   useEffect(() => {
+    // Wait for auth to be checked
+    setAuthChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (!authChecked) return;
+
     if (!isAuthenticated) {
-      router.replace("/login");
+      setShowLoginDialog(true);
       return;
     }
 
@@ -63,13 +73,14 @@ export default function UserProfilePage() {
 
       try {
         const userProfile = await authService.getUserProfile(authUser.id);
-        setUser(userProfile);
+        // Keep the current role if API doesn't return it correctly
+        setUser({ ...userProfile, role: userProfile.role || authUser.role });
 
         setFormData({
           fullname: userProfile.fullname || "",
           phone: userProfile.phone || "",
           dob: userProfile.dob ? userProfile.dob.split("T")[0] : "",
-          gender: userProfile.gender || "",
+          gender: userProfile.gender || "male",
           avt: null,
         });
 
@@ -81,7 +92,7 @@ export default function UserProfilePage() {
           fullname: fallbackUser.fullname || "",
           phone: fallbackUser.phone || "",
           dob: fallbackUser.dob ? fallbackUser.dob.split("T")[0] : "",
-          gender: fallbackUser.gender || "",
+          gender: fallbackUser.gender || "male",
           avt: null,
         });
         setPreviewImage(fallbackUser.avt || null);
@@ -89,7 +100,7 @@ export default function UserProfilePage() {
     };
 
     loadUserProfile();
-  }, [router, isAuthenticated, authUser]);
+  }, [router, isAuthenticated, authUser, authChecked]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -116,13 +127,24 @@ export default function UserProfilePage() {
     else if (formData.fullname.length < 2)
       newErrors.fullname = "Họ tên phải có ít nhất 2 ký tự";
 
-    if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone))
-      newErrors.phone = "Số điện thoại phải có 10–11 chữ số";
+    if (!formData.phone) newErrors.phone = "Số điện thoại là bắt buộc";
+    else if (!/^0[0-9]{9}$/.test(formData.phone))
+      newErrors.phone = "Số điện thoại phải bắt đầu từ 0 và gồm 10 chữ số";
 
-    if (formData.dob) {
+    if (!formData.dob) newErrors.dob = "Ngày sinh là bắt buộc";
+    else {
       const birthDate = new Date(formData.dob);
-      const age = new Date().getFullYear() - birthDate.getFullYear();
-      if (age < 13 || age > 100) newErrors.dob = "Tuổi phải từ 13 đến 100";
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const dayDiff = today.getDate() - birthDate.getDate();
+
+      const actualAge =
+        monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+
+      if (actualAge < 16) {
+        newErrors.dob = "Bạn phải từ 16 tuổi trở lên";
+      }
     }
 
     setErrors(newErrors);
@@ -138,26 +160,67 @@ export default function UserProfilePage() {
 
     try {
       let avatarUrl = user.avt;
+      let avatarChanged = false;
 
+      // Step 1: Upload avatar if changed
       if (formData.avt) {
-        const uploaded = await authService.updateAvatar(formData.avt);
-        avatarUrl = uploaded.avt;
+        console.log("📤 Uploading avatar...");
+        await authService.updateAvatar(formData.avt);
+
+        // Backend doesn't return avatar URL, need to fetch user profile to get it
+        console.log(
+          "📥 Fetching updated user profile to get new avatar URL..."
+        );
+        const updatedProfile = await authService.getUserProfile(user.id);
+        avatarUrl = updatedProfile.avt;
+        avatarChanged = true;
+        console.log("✅ Avatar uploaded, new URL:", avatarUrl);
       }
 
+      // Step 2: Update all profile information
       const payload: Partial<UserProfile> = {
         id: user.id,
         fullname: formData.fullname,
         phone: formData.phone || undefined,
         dob: formData.dob || undefined,
         gender: formData.gender || undefined,
-        avt: avatarUrl,
       };
 
+      // Only include avatar in payload if it was changed
+      if (avatarChanged) {
+        payload.avt = avatarUrl;
+      }
+
+      console.log("📤 Profile page calling updateUser with payload:", payload);
+      console.log("📤 Avatar changed?", avatarChanged);
+
       await updateUser(payload);
-      setUser({ ...user, ...payload });
+
+      // Update local state to match AuthContext
+      // Don't call getUserProfile as it might return stale data
+      const updatedUser = {
+        ...user,
+        fullname: formData.fullname,
+        phone: formData.phone || undefined,
+        dob: formData.dob || undefined,
+        gender: formData.gender || undefined,
+      };
+
+      // Update avatar if it was changed
+      if (avatarChanged) {
+        updatedUser.avt = avatarUrl;
+      }
+
+      setUser(updatedUser);
+
+      // Update preview image and form data
+      setPreviewImage(avatarUrl || null);
+      setFormData((prev) => ({ ...prev, avt: null }));
+
       setIsEditing(false);
       notify.success("Cập nhật thông tin thành công!");
     } catch (err) {
+      console.error("Update profile error:", err);
       setErrors({ general: "Cập nhật thất bại. Vui lòng thử lại." });
     } finally {
       setIsLoading(false);
@@ -170,7 +233,7 @@ export default function UserProfilePage() {
       fullname: user.fullname || "",
       phone: user.phone || "",
       dob: user.dob ? user.dob.split("T")[0] : "",
-      gender: user.gender || "",
+      gender: user.gender || "male",
       avt: null,
     });
     setPreviewImage(user.avt || null);
@@ -274,7 +337,7 @@ export default function UserProfilePage() {
 
               {/* PHONE */}
               <div>
-                <label className="font-semibold">Số điện thoại</label>
+                <label className="font-semibold">Số điện thoại *</label>
                 {isEditing ? (
                   <input
                     name="phone"
@@ -294,7 +357,7 @@ export default function UserProfilePage() {
 
               {/* DOB */}
               <div>
-                <label className="font-semibold">Ngày sinh</label>
+                <label className="font-semibold">Ngày sinh *</label>
                 {isEditing ? (
                   <input
                     type="date"
@@ -317,19 +380,26 @@ export default function UserProfilePage() {
 
               {/* GENDER */}
               <div>
-                <label className="font-semibold">Giới tính</label>
+                <label className="font-semibold mb-2 block">Giới tính *</label>
                 {isEditing ? (
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    className="w-full mt-1 px-4 py-3 border rounded-xl"
-                  >
-                    <option value="">Chọn giới tính</option>
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                    <option value="other">Khác</option>
-                  </select>
+                  <div className="flex gap-4">
+                    {[
+                      { value: "male", label: "Nam" },
+                      { value: "female", label: "Nữ" },
+                      { value: "other", label: "Khác" },
+                    ].map((g) => (
+                      <label key={g.value} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="gender"
+                          value={g.value}
+                          checked={formData.gender === g.value}
+                          onChange={handleInputChange}
+                        />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
                 ) : (
                   <p className="mt-1 px-4 py-3 border rounded-xl bg-gray-50">
                     {user.gender === "male"
@@ -347,7 +417,7 @@ export default function UserProfilePage() {
               <div>
                 <label className="font-semibold">Vai trò</label>
                 <p className="mt-1 px-4 py-3 border rounded-xl bg-gray-50">
-                  {user.role === "ADMIN" ? "Quản trị viên" : "Người dùng"}
+                  {user.role === "admin" ? "Quản trị viên" : "Người dùng"}
                 </p>
               </div>
             </div>
@@ -389,6 +459,11 @@ export default function UserProfilePage() {
           </div>
         </div>
       </motion.div>
+
+      <LoginDialog
+        open={showLoginDialog}
+        onClose={() => setShowLoginDialog(false)}
+      />
     </div>
   );
 }

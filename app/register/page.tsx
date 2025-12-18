@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNotification } from "@/components/common/NotificationProvider";
 import { EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 import Link from "next/link";
+import LoginDialog from "@/components/common/LoginDialog";
 interface FormData {
   fullName: string;
   email: string;
@@ -54,6 +55,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const notify = useNotification();
 
   useEffect(() => {
@@ -570,12 +572,12 @@ export default function RegisterPage() {
           {currentStep === "form" && (
             <p className="mt-2 text-center text-sm text-gray-600">
               Hoặc{" "}
-              <Link
-                href="/login"
+              <button
+                onClick={() => setShowLoginDialog(true)}
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
                 đăng nhập
-              </Link>
+              </button>
             </p>
           )}
         </div>
@@ -586,6 +588,11 @@ export default function RegisterPage() {
           ? renderOtpVerification()
           : renderSuccess()}
       </motion.div>
+
+      <LoginDialog
+        open={showLoginDialog}
+        onClose={() => setShowLoginDialog(false)}
+      />
     </div>
   );
 }

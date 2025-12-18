@@ -806,10 +806,6 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
                     breakpoint: 768,
                     settings: { slidesToShow: 2 },
                   },
-                  {
-                    breakpoint: 480,
-                    settings: { slidesToShow: 1 },
-                  },
                 ]}
               >
                 {flashSaleProducts.map((p) => (
@@ -865,7 +861,7 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 md:gap-6">
               {newProducts.map((p) => renderNewProductCard(p))}
             </div>
           </div>
@@ -899,7 +895,7 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 md:gap-6">
                 {products.map((p) => renderProductCard(p))}
               </div>
             </div>

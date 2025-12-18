@@ -23,6 +23,7 @@ import {
   type Province,
   type Ward,
 } from "@/lib/addressUtils";
+import LoginDialog from "@/components/common/LoginDialog";
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("vi-VN", {
@@ -46,6 +47,7 @@ const PaymentPage = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -54,7 +56,6 @@ const PaymentPage = () => {
     paymentMethod: "cod",
   });
 
-  // State cho thêm địa chỉ mới
   const [newAddressForm, setNewAddressForm] = useState({
     fullAddress: "",
     city: "",
@@ -80,12 +81,8 @@ const PaymentPage = () => {
   const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [autoAppliedVoucher, setAutoAppliedVoucher] = useState(false);
 
-  // Debug modal visibility
-  useEffect(() => {
-    console.log("successModalVisible changed:", successModalVisible);
-  }, [successModalVisible]);
+  useEffect(() => {}, [successModalVisible]);
 
-  // Tự động điền họ tên và số điện thoại từ user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.id) {
@@ -98,7 +95,6 @@ const PaymentPage = () => {
           }));
         } catch (error) {
           console.error("Lỗi khi lấy thông tin user:", error);
-          // Fallback to user context data
           setForm((prev) => ({
             ...prev,
             fullName: user.fullname || prev.fullName,
@@ -111,7 +107,6 @@ const PaymentPage = () => {
     fetchUserProfile();
   }, [user?.id]);
 
-  // Lấy tất cả địa chỉ của user
   useEffect(() => {
     const fetchAddresses = async () => {
       try {
@@ -119,7 +114,6 @@ const PaymentPage = () => {
         if (response.success && Array.isArray(response.data)) {
           const addresses = response.data as Address[];
           setAllAddresses(addresses);
-          // Tự động chọn địa chỉ mặc định
           const defaultAddr = addresses.find((addr) => addr.isDefault);
           if (defaultAddr) {
             setSelectedAddress(defaultAddr);
@@ -137,7 +131,6 @@ const PaymentPage = () => {
     }
   }, [user]);
 
-  // Load danh sách tỉnh/thành và xử lý tìm kiếm
   useEffect(() => {
     setProvinceSuggestions(getProvinces());
   }, []);
@@ -154,7 +147,6 @@ const PaymentPage = () => {
     }
   }, [selectedProvinceCode, wardInput]);
 
-  // Hàm thêm địa chỉ mới
   const handleAddNewAddress = async () => {
     if (!newAddressForm.fullAddress.trim()) {
       notify.error("Vui lòng nhập địa chỉ cụ thể!");
@@ -184,7 +176,6 @@ const PaymentPage = () => {
       if (response.success) {
         notify.success("Thêm địa chỉ thành công!");
 
-        // Reset form
         setNewAddressForm({
           fullAddress: "",
           city: "",
@@ -196,13 +187,11 @@ const PaymentPage = () => {
         setWardInput("");
         setSelectedProvinceCode("");
 
-        // Refresh danh sách addresses
         const updatedResponse = await addressService.getAllAddresses();
         if (updatedResponse.success && Array.isArray(updatedResponse.data)) {
           const addresses = updatedResponse.data as Address[];
           setAllAddresses(addresses);
 
-          // Tự động chọn địa chỉ vừa thêm
           const newAddress = addresses.find(
             (addr) => addr.fullAddress === newAddressForm.fullAddress
           );
@@ -211,7 +200,6 @@ const PaymentPage = () => {
           }
         }
 
-        // Đóng modal thêm, mở lại modal chọn
         setShowAddAddressModal(false);
         setShowAddressModal(true);
       }
@@ -224,27 +212,22 @@ const PaymentPage = () => {
   };
 
   useEffect(() => {
-    // Load selected cart items from URL params or use all cart items
     if (cart && cart.length > 0) {
       const selectedKeys = searchParams.get("selected")?.split(",") || [];
 
       if (selectedKeys.length > 0) {
-        // Filter cart to only selected items
         const selectedCartItems = cart.filter((item) =>
           selectedKeys.includes(item.cartKey)
         );
         setSelectedItems(selectedCartItems);
       } else {
-        // If no selection specified, use all cart items
         setSelectedItems(cart);
       }
     } else if (!successModalVisible && !isPlacingOrder) {
-      // Only redirect to cart if success modal is not showing and not placing order
       router.push("/cart");
     }
   }, [cart, searchParams, router, successModalVisible, isPlacingOrder]);
 
-  // Calculate total using useMemo to avoid initialization issues
   const total = useMemo(() => {
     if (selectedItem) {
       return selectedItem.price * selectedItem.qty;
@@ -252,7 +235,6 @@ const PaymentPage = () => {
     return selectedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   }, [selectedItem, selectedItems]);
 
-  // Tự động áp dụng voucher tốt nhất khi có sản phẩm và chưa chọn voucher thủ công
   useEffect(() => {
     if (
       (selectedItem || selectedItems.length > 0) &&
@@ -299,13 +281,11 @@ const PaymentPage = () => {
     }
   };
 
-  // Hàm tự động áp dụng voucher có giá trị lớn nhất
   const autoApplyBestVoucher = async (orderTotal: number) => {
     try {
       const response = await voucherService.getAll(1, 50, undefined, true);
       const availableVouchers = response.data;
 
-      // Lọc các voucher hợp lệ
       const validVouchers = availableVouchers.filter((voucher) => {
         const isNotExpired = new Date(voucher.endDate) >= new Date();
         const hasUsageLeft =
@@ -320,7 +300,6 @@ const PaymentPage = () => {
         return;
       }
 
-      // Tính toán giá trị giảm giá thực tế cho mỗi voucher
       const vouchersWithDiscount = validVouchers.map((voucher) => {
         const calculatedDiscount =
           orderTotal * (voucher.discountPercentage / 100);
@@ -331,12 +310,10 @@ const PaymentPage = () => {
         return { voucher, actualDiscount };
       });
 
-      // Tìm voucher có giá trị giảm giá lớn nhất
       const bestVoucher = vouchersWithDiscount.reduce((best, current) => {
         return current.actualDiscount > best.actualDiscount ? current : best;
       });
 
-      // Áp dụng voucher tốt nhất
       setSelectedVoucher(bestVoucher.voucher);
       setVoucherDiscount(bestVoucher.actualDiscount);
       setAutoAppliedVoucher(true);
@@ -398,7 +375,7 @@ const PaymentPage = () => {
   const handlePlaceOrder = async () => {
     if (!user || !user.id || !user.fullname || !user.email) {
       notify.error("Vui lòng đăng nhập trước khi đặt hàng!");
-      router.push("/login");
+      setShowLoginDialog(true);
       return;
     }
 
@@ -456,9 +433,7 @@ const PaymentPage = () => {
     try {
       setIsPlacingOrder(true);
       const response = await orderService.createOrder(orderData);
-      console.log("Order response:", response);
 
-      // Xóa sản phẩm khỏi giỏ hàng sau khi đặt hàng thành công (dispatch trực tiếp, không gọi API)
       const cartKeysToRemove = selectedItem
         ? [selectedItem.cartKey]
         : selectedItems.map((item) => item.cartKey);
@@ -467,7 +442,6 @@ const PaymentPage = () => {
 
       notify.success("Đặt hàng thành công!");
 
-      // Redirect to orders page with status filter
       const status = form.paymentMethod === "cod" ? "pending" : "unpaid";
       router.push(`/orders?status=${status}`);
     } catch (error) {
@@ -864,7 +838,7 @@ const PaymentPage = () => {
         onCancel={() => setVoucherModalVisible(false)}
         footer={null}
         width={700}
-        bodyStyle={{ maxHeight: "60vh", overflowY: "auto" }}
+        styles={{ body: { maxHeight: "60vh", overflowY: "auto" } }}
       >
         <div className="space-y-4">
           {loadingVouchers ? (
@@ -907,7 +881,7 @@ const PaymentPage = () => {
                       onClick={() =>
                         !isDisabled && handleSelectVoucher(voucher)
                       }
-                      bodyStyle={{ padding: "16px" }}
+                      styles={{ body: { padding: "16px" } }}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3 flex-1">
@@ -917,10 +891,17 @@ const PaymentPage = () => {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-bold text-lg text-gray-900 truncate">
-                                {voucher.code}
-                              </h3>
+                            <h3 className="font-bold text-lg text-gray-900 truncate mb-1">
+                              {voucher.code}
+                            </h3>
+
+                            {voucher.title && (
+                              <p className="text-gray-700 font-medium mb-2">
+                                {voucher.title}
+                              </p>
+                            )}
+
+                            <div className="flex items-center gap-2 mb-2">
                               {voucher.isActive &&
                                 !isExpired &&
                                 !isUsageLimitReached && (
@@ -931,12 +912,6 @@ const PaymentPage = () => {
                                 <Tag color="orange">Hết lượt</Tag>
                               )}
                             </div>
-
-                            {voucher.title && (
-                              <p className="text-gray-700 font-medium mb-2">
-                                {voucher.title}
-                              </p>
-                            )}
 
                             <div className="space-y-1 text-sm text-gray-600">
                               <div className="flex items-center gap-2">
@@ -1254,6 +1229,11 @@ const PaymentPage = () => {
           </div>
         </div>
       </Modal>
+
+      <LoginDialog
+        open={showLoginDialog}
+        onClose={() => setShowLoginDialog(false)}
+      />
     </div>
   );
 };

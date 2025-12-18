@@ -319,6 +319,20 @@ export default function LoginDialog({
               {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
             </motion.button>
           </motion.form>
+
+          {/* Register Link */}
+          <div className="mt-4 text-center">
+            <span className="text-gray-600 text-sm">Chưa có tài khoản? </span>
+            <button
+              onClick={() => {
+                onClose();
+                window.location.href = "/register";
+              }}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline transition"
+            >
+              Đăng ký
+            </button>
+          </div>
         </div>
       </motion.div>
 

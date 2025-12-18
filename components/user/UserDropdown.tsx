@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth/auth.service";
@@ -15,13 +15,17 @@ interface User {
 
 interface UserDropdownProps {
   user: User;
+  avatarUpdateKey?: number;
+  isMobile?: boolean;
 }
 
-export default function UserDropdown({ user }: UserDropdownProps) {
+export default function UserDropdown({
+  user,
+  avatarUpdateKey = 0,
+}: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const [forceUpdate, setForceUpdate] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -30,14 +34,31 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 
   useEffect(() => {
     if (mounted) {
-      setForceUpdate((prev) => prev + 1);
+      // Avatar update is now handled by avatarUpdateKey prop
     }
   }, [user, mounted]);
 
-  const avatarUrl =
-    mounted && user.avt
-      ? `${user.avt.split("?")[0]}?t=${Date.now()}&force=${forceUpdate}`
-      : user.avt?.split("?")[0] || null;
+  useEffect(() => {
+    if (user?.avt) {
+      // Avatar update is now handled by avatarUpdateKey prop
+    }
+  }, [user?.avt]);
+
+  // Compute avatar URL with cache busting based on avatarUpdateKey
+  // Use useMemo to ensure it updates when avatarUpdateKey changes
+  const avatarUrl = useMemo(() => {
+    if (!mounted || !user.avt) {
+      return user.avt?.split("?")[0] || null;
+    }
+    const url = `${user.avt.split("?")[0]}?force=${avatarUpdateKey}`;
+    console.log(
+      `🖼️ UserDropdown avatarUrl updated:`,
+      url,
+      `(key: ${avatarUpdateKey})`
+    );
+    return url;
+  }, [mounted, user.avt, avatarUpdateKey]);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -86,17 +107,16 @@ export default function UserDropdown({ user }: UserDropdownProps) {
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-3 w-64 bg-white rounded-2xl shadow-2xl overflow-hidden"
+          className="absolute right-0 top-full mt-1 w-64 bg-white rounded-2xl shadow-2xl overflow-hidden"
           style={{ zIndex: 100001 }}
         >
           {/* Header */}
-          <div className="relative bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 px-6 py-4 text-white">
+          <div className="relative bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 px-4 py-3 text-white">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 opacity-90"></div>
             <div className="relative z-10 flex items-center space-x-3">
               <div>
-                <p className="font-semibold text-lg">{user.fullname}</p>
-                <p className="text-white/80 text-sm truncate">{user.email}</p>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white mt-1">
+                <p className="font-semibold text-base">{user.fullname}</p>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white mt-0.5">
                   {user.role === "admin" ? "Quản trị viên" : "Khách hàng"}
                 </span>
               </div>
@@ -104,11 +124,11 @@ export default function UserDropdown({ user }: UserDropdownProps) {
           </div>
 
           {/* Menu */}
-          <div className="p-2 space-y-1">
+          <div className="p-1 space-y-0.5">
             <Link
               href="/profile"
               onClick={() => setIsOpen(false)}
-              className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-600 rounded-xl transition-all duration-300"
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-600 rounded-lg transition-all duration-300"
             >
               <svg
                 className="w-4 h-4 text-purple-600 mr-3"
@@ -129,7 +149,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
             <Link
               href="/profile/addresses"
               onClick={() => setIsOpen(false)}
-              className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-600 rounded-xl transition-all duration-300"
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-600 rounded-lg transition-all duration-300"
             >
               <svg
                 className="w-4 h-4 text-green-600 mr-3"
@@ -156,7 +176,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
             <Link
               href="/orders"
               onClick={() => setIsOpen(false)}
-              className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-600 rounded-xl transition-all duration-300"
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-600 rounded-lg transition-all duration-300"
             >
               <svg
                 className="w-4 h-4 text-blue-600 mr-3"
@@ -178,7 +198,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
               <Link
                 href="/admin"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 hover:text-orange-600 rounded-xl transition-all duration-300"
+                className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 hover:text-orange-600 rounded-lg transition-all duration-300"
               >
                 <svg
                   className="w-4 h-4 text-orange-600 mr-3"
@@ -205,7 +225,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 rounded-xl transition-all duration-300"
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 rounded-lg transition-all duration-300"
             >
               <svg
                 className="w-4 h-4 text-red-600 mr-3"

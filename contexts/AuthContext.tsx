@@ -21,6 +21,7 @@ interface AuthContextType {
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (userData: Partial<User>) => Promise<void>;
+  avatarUpdateKey: number;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -34,6 +35,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [avatarUpdateKey, setAvatarUpdateKey] = useState<number>(0);
 
   useEffect(() => {
     const token = authService.getToken();
@@ -65,6 +67,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
+      console.log("🔵 updateUser called with:", userData);
+      console.log("🔵 Current user.avt:", user.avt);
+      console.log("🔵 userData.avt:", userData.avt);
+
       const isOnlyAvatar =
         Object.keys(userData).length === 1 && "avt" in userData;
 
@@ -80,7 +86,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           avt: userData.avt,
         };
         authService.saveUser(updatedUser);
-        setUser(updatedUser);
+        // Force re-render by creating a new object
+        setUser({ ...updatedUser });
+        setAvatarUpdateKey((prev) => prev + 1); // Trigger avatar update
         return;
       }
 
@@ -95,15 +103,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: updatedUserData.id,
         fullname: updatedUserData.fullname,
         email: updatedUserData.email,
-        role: updatedUserData.role,
+        role: updatedUserData.role || user.role, // Keep current role if not returned
         phone: updatedUserData.phone,
         dob: updatedUserData.dob,
         gender: updatedUserData.gender,
-        avt: updatedUserData.avt || user.avt,
+        // CRITICAL: If avatar is in request data, use it (newly uploaded)
+        // Otherwise use from API response, or keep current
+        avt:
+          userData.avt !== undefined
+            ? userData.avt
+            : updatedUserData.avt || user.avt,
       };
 
+      console.log("💾 Saving user with avatar:", updatedUser.avt);
       authService.saveUser(updatedUser);
-      setUser(updatedUser);
+      // Force re-render by creating a new object
+      setUser({ ...updatedUser });
+
+      // Trigger avatar update if avatar is in the update data
+      // Always increment when avatar is being updated, regardless of whether URL changed
+      console.log("🔍 Checking if should update avatarUpdateKey...");
+      console.log("🔍 userData.avt exists?", !!userData.avt);
+      console.log("🔍 userData.avt value:", userData.avt);
+
+      if (userData.avt) {
+        console.log("🔄 Avatar updated, incrementing avatarUpdateKey");
+        setAvatarUpdateKey((prev) => {
+          const newKey = prev + 1;
+          console.log(`📈 avatarUpdateKey: ${prev} → ${newKey}`);
+          return newKey;
+        });
+      } else {
+        console.log(
+          "⚠️ No avatar in userData, skipping avatarUpdateKey increment"
+        );
+      }
     } catch (error) {
       console.error("❌ AuthContext: Update failed:", error);
       throw error;
@@ -116,6 +150,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     updateUser,
+    avatarUpdateKey,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

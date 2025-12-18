@@ -24,7 +24,8 @@ interface Category {
 export default function Header() {
   const { cartCount } = useCart();
   const [showLogin, setShowLogin] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, avatarUpdateKey } = useAuth();
+  const [userUpdateKey, setUserUpdateKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const pathname = usePathname();
@@ -35,9 +36,35 @@ export default function Header() {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [showMobileCategoryMenu, setShowMobileCategoryMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isUserIconDropdownOpen, setIsUserIconDropdownOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      setUserUpdateKey((prev) => prev + 1);
+      // Force re-render by updating a dummy state
+      setTimeout(() => setUserUpdateKey((prev) => prev + 1), 100);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.avt) {
+      // Avatar update is now handled by avatarUpdateKey from context
+    }
+  }, [user?.avt]);
+
+  useEffect(() => {
+    const handleUserProfileUpdate = () => {
+      setUserUpdateKey((prev) => prev + 1);
+      // Avatar update is now handled by avatarUpdateKey from context
+    };
+
+    window.addEventListener("userProfileUpdated", handleUserProfileUpdate);
+    return () =>
+      window.removeEventListener("userProfileUpdated", handleUserProfileUpdate);
   }, []);
 
   useEffect(() => {
@@ -112,6 +139,37 @@ export default function Header() {
             </span>
           </Link>
 
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 text-white hover:bg-white/20 rounded-lg transition-all"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {isMobileMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
+
           {/* 🔍 Thanh tìm kiếm - Desktop */}
           <div className="hidden md:flex flex-1 max-w-2xl mx-6 relative group">
             <input
@@ -141,7 +199,7 @@ export default function Header() {
             />
           </div>
 
-          {/* Mobile Menu Button & Cart */}
+          {/* Mobile Cart & Avatar */}
           <div className="flex md:hidden items-center gap-2">
             {isAuthenticated && mounted && (
               <Link
@@ -173,37 +231,44 @@ export default function Header() {
                       strokeWidth={2}
                       d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                     />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 11V7a3 3 0 016 0v4"
+                    />
                   </svg>
                 </Badge>
               </Link>
             )}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-white hover:bg-white/20 rounded-lg transition-all"
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            {isAuthenticated && mounted && user && (
+              <UserDropdown
+                key={`user-${userUpdateKey}-avatar-${avatarUpdateKey}`}
+                user={user}
+                avatarUpdateKey={avatarUpdateKey}
+                isMobile={true}
+              />
+            )}
+            {!isAuthenticated && mounted && (
+              <button
+                onClick={() => setShowLogin(true)}
+                className="p-2 text-white hover:bg-white/20 rounded-lg transition-all"
               >
-                {isMobileMenuOpen ? (
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                   />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
-            </button>
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* 🧭 Navigation - Desktop */}
@@ -340,7 +405,11 @@ export default function Header() {
             {/* 👤 Auth */}
             {mounted && isAuthenticated && user ? (
               <div className="relative flex items-center gap-3">
-                <UserDropdown user={user} />
+                <UserDropdown
+                  key={`user-${userUpdateKey}-avatar-${avatarUpdateKey}`}
+                  user={user}
+                  avatarUpdateKey={avatarUpdateKey}
+                />
               </div>
             ) : mounted && !isAuthenticated ? (
               <AccountDropdown onLoginClick={() => setShowLogin(true)} />
@@ -514,96 +583,6 @@ export default function Header() {
                 </svg>
                 <span className="font-medium">Sản phẩm</span>
               </Link>
-
-              {isAuthenticated && user ? (
-                <>
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/20 rounded-lg transition-all"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                    <span className="font-medium">Tài khoản</span>
-                  </Link>
-                  <Link
-                    href="/orders"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/20 rounded-lg transition-all"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                    <span className="font-medium">Đơn hàng</span>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      setShowLogin(true);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/20 rounded-lg transition-all"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                      />
-                    </svg>
-                    <span className="font-medium">Đăng nhập</span>
-                  </button>
-                  <Link
-                    href="/register"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/20 rounded-lg transition-all"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                      />
-                    </svg>
-                    <span className="font-medium">Đăng ký</span>
-                  </Link>
-                </>
-              )}
             </nav>
           </div>
         )}

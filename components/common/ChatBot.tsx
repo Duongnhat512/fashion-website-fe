@@ -136,7 +136,7 @@ export default function ChatBot() {
           webSocketService.joinConversation(activeConversation.id);
         }
       } else {
-        console.log("📝 No existing conversations found");
+        console.log("No existing conversations found");
       }
     } catch (error) {
       console.error("❌ Error loading active conversation:", error);
@@ -169,7 +169,7 @@ export default function ChatBot() {
       webSocketService.connect();
 
       const unsubscribeConnect = webSocketService.onConnect(() => {
-        console.log("✅ WebSocket connected");
+        console.log("WebSocket connected");
         setIsConnected(true);
         if (!currentConversation) {
           loadActiveConversation();
@@ -177,7 +177,7 @@ export default function ChatBot() {
       });
 
       const unsubscribeDisconnect = webSocketService.onDisconnect(() => {
-        console.log("❌ WebSocket disconnected");
+        console.log("WebSocket disconnected");
         setIsConnected(false);
       });
 
@@ -272,7 +272,7 @@ export default function ChatBot() {
     ) {
       const interval = setInterval(() => {
         refreshConversation();
-      }, 5000); // Check every 5 seconds
+      }, 5000);
 
       return () => clearInterval(interval);
     }
@@ -384,7 +384,6 @@ export default function ChatBot() {
     if (!currentConversation) return;
 
     try {
-      // **CẬP NHẬT STATE NGAY LẬP TỨC** để tránh race condition
       setCurrentConversation((prev) =>
         prev
           ? {
@@ -439,7 +438,6 @@ export default function ChatBot() {
     const lines = message.split("\n");
 
     for (const line of lines) {
-      // Match pattern: * Product Name (Ảnh: imageUrl), giá price, có màu color (size), color (size)
       const productMatch = line.match(
         /^\*\s+(.+?)\s+\(Ảnh:\s*(.+?)\),\s+giá\s+(.+?),\s+có màu\s+(.+)$/
       );
@@ -447,7 +445,6 @@ export default function ChatBot() {
       if (productMatch) {
         const [, name, imageUrl, priceRange, variantsText] = productMatch;
 
-        // Parse price range
         const priceMatch = priceRange.match(
           /(\d+(?:\.\d+)?)đ(?:\s*-\s*(\d+(?:\.\d+)?)đ)?/
         );
@@ -455,7 +452,6 @@ export default function ChatBot() {
           ? parseFloat(priceMatch[1].replace(".", ""))
           : 0;
 
-        // Parse variants
         const variants: Variant[] = [];
         const variantMatches = variantsText.matchAll(/([^\(]+)\s*\(([^)]+)\)/g);
 
@@ -463,7 +459,6 @@ export default function ChatBot() {
           const colorName = match[1].trim();
           const size = match[2].trim();
 
-          // Map common colors to hex codes
           const colorMap: { [key: string]: string } = {
             Trắng: "#FFFFFF",
             Đen: "#000000",
@@ -508,19 +503,12 @@ export default function ChatBot() {
     return products;
   };
 
-  console.log(
-    "ChatBot render - isOpen:",
-    isOpen,
-    "isAuthenticated:",
-    isAuthenticated
-  );
-
   return (
     <>
       {/* Nút mở chatbot - floating button */}
       {!isOpen && (
         <div
-          className="fixed bottom-6 right-6 chatbot-container"
+          className="fixed  md:bottom-6 md:right-6 bottom-4 right-4 chatbot-container"
           style={{
             zIndex: 9999,
             position: "fixed",
@@ -530,18 +518,18 @@ export default function ChatBot() {
         >
           <button
             onClick={handleOpenChat}
-            className="relative w-16 h-16 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 text-white rounded-full shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 hover:scale-110 flex items-center justify-center group overflow-hidden animate-bounce-gentle"
+            className="relative w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 text-white rounded-full shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 hover:scale-110 flex items-center justify-center group overflow-hidden animate-bounce-gentle"
           >
             {/* Background animation */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-cyan-400 rounded-full animate-pulse opacity-75"></div>
 
             {/* Icon with wave animation */}
             <div className="relative z-10 animate-wave">
-              <MessageOutlined className="text-2xl" />
+              <MessageOutlined className=" md:text-2xl text-lg" />
             </div>
 
             {/* Notification dot */}
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full animate-bounce border-2 border-white"></div>
+            <div className="absolute -top-1 -right-1 md:w-4 md:h-4 w-3 h-3 bg-rose-500 rounded-full animate-bounce border-2 border-white"></div>
 
             {/* Ripple effect */}
             <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-ping"></div>
@@ -660,47 +648,46 @@ export default function ChatBot() {
       {/* Cửa sổ chat */}
       {isOpen && isAuthenticated && (
         <div
-          className="fixed bottom-6 right-6 w-[420px] h-[650px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-emerald-100 chatbot-container"
+          className=" transition-all duration-300
+    inset-0 w-full h-full 
+    md:inset-auto md:bottom-6 md:right-6 md:w-[400px] md:h-[600px]
+    bg-white shadow-2xl flex flex-col overflow-hidden rounded-2xl border border-gray-100"
           style={{
             zIndex: 9999,
             position: "fixed",
-            bottom: "24px",
-            right: "24px",
             display: "flex",
             flexDirection: "column",
-            width: "420px",
-            maxHeight: "80vh",
             backgroundColor: "white",
           }}
         >
           {/* Header */}
-          <div className="flex-shrink-0 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 text-white p-4 flex items-center justify-between relative">
-            <div className="flex items-center gap-3 relative z-10">
+          <div className="flex-shrink-0 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 text-white p-3 md:p-4 flex items-center justify-between relative">
+            <div className="flex items-center gap-2 md:gap-3 relative z-10">
               <div className="relative">
                 {currentConversation?.conversationType === "human" ? (
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <UserOutlined className="text-2xl" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <UserOutlined className="text-xl md:text-2xl" />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <RobotOutlined className="text-2xl" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <RobotOutlined className="text-xl md:text-2xl" />
                   </div>
                 )}
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
               </div>
               <div>
-                <h3 className="font-bold text-xl flex items-center gap-2">
+                <h3 className="font-bold  md:text-xl text-lg flex items-center gap-2">
                   {currentConversation?.conversationType === "human"
                     ? "Hỗ trợ viên"
                     : "Trợ lý BooBoo"}
-                  <span className="text-lg animate-bounce">
+                  <span className="md:text-lg text-base animate-bounce">
                     {currentConversation?.conversationType === "human"
                       ? "👨‍💼"
                       : "🤖"}
                   </span>
                 </h3>
-                <div className="text-sm text-white/90 flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full animate-pulse bg-green-400"></div>
+                <div className="md:text-sm text-xs text-white/90 flex items-center gap-1">
+                  <div className="md:w-2 md:h-2 w-1.5 h-1.5 rounded-full animate-pulse bg-green-400"></div>
                   {currentConversation?.status === "active" ? (
                     <span className="flex items-center gap-1">
                       <CheckCircleOutlined /> Đang trò chuyện
@@ -710,7 +697,7 @@ export default function ChatBot() {
                   )}
                 </div>
                 {currentConversation?.agentId && (
-                  <div className="text-xs text-white/80 mt-1">
+                  <div className="md:text-xs text-xs text-white/80 mt-1">
                     Nhân viên đang hỗ trợ
                   </div>
                 )}
@@ -726,7 +713,7 @@ export default function ChatBot() {
             </div>
           </div>
           {/* Chat mode indicator */}
-          <div className="flex-shrink-0 bg-gradient-to-r from-purple-100 to-blue-100 border-b border-purple-200 px-5 py-2 flex items-center justify-between">
+          <div className="flex-shrink-0 bg-gradient-to-r from-purple-100 to-blue-100 border-b border-purple-200 px-3 md:px-5 py-2 flex items-center justify-between">
             <span className="text-sm text-purple-800 font-medium">
               {currentConversation?.conversationType === "human"
                 ? "Đang trò chuyện với Nhân viên"
@@ -754,7 +741,7 @@ export default function ChatBot() {
             </Button>
           </div>
           {/* Messages */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-gradient-to-b from-purple-50/30 via-blue-50/20 to-cyan-50/30 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100 hover:scrollbar-thumb-purple-400">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 bg-gradient-to-b from-purple-50/30 via-blue-50/20 to-cyan-50/30 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100 hover:scrollbar-thumb-purple-400">
             <div className="space-y-3">
               {isLoadingConversation && (
                 <div className="flex justify-center py-8">
@@ -841,9 +828,7 @@ export default function ChatBot() {
                         ""
                       )}
                     </div>
-                    {/* Hiển thị sản phẩm - ưu tiên API object, nếu không có thì parse từ text */}
                     {(() => {
-                      // Nếu có products từ API, hiển thị từ API
                       if (message.products && message.products.length > 0) {
                         return (
                           <div className="mt-4 space-y-3">
@@ -869,7 +854,6 @@ export default function ChatBot() {
                                         alt={product.name}
                                         className="w-16 h-16 object-cover rounded-lg shadow-sm"
                                         onError={(e) => {
-                                          // Fallback if image fails to load
                                           (e.target as HTMLImageElement).src =
                                             "https://via.placeholder.com/64x64?text=No+Image";
                                         }}
@@ -944,7 +928,6 @@ export default function ChatBot() {
                         );
                       }
 
-                      // Nếu không có API products, parse từ text
                       const parsedProducts = parseProductsFromMessage(
                         message.content
                       );
@@ -972,7 +955,6 @@ export default function ChatBot() {
                                       alt={product.name}
                                       className="w-16 h-16 object-cover rounded-lg shadow-sm"
                                       onError={(e) => {
-                                        // Fallback if image fails to load
                                         (e.target as HTMLImageElement).src =
                                           "https://via.placeholder.com/64x64?text=No+Image";
                                       }}
@@ -1115,7 +1097,7 @@ export default function ChatBot() {
             }`}
           ></div>
           <div
-            className={`flex-shrink-0 p-4 border-t transition-all duration-300 rounded-b-3xl ${
+            className={`flex-shrink-0 p-3 md:p-4 border-t transition-all duration-300 rounded-b-none md:rounded-b-3xl ${
               isInputFocused
                 ? "bg-white border-purple-300"
                 : "bg-gray-50/30 backdrop-blur-sm border-purple-100"
@@ -1145,7 +1127,7 @@ export default function ChatBot() {
                 onClick={handleSendMessage}
                 loading={isLoading}
                 disabled={!inputValue.trim() || isLoading}
-                className={`h-auto px-6 border-none shadow-lg transition-all duration-300 transform rounded-xl ${
+                className={`h-auto px-4 md:px-6 border-none shadow-lg transition-all duration-300 transform rounded-xl ${
                   isInputFocused
                     ? "bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600"
                     : "bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500"

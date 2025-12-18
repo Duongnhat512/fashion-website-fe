@@ -188,9 +188,9 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-[1600px] mx-auto px-8 py-10">
+      <div className="max-w-[1600px] mx-auto px-3 md:px-6 lg:px-8 py-4 md:py-10">
         <Breadcrumb
-          className="mb-6"
+          className="mb-4 md:mb-6 hidden md:block"
           items={[
             { title: <Link href="/">Trang chủ</Link> },
             { title: <Link href="/products">Sản phẩm</Link> },
@@ -202,42 +202,49 @@ export default function ProductDetail() {
           <div className="bg-white rounded-2xl overflow-hidden">
             <Row gutter={[0, 0]}>
               <Col xs={24} lg={10}>
-                <div className="bg-gray-50 p-8 min-h-full flex items-center justify-center">
+                <div className="bg-gray-50 p-4 md:p-8 min-h-full flex items-center justify-center">
                   <img
                     src={mainImage}
                     alt={product.name}
-                    className="w-full max-h-[500px] object-contain transition-transform duration-500 hover:scale-105"
+                    className="w-full max-h-[300px] md:max-h-[500px] object-contain transition-transform duration-500 hover:scale-105"
                   />
                 </div>
               </Col>
 
               <Col xs={24} lg={14}>
-                <div className="bg-white p-8">
-                  <Space direction="vertical" size="middle" className="w-full">
+                <div className="bg-white p-4 md:p-8">
+                  <Space
+                    direction="vertical"
+                    size="small"
+                    className="w-full md:space-y-4"
+                  >
                     <div>
-                      <h1 className="text-4xl font-bold mb-3">
+                      <h1 className="text-xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-3">
                         {product.name}
                       </h1>
                       {product.brand && (
-                        <div className="flex items-center gap-3">
-                          <h2 className="text-lg font-semibold text-gray-700 m-0">
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <h2 className="text-sm md:text-lg font-semibold text-gray-700 m-0">
                             Thương hiệu:
                           </h2>
-                          <Tag color="blue" className="text-base px-4 py-1 m-0">
+                          <Tag
+                            color="blue"
+                            className="text-sm md:text-base px-2 md:px-4 py-1 m-0"
+                          >
                             {product.brand}
                           </Tag>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3">
                       <Rate
                         disabled
                         defaultValue={product.ratingAverage}
                         allowHalf
-                        className="text-xl"
+                        className="text-base md:text-xl"
                       />
-                      <span className="text-gray-600 text-base">
+                      <span className="text-gray-600 text-sm md:text-base">
                         {product.ratingCount > 0
                           ? `(${product.ratingCount} đánh giá)`
                           : "(Chưa có đánh giá)"}
@@ -245,8 +252,8 @@ export default function ProductDetail() {
                     </div>
 
                     {product.variants?.length > 0 && (
-                      <div className="flex items-center gap-4">
-                        <span className="font-semibold text-lg whitespace-nowrap">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                        <span className="font-semibold text-base md:text-lg whitespace-nowrap">
                           Chọn phiên bản:
                         </span>
                         <Select
@@ -303,17 +310,17 @@ export default function ProductDetail() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 md:gap-4">
                       {/* Nếu có giảm giá */}
                       {selectedVariant &&
                       selectedVariant.discountPrice > 0 &&
                       selectedVariant.discountPrice < selectedVariant.price ? (
                         <>
-                          <div className="text-2xl text-gray-400 line-through font-medium">
+                          <div className="text-lg md:text-2xl text-gray-400 line-through font-medium">
                             {selectedVariant.price.toLocaleString("vi-VN")}₫
                           </div>
 
-                          <div className="text-4xl font-bold text-red-600">
+                          <div className="text-2xl md:text-4xl font-bold text-red-600">
                             {selectedVariant.discountPrice.toLocaleString(
                               "vi-VN"
                             )}
@@ -321,21 +328,21 @@ export default function ProductDetail() {
                           </div>
                         </>
                       ) : (
-                        <div className="text-4xl font-bold text-gray-900">
+                        <div className="text-2xl md:text-4xl font-bold text-gray-900">
                           {selectedVariant?.price.toLocaleString("vi-VN")}₫
                         </div>
                       )}
                     </div>
 
-                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200 shadow-sm">
-                      <p className="text-gray-700 text-base leading-relaxed">
+                    <div className="bg-gray-50 rounded-xl p-4 md:p-6 border border-gray-200 shadow-sm">
+                      <p className="text-gray-700 text-sm md:text-base leading-relaxed">
                         {product.shortDescription}
                       </p>
                     </div>
 
-                    <Space>
+                    <Space className="flex-wrap">
                       <Button
-                        size="large"
+                        size="middle"
                         icon={<MinusOutlined />}
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                         disabled={quantity <= 1}
@@ -345,13 +352,13 @@ export default function ProductDetail() {
                         max={selectedVariant?.stock || 999}
                         value={quantity}
                         onChange={(v) => setQuantity(v || 1)}
-                        style={{ width: 100 }}
+                        style={{ width: 70 }}
                         controls={false}
-                        size="large"
-                        className="text-lg"
+                        size="middle"
+                        className="text-base md:text-lg"
                       />
                       <Button
-                        size="large"
+                        size="middle"
                         icon={<PlusOutlined />}
                         onClick={() => setQuantity(quantity + 1)}
                         disabled={
@@ -362,21 +369,21 @@ export default function ProductDetail() {
                       />
                     </Space>
 
-                    <Space size="middle">
+                    <Space size="small" className="flex-wrap">
                       <Button
                         type="primary"
-                        size="large"
+                        size="middle"
                         icon={<ShoppingCartOutlined />}
                         onClick={handleAddToCart}
-                        className="text-base font-medium px-8 bg-black hover:bg-gray-800 border-black"
+                        className="text-sm md:text-base font-medium px-4 md:px-8 bg-black hover:bg-gray-800 border-black"
                       >
-                        Thêm vào giỏ hàng
+                        Thêm vào giỏ
                       </Button>
                       <Button
-                        size="large"
+                        size="middle"
                         icon={<ArrowLeftOutlined />}
                         onClick={() => router.back()}
-                        className="text-base font-medium px-6"
+                        className="text-sm md:text-base font-medium px-4 md:px-6"
                       >
                         Quay lại
                       </Button>
@@ -390,11 +397,11 @@ export default function ProductDetail() {
 
         {/* Sản phẩm liên quan */}
         {relatedProducts.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-3xl font-bold mb-6 text-left text-gray-800">
+          <div className="mt-6 md:mt-12">
+            <h2 className="text-xl md:text-3xl font-bold mb-4 md:mb-6 text-left text-gray-800">
               Sản phẩm liên quan
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
               {relatedProducts.map((p) => {
                 const v = p.variants?.[0];
                 return (
@@ -509,7 +516,12 @@ border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-
 
         {/* Phần Đánh giá - Đặt dưới sản phẩm liên quan */}
         {product && (
-          <ProductReviews productId={product.id} productName={product.name} />
+          <ProductReviews
+            productId={product.id}
+            productName={product.name}
+            ratingAverage={product.ratingAverage}
+            ratingCount={product.ratingCount}
+          />
         )}
       </div>
 

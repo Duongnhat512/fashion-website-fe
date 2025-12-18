@@ -84,7 +84,7 @@ class WebSocketService {
     });
 
     this.socket.on('pong', () => {
-      console.log('🏓 WebSocket pong received');
+      console.log('WebSocket pong received');
     });
 
     this.socket.on('error', (error) => {

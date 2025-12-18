@@ -141,6 +141,8 @@ class AuthService {
       }
 
       const data: ApiResponse<UpdateUserResponse> = await response.json();
+      console.log('🔍 updateAvatar API response:', data);
+      console.log('🔍 data.data:', data.data);
       if (!data.success) throw new Error(data.message || 'Upload avatar thất bại');
 
       return data.data;

@@ -34,9 +34,15 @@ const { TextArea } = Input;
 interface ProductReviewsProps {
   productId: string;
   productName: string;
+  ratingAverage?: number;
+  ratingCount?: number;
 }
 
-export default function ProductReviews({ productId }: ProductReviewsProps) {
+export default function ProductReviews({
+  productId,
+  ratingAverage,
+  ratingCount,
+}: ProductReviewsProps) {
   const { user } = useAuth();
   const notify = useNotification();
 
@@ -181,6 +187,22 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         </p>
       </div>
 
+      {/* Hiển thị rating tổng quan trên mobile */}
+      <div className="md:hidden mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-lg font-semibold text-gray-800">Đánh giá:</span>
+          <Rate
+            disabled
+            value={ratingAverage || 0}
+            allowHalf
+            className="text-lg"
+          />
+          <span className="text-gray-600 text-sm">
+            ({ratingCount || 0} đánh giá)
+          </span>
+        </div>
+      </div>
+
       <h3 className="text-xl font-semibold mb-4 text-gray-800">
         {reviewTotal > 0 ? `Các đánh giá (${reviewTotal})` : "Các đánh giá"}
       </h3>
@@ -228,7 +250,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="hidden md:flex items-center gap-3">
                       {/* Rating */}
                       {editingReviewId === review.id ? (
                         <Rate
@@ -293,6 +315,26 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                         </Space>
                       )}
                     </div>
+                  </div>
+
+                  {/* Rating trên mobile - hiển thị phía trên comment */}
+                  <div className="md:hidden mt-3 flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Đánh giá:
+                    </span>
+                    {editingReviewId === review.id ? (
+                      <Rate
+                        value={editReviewRating}
+                        onChange={setEditReviewRating}
+                        style={{ fontSize: 14 }}
+                      />
+                    ) : (
+                      <Rate
+                        disabled
+                        value={review.rating}
+                        style={{ fontSize: 14 }}
+                      />
+                    )}
                   </div>
 
                   {/* Nội dung đánh giá */}

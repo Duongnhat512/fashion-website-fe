@@ -103,7 +103,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-sky-50 to-cyan-50">
-      <div className="w-full px-2 md:px-4 lg:px-6 grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6 pt-4 md:pt-8 pb-16 md:pb-24">
+      <div className="w-full px-3 md:px-4 lg:px-6 grid grid-cols-1 xl:grid-cols-3 gap-3 md:gap-6 pt-4 md:pt-8 pb-20 md:pb-24">
         {/* Danh sách sản phẩm */}
         <div className="xl:col-span-2 bg-white rounded-xl md:rounded-2xl shadow-xl divide-y divide-gray-200">
           {/* Header chọn tất cả */}
@@ -132,25 +132,25 @@ export default function CartPage() {
             >
               {/* Mobile Layout */}
               <div className="md:hidden">
-                <div className="flex items-start gap-3 mb-3">
+                <div className="flex items-center gap-2.5 mb-3">
                   {/* Checkbox */}
                   <input
                     type="checkbox"
                     checked={selectedItems.includes(item.cartKey)}
                     onChange={() => toggleSelect(item.cartKey)}
-                    className="w-4 h-4 accent-blue-600 cursor-pointer mt-1"
+                    className="w-4 h-4 accent-blue-600 cursor-pointer flex-shrink-0"
                   />
 
                   {/* Ảnh sản phẩm */}
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-20 h-24 object-cover rounded-lg shadow-md border flex-shrink-0"
+                    className="w-24 h-28 object-cover rounded-lg shadow-md border flex-shrink-0"
                   />
 
                   {/* Thông tin sản phẩm */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold line-clamp-2 mb-1">
+                    <h3 className="text-sm font-semibold line-clamp-2 mb-1.5 text-gray-900">
                       {item.name}
                     </h3>
 
@@ -200,19 +200,19 @@ export default function CartPage() {
                   {/* Icon xóa */}
                   <TrashIcon
                     onClick={() => removeItem(item.cartKey)}
-                    className="w-5 h-5 text-gray-400 hover:text-red-500 cursor-pointer transition flex-shrink-0"
+                    className="w-5 h-5 text-gray-400 hover:text-red-500 cursor-pointer transition flex-shrink-0 self-center"
                   />
                 </div>
 
                 {/* Nút tăng giảm số lượng */}
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => updateQty(item.cartKey, item.qty - 1)}
                       disabled={item.qty <= 1}
-                      className="p-1.5 border rounded-md hover:bg-gray-100 disabled:opacity-50"
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      <MinusIcon className="h-3 w-3" />
+                      <MinusIcon className="h-3.5 w-3.5" />
                     </button>
                     <input
                       type="number"
@@ -221,13 +221,13 @@ export default function CartPage() {
                       onChange={(e) =>
                         updateQty(item.cartKey, Number(e.target.value))
                       }
-                      className="w-12 text-center border rounded-md text-sm py-1"
+                      className="w-14 text-center border border-gray-300 rounded-lg text-sm py-1.5 font-semibold"
                     />
                     <button
                       onClick={() => updateQty(item.cartKey, item.qty + 1)}
-                      className="p-1.5 border rounded-md hover:bg-gray-100"
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
                     >
-                      <PlusIcon className="h-3 w-3" />
+                      <PlusIcon className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
@@ -367,7 +367,7 @@ export default function CartPage() {
         </div>
 
         {/* Phần tóm tắt */}
-        <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl p-4 md:p-6 space-y-3 md:space-y-4 h-fit xl:sticky xl:top-24">
+        <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl p-5 md:p-6 space-y-3.5 md:space-y-4 h-fit sticky bottom-0 xl:top-24 z-10">
           <h2 className="text-lg md:text-xl font-bold text-gray-900 text-center mb-3 md:mb-4">
             Tóm tắt đơn hàng
           </h2>
@@ -396,14 +396,14 @@ export default function CartPage() {
 
           <button
             onClick={placeOrder}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-2.5 md:py-3 rounded-xl hover:from-purple-700 hover:to-blue-700 transition text-sm md:text-base"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-3 md:py-3.5 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 text-sm md:text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           >
-            Đặt hàng các sản phẩm đã chọn
+            Đặt hàng ({selectedItems.length})
           </button>
 
           <button
             onClick={() => router.push("/")}
-            className="w-full border border-gray-300 text-gray-700 font-medium py-2.5 md:py-3 rounded-xl hover:bg-gray-50 transition text-sm md:text-base"
+            className="w-full border-2 border-gray-300 text-gray-700 font-semibold py-3 md:py-3.5 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 text-sm md:text-base"
           >
             Tiếp tục mua sắm
           </button>

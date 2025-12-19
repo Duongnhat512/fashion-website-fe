@@ -983,7 +983,7 @@ const PaymentPage = () => {
               <button
                 onClick={() => {
                   setShowAddressModal(false);
-                  router.push("/profile/addresses");
+                  setShowAddAddressModal(true);
                 }}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >

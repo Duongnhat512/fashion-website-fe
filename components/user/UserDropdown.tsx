@@ -32,30 +32,12 @@ export default function UserDropdown({
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (mounted) {
-      // Avatar update is now handled by avatarUpdateKey prop
-    }
-  }, [user, mounted]);
-
-  useEffect(() => {
-    if (user?.avt) {
-      // Avatar update is now handled by avatarUpdateKey prop
-    }
-  }, [user?.avt]);
-
-  // Compute avatar URL with cache busting based on avatarUpdateKey
-  // Use useMemo to ensure it updates when avatarUpdateKey changes
   const avatarUrl = useMemo(() => {
     if (!mounted || !user.avt) {
       return user.avt?.split("?")[0] || null;
     }
     const url = `${user.avt.split("?")[0]}?force=${avatarUpdateKey}`;
-    console.log(
-      `🖼️ UserDropdown avatarUrl updated:`,
-      url,
-      `(key: ${avatarUpdateKey})`
-    );
+
     return url;
   }, [mounted, user.avt, avatarUpdateKey]);
 
@@ -170,7 +152,7 @@ export default function UserDropdown({
                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              Địa chỉ của bạn
+              Địa chỉ của tôi
             </Link>
 
             <Link

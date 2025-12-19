@@ -18,6 +18,8 @@ import {
   Popconfirm,
   Spin,
   Empty,
+  Select,
+  Checkbox,
 } from "antd";
 import {
   PlusOutlined,
@@ -38,22 +40,18 @@ import {
 export default function AddressManagement() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [form] = Form.useForm();
   const notify = useNotification();
   const { user } = useAuth();
 
-  // State cho tỉnh/thành và phường/xã
   const [provinceSuggestions, setProvinceSuggestions] = useState<Province[]>(
     []
   );
   const [wardSuggestions, setWardSuggestions] = useState<Ward[]>([]);
-  const [showProvinceSuggestions, setShowProvinceSuggestions] = useState(false);
-  const [showWardSuggestions, setShowWardSuggestions] = useState(false);
   const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>("");
-  const [cityInput, setCityInput] = useState("");
-  const [wardInput, setWardInput] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -61,31 +59,28 @@ export default function AddressManagement() {
     }
   }, [user]);
 
-  // Load danh sách tỉnh/thành ban đầu
   useEffect(() => {
     setProvinceSuggestions(getProvinces());
   }, []);
 
-  // Tìm kiếm tỉnh/thành khi user nhập
   useEffect(() => {
-    const filtered = searchProvinces(cityInput);
-    setProvinceSuggestions(filtered);
-  }, [cityInput]);
-
-  // Tìm kiếm phường/xã khi user nhập và đã chọn tỉnh
-  useEffect(() => {
-    if (selectedProvinceCode) {
-      const filtered = searchWards(selectedProvinceCode, wardInput);
-      setWardSuggestions(filtered);
+    const city = form.getFieldValue("city");
+    if (city) {
+      const provinces = getProvinces();
+      const province = provinces.find((p) => p.name === city);
+      if (province) {
+        setSelectedProvinceCode(province.code);
+        const filtered = searchWards(province.code, "");
+        setWardSuggestions(filtered);
+      }
     }
-  }, [selectedProvinceCode, wardInput]);
+  }, [form.getFieldValue("city")]);
 
   const fetchAddresses = async () => {
     try {
       setLoading(true);
       const response = await addressService.getAllAddresses();
       if (response.success && Array.isArray(response.data)) {
-        // Sắp xếp: địa chỉ mặc định lên đầu
         const sortedAddresses = (response.data as Address[]).sort((a, b) =>
           a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1
         );
@@ -102,23 +97,18 @@ export default function AddressManagement() {
     if (address) {
       setEditingAddress(address);
       form.setFieldsValue(address);
-      setCityInput(address.city);
-      setWardInput(address.ward);
-      // Tìm province code từ tên
       const provinces = getProvinces();
       const province = provinces.find((p) => p.name === address.city);
-      if (province) setSelectedProvinceCode(province.code);
+      if (province) {
+        setSelectedProvinceCode(province.code);
+        const filtered = searchWards(province.code, "");
+        setWardSuggestions(filtered);
+      }
     } else {
       setEditingAddress(null);
       form.resetFields();
-      // Tự động điền fullName và phone từ user
-      form.setFieldsValue({
-        fullName: user?.fullname || "",
-        phone: user?.phone || "",
-      });
-      setCityInput("");
-      setWardInput("");
       setSelectedProvinceCode("");
+      setWardSuggestions([]);
     }
     setIsModalOpen(true);
   };
@@ -127,47 +117,80 @@ export default function AddressManagement() {
     setIsModalOpen(false);
     setEditingAddress(null);
     form.resetFields();
-    setCityInput("");
-    setWardInput("");
     setSelectedProvinceCode("");
-    setShowProvinceSuggestions(false);
-    setShowWardSuggestions(false);
+    setWardSuggestions([]);
   };
 
   const handleSubmit = async (values: any) => {
+    console.log("[Address Form] Submit started", values);
+    console.log("[Address Form] User info:", {
+      fullname: user?.fullname,
+      phone: user?.phone,
+    });
+
+    // Validate required fields
+    if (!values.city || !values.ward || !values.fullAddress) {
+      notify.error("Vui lòng điền đầy đủ thông tin!");
+      return;
+    }
+
+    const fullName = user?.fullname || "";
+    const phone = user?.phone || "";
+
+    if (!fullName || !phone) {
+      notify.error("Thiếu thông tin người dùng. Vui lòng đăng nhập lại!");
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      // Tự động thêm fullName và phone từ user nếu không có
       const payload = {
-        ...values,
-        fullName: values.fullName || user?.fullname || "",
-        phone: values.phone || user?.phone || "",
-        district: values.district || "", // Không bắt buộc
+        fullName: fullName,
+        phone: phone,
+        city: values.city,
+        ward: values.ward,
+        district: values.district || "",
+        fullAddress: values.fullAddress,
+        isDefault: values.isDefault || false,
       };
 
+      console.log("[Address Form] Payload:", payload);
+
       if (editingAddress) {
-        // Cập nhật địa chỉ
+        console.log("[Address Form] Updating address:", editingAddress.id);
         const response = await addressService.updateAddress(
           editingAddress.id,
           payload
         );
+        console.log("[Address Form] Update response:", response);
         if (response.success) {
           notify.success("Cập nhật địa chỉ thành công");
           fetchAddresses();
           handleCloseModal();
+        } else {
+          console.error("[Address Form] Update failed:", response);
+          notify.error(response.message || "Không thể cập nhật địa chỉ");
         }
       } else {
-        // Tạo mới địa chỉ
+        console.log("[Address Form] Creating new address");
         const response = await addressService.createAddress(payload);
+        console.log("[Address Form] Create response:", response);
         if (response.success) {
           notify.success("Thêm địa chỉ thành công");
           fetchAddresses();
           handleCloseModal();
+        } else {
+          console.error("[Address Form] Create failed:", response);
+          notify.error(response.message || "Không thể thêm địa chỉ");
         }
       }
     } catch (error) {
+      console.error("[Address Form] Exception:", error);
       notify.error(
         editingAddress ? "Không thể cập nhật địa chỉ" : "Không thể thêm địa chỉ"
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -326,27 +349,22 @@ export default function AddressManagement() {
         onCancel={handleCloseModal}
         footer={null}
         width={600}
+        centered
+        style={{ maxWidth: "95vw" }}
+        bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
+        destroyOnClose
+        maskClosable={false}
+        keyboard={false}
       >
         <Form
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
           className="mt-4"
+          validateTrigger={["onBlur", "onChange"]}
+          scrollToFirstError
         >
-          {/* Hidden fields - tự động lấy từ user */}
-          <Form.Item name="fullName" hidden>
-            <Input />
-          </Form.Item>
-
-          <Form.Item name="phone" hidden>
-            <Input />
-          </Form.Item>
-
-          <Form.Item name="district" hidden>
-            <Input />
-          </Form.Item>
-
-          {/* Tỉnh/Thành phố với autocomplete */}
+          {/* Tỉnh/Thành phố với Select */}
           <Form.Item
             label="Tỉnh/Thành phố"
             name="city"
@@ -354,37 +372,38 @@ export default function AddressManagement() {
               { required: true, message: "Vui lòng chọn tỉnh/thành phố" },
             ]}
           >
-            <div className="relative">
-              <Input
-                placeholder="Nhập tên tỉnh/thành phố"
-                size="large"
-                value={cityInput}
-                onChange={(e) => {
-                  setCityInput(e.target.value);
-                  form.setFieldValue("city", e.target.value);
-                  setShowProvinceSuggestions(true);
-                }}
-                onFocus={() => setShowProvinceSuggestions(true)}
-              />
-              {showProvinceSuggestions && provinceSuggestions.length > 0 && (
-                <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
-                  {provinceSuggestions.slice(0, 10).map((province) => (
-                    <div
-                      key={province.code}
-                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
-                      onClick={() => {
-                        setCityInput(province.name);
-                        form.setFieldValue("city", province.name);
-                        setSelectedProvinceCode(province.code);
-                        setShowProvinceSuggestions(false);
-                      }}
-                    >
-                      {province.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <Select
+              placeholder="Chọn tỉnh/thành phố"
+              size="large"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) => {
+                const label = option?.label || option?.children;
+                if (typeof label === "string") {
+                  return label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+                }
+                return false;
+              }}
+              getPopupContainer={(trigger) =>
+                trigger.parentElement || document.body
+              }
+              onChange={(value) => {
+                form.setFieldsValue({ city: value, ward: undefined });
+                const provinces = getProvinces();
+                const province = provinces.find((p) => p.name === value);
+                if (province) {
+                  setSelectedProvinceCode(province.code);
+                  const filtered = searchWards(province.code, "");
+                  setWardSuggestions(filtered);
+                }
+              }}
+            >
+              {provinceSuggestions.map((province) => (
+                <Select.Option key={province.code} value={province.name}>
+                  {province.name}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           {/* Phường/Xã */}
@@ -393,41 +412,29 @@ export default function AddressManagement() {
             name="ward"
             rules={[{ required: true, message: "Vui lòng chọn phường/xã" }]}
           >
-            <div className="relative">
-              <Input
-                placeholder="Nhập tên phường/xã"
-                size="large"
-                value={wardInput}
-                onChange={(e) => {
-                  setWardInput(e.target.value);
-                  form.setFieldValue("ward", e.target.value);
-                }}
-                onFocus={() => setShowWardSuggestions(true)}
-                disabled={!selectedProvinceCode}
-              />
-              {showWardSuggestions && wardSuggestions.length > 0 && (
-                <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
-                  {wardSuggestions
-                    .filter((w) =>
-                      w.name.toLowerCase().includes(wardInput.toLowerCase())
-                    )
-                    .slice(0, 10)
-                    .map((ward) => (
-                      <div
-                        key={ward.code}
-                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
-                        onClick={() => {
-                          setWardInput(ward.name);
-                          form.setFieldValue("ward", ward.name);
-                          setShowWardSuggestions(false);
-                        }}
-                      >
-                        {ward.name}
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
+            <Select
+              placeholder="Chọn phường/xã"
+              size="large"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) => {
+                const label = option?.label || option?.children;
+                if (typeof label === "string") {
+                  return label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+                }
+                return false;
+              }}
+              getPopupContainer={(trigger) =>
+                trigger.parentElement || document.body
+              }
+              disabled={!selectedProvinceCode}
+            >
+              {wardSuggestions.map((ward) => (
+                <Select.Option key={ward.code} value={ward.name}>
+                  {ward.name}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item
@@ -445,15 +452,23 @@ export default function AddressManagement() {
           </Form.Item>
 
           <Form.Item name="isDefault" valuePropName="checked">
-            <label className="flex items-center cursor-pointer">
-              <input type="checkbox" className="mr-2" />
-              <span>Đặt làm địa chỉ mặc định</span>
-            </label>
+            <Checkbox>Đặt làm địa chỉ mặc định</Checkbox>
           </Form.Item>
 
-          <div className="flex gap-2 justify-end">
-            <Button onClick={handleCloseModal}>Hủy</Button>
-            <Button type="primary" htmlType="submit">
+          <div className="flex gap-2 justify-end pt-4 border-t mt-4">
+            <Button
+              onClick={handleCloseModal}
+              size="large"
+              disabled={submitting}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              loading={submitting}
+            >
               {editingAddress ? "Cập nhật" : "Thêm mới"}
             </Button>
           </div>

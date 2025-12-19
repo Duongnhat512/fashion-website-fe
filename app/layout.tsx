@@ -20,6 +20,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <script src="//cdn.jsdelivr.net/npm/eruda"></script>
+            <script dangerouslySetInnerHTML={{ __html: "eruda.init();" }} />
+          </>
+        )}
+      </head>
       <body className="pt-20 relative" suppressHydrationWarning>
         <ConfigProvider
           theme={{
